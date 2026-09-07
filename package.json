@@ -1,0 +1,32 @@
+{
+  "name": "ai-kader-quest",
+  "version": "1.0.0",
+  "description": "A team facilitation game for Dutch government AI-kader decisions.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node scripts/build.cjs --client && node server.js",
+    "build": "node scripts/build.cjs",
+    "check": "node --check server.js && node --check public/app.js && node --check client/game.js && node --check client/world.js && node --check game/engine.cjs && node --check game/local-api.cjs",
+    "test": "node --test test/*.test.cjs"
+  },
+  "keywords": [
+    "ai-kader",
+    "algoritmekader",
+    "serious-game",
+    "government"
+  ],
+  "author": "",
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "qrcode": "^1.5.4",
+    "three": "^0.185.1"
+  },
+  "devDependencies": {
+    "@openai/sites-vite-plugin": "^0.2.0",
+    "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "^0.45.2",
+    "esbuild": "^0.28.2",
+    "vite": "^8.2.2"
+  }
+}

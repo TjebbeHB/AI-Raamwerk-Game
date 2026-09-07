@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AI-kader Quest</title>
+    <link rel="stylesheet" href="/styles.css?v=20260701">
+    <script src="/app.js?v=20260701" defer></script>
+  </head>
+  <body>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <section class="login-shell" id="loginView">
+      <div class="login-art" aria-hidden="true"></div>
+      <form class="login-panel" id="loginForm">
+        <p class="eyebrow">Serious game voor publieke AI-keuzes</p>
+        <h1>AI-kader Quest</h1>
+        <p class="login-copy">
+          Vorm een raad van ambtenaren, onderzoek de noodzaak van AI, kies de mens-assistent relatie en toets de toepassing langs het AI-kader.
+        </p>
+
+        <label>
+          Naam
+          <input id="playerName" name="name" autocomplete="name" placeholder="Anoniem mag ook">
+        </label>
+
+        <label>
+          Rol aan tafel
+          <select id="playerRole" name="role">
+            <option>Facilitator</option>
+            <option>Beleidsadviseur</option>
+            <option>Jurist of privacy officer</option>
+            <option>Data- of AI-specialist</option>
+            <option>Inkoopadviseur</option>
+            <option>Security officer</option>
+            <option>Uitvoeringsprofessional</option>
+            <option>Burgerperspectief</option>
+          </select>
+        </label>
+
+        <label>
+          Sessiecoder
+          <input id="sessionCode" name="code" maxlength="18" autocomplete="off" spellcheck="false">
+        </label>
+
+        <label class="check-row">
+          <input id="wantsAdmin" name="wantsAdmin" type="checkbox" checked>
+          <span>Ik faciliteer deze sessie</span>
+        </label>
+
+        <button class="primary-action" type="submit">Start of sluit aan</button>
+      </form>
+    </section>
+
+    <main class="app hidden" id="appView">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">AI-kader Quest</p>
+          <h1 id="sessionTitle">Raadstafel</h1>
+        </div>
+        <div class="topbar-actions">
+          <button class="ghost-button" id="copyLinkButton" type="button">Kopieer link</button>
+          <button class="ghost-button" id="downloadButton" type="button">Download verslag</button>
+        </div>
+      </header>
+
+      <section class="cover-band">
+        <img src="/assets/ai-kader-council.png" alt="Team rond een AI-kader spelbord">
+        <div class="cover-overlay">
+          <p id="playerBadge">Speler</p>
+          <h2 id="currentQuest">Level wordt geladen</h2>
+        </div>
+      </section>
+
+      <div class="workspace">
+        <aside class="sidebar">
+          <section class="panel">
+            <div class="panel-heading">
+              <h2>Raad</h2>
+              <span id="playerCount">0/15</span>
+            </div>
+            <div id="partyList" class="party-list"></div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-heading">
+              <h2>Readiness</h2>
+              <span id="readinessTotal">0</span>
+            </div>
+            <div id="scoreMeters" class="score-meters"></div>
+          </section>
+
+          <section class="panel admin-panel" id="adminPanel"></section>
+        </aside>
+
+        <section class="stage">
+          <nav class="level-nav" id="levelNav" aria-label="Levels"></nav>
+          <div id="levelContent" class="level-content"></div>
+        </section>
+
+        <aside class="log-panel">
+          <section class="panel">
+            <div class="panel-heading">
+              <h2>Logboek</h2>
+              <span>live</span>
+            </div>
+            <div id="eventLog" class="event-log"></div>
+          </section>
+        </aside>
+      </div>
+    </main>
+  </body>
+</html>
