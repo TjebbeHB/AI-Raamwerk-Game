@@ -154,7 +154,7 @@ def main():
             shutil.copy2(ROOT / 'game' / filename, package / 'game' / filename)
         (package / 'package.json').write_text(json.dumps({
             'name': 'the-golem-below-partner-edition', 'version': '2.1.0',
-            'private': True, 'license': 'UNLICENSED', 'main': 'server.js',
+            'private': True, 'license': 'MIT', 'main': 'server.js',
             'engines': {'node': '>=22.13.0'}, 'scripts': {'start': 'node server.js'}
         }, indent=2) + '\n')
         (package / 'LEES EERST.txt').write_text(GUIDE)

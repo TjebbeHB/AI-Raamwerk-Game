@@ -58,4 +58,8 @@ Via **Adviesraad** verschijnt een QR-code en deelnamelink. Computer en telefoons
 - Lokale opslag: `data/gewelf-sessions.json` (of `GOLEM_DATA_FILE`). Gehost: dezelfde D1-tabel met voorwaardelijke schrijfacties. Sessies van de vorige versie worden netjes geweigerd.
 - `?debug` achter de URL zet `window.__gewelf` aan voor testen.
 
+## Licentie
+
+Open source onder de [MIT-licentie](LICENSE). Gebruik, aanpassen en delen mag, ook voor andere organisaties.
+
 De oorspronkelijke workshop blijft lokaal beschikbaar op `/workshop.html`. Dit spel genereert geen antwoorden met een AI-model en vervangt geen juridisch advies.

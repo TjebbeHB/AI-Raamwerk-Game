@@ -16,8 +16,8 @@
     "serious-game",
     "government"
   ],
-  "author": "",
-  "license": "UNLICENSED",
+  "author": "Tjebbe Hylke Boersma",
+  "license": "MIT",
   "private": true,
   "dependencies": {
     "qrcode": "^1.5.4",

@@ -136,10 +136,11 @@ def main():
             shutil.copy2(ROOT / 'game' / filename, package / 'game' / filename)
         (package / 'package.json').write_text(json.dumps({
             'name': 'het-gewelf-partner-edition', 'version': '3.0.0',
-            'private': True, 'license': 'UNLICENSED', 'main': 'server.js',
+            'private': True, 'license': 'MIT', 'main': 'server.js',
             'engines': {'node': '>=22.13.0'}, 'scripts': {'start': 'node server.js'}
         }, indent=2) + '\n')
         (package / 'LEES EERST.txt').write_text(GUIDE)
+        shutil.copy2(ROOT / 'LICENSE', package / 'LICENSE')
         (package / 'START HERE.txt').write_text(GUIDE)
         (package / 'Start Game - Mac.command').write_text(MAC)
         (package / 'Start Game - Mac.command').chmod(0o755)
