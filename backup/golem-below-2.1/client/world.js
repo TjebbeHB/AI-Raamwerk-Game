@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import {makeWalker,jump as jumpWalker,stepWalker,course,patrolPosition,overlaps} from './traversal.cjs';
 
 const layouts = [
  [{id:'signs',x:-4,z:-2,kind:'desk'},{id:'bramble',x:3,z:2,kind:'goblin'},{id:'ledger',x:-3,z:3,kind:'scroll'}],
@@ -8,10 +9,10 @@ const layouts = [
  [{id:'trial',x:-4,z:-2,kind:'model'},{id:'owner',x:3,z:2,kind:'goblin'},{id:'change',x:-3,z:3,kind:'scroll'}]
 ];
 
-export function createWorld(canvas, {onInteract,onExit,onPrompt}) {
+export function createWorld(canvas, {onInteract,onExit,onPrompt,onMotion=()=>{},onNotice=()=>{},language='en'}) {
  const renderer = new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});
  renderer.setPixelRatio(Math.min(devicePixelRatio,1.7));
- renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+ renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFShadowMap;
  renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.2;
  const scene = new THREE.Scene();
  const camera = new THREE.OrthographicCamera(-12,12,10,-10,.1,100);
@@ -22,6 +23,8 @@ export function createWorld(canvas, {onInteract,onExit,onPrompt}) {
  const moon=new THREE.DirectionalLight(0xa6c7da,1.5);moon.position.set(4,7,-7);scene.add(moon);
  let root,player,pip,targets=[],flames=[],ghosts=[],dust,portal,portalLight,visited=[],resolved=false,selected=null,pending=null,t=0,stepT=0,frame,last=performance.now(),prompt='',lastPointer=null,disposed=false;
  let waypoints=[],effect=null,celebrationAt=-100,bridgeParts=[],water=null;
+ let hubMode=false,frameworkMode=false,walker=makeWalker(),obstacles=[],roller=null,courseVariant=0,crouchToggle=false,motionKey='',lastBump=-10;
+ const nl=language==='nl';
  const keys=new Set(),raycaster=new THREE.Raycaster(),pointer=new THREE.Vector2();
  const mats=new Map(),cube=new THREE.BoxGeometry(1,1,1),bucket=new Map();
  const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -89,41 +92,81 @@ export function createWorld(canvas, {onInteract,onExit,onPrompt}) {
   else if(kind==='model'){box(0,.75,0,2,.2,1.5,0x8a7958,g);box(0,.36,0,1,.75,.75,0x64705c,g);for(let i=0;i<3;i++){box(-.55+i*.5,1.1,0,.4,.6,.5,0xbbaf86,g);box(-.55+i*.5,1.48,0,.5,.16,.6,0x648374,g)}}
   const marker=box(0,2.75,0,.2,.2,.2,0xefce86,g,true);marker.rotation.z=Math.PI/4;marker.rotation.x=Math.PI/4;g.userData={id:item.id};root.add(g);targets.push({...item,group:g,marker});
  }
- function clearRoom(){if(!root)return;scene.remove(root);root.traverse(o=>{if(o.isInstancedMesh)o.dispose();if(o.geometry&&o.geometry!==cube)o.geometry.dispose();if(o.isPoints)o.material.dispose()});portal?.material.dispose()}
+ function clearRoom(){if(!root)return;scene.remove(root);root.traverse(o=>{if(o.isInstancedMesh)o.dispose();if(o.geometry&&o.geometry!==cube)o.geometry.dispose();if(o.isPoints)o.material.dispose();if(o.userData.label){o.material.map.dispose();o.material.dispose()}});portal?.material.dispose()}
  function setRoom(index,state={}){
+  hubMode=false;frameworkMode=false;obstacles=[];roller=null;walker=makeWalker();crouchToggle=false;
   clearRoom();root=new THREE.Group();scene.add(root);targets=[];flames=[];ghosts=[];effect=null;waypoints=[];bridgeParts=[];water=null;visited=state.visited||[];resolved=!!state.repaired;pending=null;selected=null;keys.clear();
   scenery(index);layouts[index].forEach(prop);player=character('player');player.position.set(.6,0,4.4);root.add(player);pip=character('pip');pip.position.set(1.9,0,3.6);root.add(pip);flush();
   const points=[];for(let i=0;i<48;i++)points.push(Math.sin(i*12.2)*7,1+Math.abs(Math.sin(i*4.1))*4,Math.cos(i*17.1)*5);
   const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(points,3));dust=new THREE.Points(geo,new THREE.PointsMaterial({color:0xd8c48d,size:.045,transparent:true,opacity:.58}));root.add(dust);setState(state);if(state.decision)showOutcome(index,state.decision.option);
  }
- function setState(state){visited=state.visited||[];resolved=!!state.repaired;for(const a of targets){a.marker.material=mat(visited.includes(a.id)?0xa3c59a:0xefce86,true);a.marker.scale.setScalar(visited.includes(a.id)?.14:.2)}if(portal){portal.material.color.set(resolved?0x8bae83:0x696c8a);portal.material.emissive.set(resolved?0x719c7e:0x736592);portalLight.color.set(resolved?0xaed999:0xb8a2fa)}}
+ function setState(state){visited=state.visited||[];resolved=frameworkMode||!!state.repaired;for(const a of targets){a.marker.material=mat(visited.includes(a.id)?0xa3c59a:0xefce86,true);a.marker.scale.setScalar(visited.includes(a.id)?.14:.2)}if(portal){portal.material.color.set(resolved?0x8bae83:0x696c8a);portal.material.emissive.set(resolved?0x719c7e:0x736592);portalLight.color.set(resolved?0xaed999:0xb8a2fa)}}
+ function plaque(group,text,color=0xf0dfb3,y=2.45,width=1.5){
+  const c=document.createElement('canvas');c.width=256;c.height=80;const ctx=c.getContext('2d');ctx.fillStyle='#203b37';ctx.fillRect(0,0,256,80);ctx.strokeStyle='#a9b79b';ctx.lineWidth=4;ctx.strokeRect(3,3,250,74);ctx.fillStyle='#f4e9cb';ctx.font='bold 40px sans-serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,128,42);
+  const texture=new THREE.CanvasTexture(c),sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:texture,depthTest:false}));sprite.scale.set(width,width*80/256,1);sprite.position.set(0,y,0);sprite.userData.label=true;group.add(sprite);
+ }
+ function setHub(topics,completed=[]){
+  setRoom(0);clearRoom();root=new THREE.Group();scene.add(root);targets=[];flames=[];ghosts=[];bridgeParts=[];water=null;effect=null;hubMode=true;frameworkMode=true;pending=null;selected=null;waypoints=[];keys.clear();scenery(-1);
+  const positions=[[-5,-3.8],[-2.5,-3.8],[0,-3.8],[2.5,-3.8],[5,-3.8],[-5,3.8],[-2.5,3.8],[0,3.8],[2.5,3.8],[5,3.8],[-5.8,-1.25],[-5.8,1.25],[5.8,-1.25],[5.8,1.25]];
+  topics.forEach((d,i)=>{const [x,z]=positions[i],g=new THREE.Group(),color=new THREE.Color(d.color).getHex();g.position.set(x,0,z);g.userData.id=d.id;
+   for(const dx of[-.43,.43]){box(dx,.88,0,.22,1.76,.42,0x8b947b,g);box(dx,.18,0,.34,.35,.55,color,g)}box(0,1.8,0,1.15,.26,.5,color,g);box(0,.9,0,.68,1.5,.09,color,g,true);box(0,.06,.2,1.2,.1,1,color,g);
+   const marker=box(0,2.75,0,.2,.2,.2,completed.includes(d.id)?0xa3c59a:0xefce86,g,true);plaque(g,String(i+1).padStart(2,'0'),color,2.23,.8);root.add(g);const len=Math.hypot(x,z);targets.push({id:d.id,x,z,approachX:x-x/len*1.35,approachZ:z-z/len*1.35,kind:'portal',label:d.title,group:g,marker});
+  });
+  // A little gathering place in the middle of the fourteen gates.
+  for(const a of[-1,1])box(a*.9,.09,0,.45,.14,2.2,0xb1a77e);box(0,.09,-1.05,2.2,.14,.3,0xb1a77e);box(0,.09,1.05,2.2,.14,.3,0xb1a77e);
+  player=character('player');player.position.set(0,0,.6);walker=makeWalker(0,.6);root.add(player);pip=character('pip');pip.position.set(1.2,0,0);root.add(pip);dust=new THREE.Group();root.add(dust);flush();setState({visited:completed,repaired:true});resize();
+ }
+ function setTopic(topic,state){
+  setRoom(topic.scene||0,{visited:[],repaired:true});frameworkMode=true;hubMode=false;
+  // Replace only interactive story props; retain the voxel room and its scenery.
+  for(const a of targets)root.remove(a.group);targets=[];
+  const kinds=['desk',topic.id==='quality'?'mushroom':'goblin','books'];
+  topic.clues.forEach((c,i)=>{const p=[[-4,-2],[3,2],[-3,3]][i];prop({id:c.id,x:p[0],z:p[1],kind:kinds[i],label:c.title});plaque(targets.at(-1).group,String(i+1),0xffffff,2.38,.65)});
+  courseVariant=topic.number||0;obstacles=course(courseVariant);
+  for(const o of obstacles){const g=new THREE.Group();g.position.set(o.x,0,o.z);root.add(g);
+   if(o.kind==='crate'){box(0,o.height/2,0,o.w,o.height,o.d,0x96754c,g);for(const x of[-.52,.52])box(x,o.height/2,.01,.09,o.height+.03,o.d+.06,0xc9ab70,g);plaque(g,'SPRING',0xffffff,1.16,1.18)}
+   else if(o.kind==='beam'){box(0,(o.bottom+o.top)/2,0,o.w,o.top-o.bottom,o.d,0x85969b,g);for(const x of[-.6,0,.6])box(x,o.bottom+.04,.32,.18,.07,.04,0xe0c17b,g);plaque(g,'KRUIP',0xffffff,1.87,1.12)}
+   else box(0,o.height/2,0,o.w,o.height,o.d,0x7b8980,g);
+  }
+  roller=new THREE.Group();box(0,.4,0,.8,.8,.8,0x9b7855,roller);box(0,.4,.43,.45,.16,.05,0xdec391,roller);box(-.2,.59,.43,.08,.08,.03,0x39463c,roller);box(.2,.59,.43,.08,.08,.03,0x39463c,roller);root.add(roller);
+  const track=new THREE.Group();root.add(track);for(let x=-2.5;x<=2.5;x+=.45)box(x,.025,-.25,.2,.03,.16,0xb99d69,track);
+  const color=new THREE.Color(topic.color);moon.color.copy(color);setState({...state,repaired:true});resize();
+ }
  // Click navigation routes around props instead of getting stuck against them.
  function walkTo(x,z){
   const nodes=[],step=.4;
-  for(let j=0;j<28;j++)for(let i=0;i<33;i++){const nx=-6.4+i*step,nz=-5.2+j*step;nodes.push({x:nx,z:nz,i,j,ok:!targets.some(a=>Math.hypot(nx-a.x,nz-a.z)<.86)})}
+  for(let j=0;j<28;j++)for(let i=0;i<33;i++){const nx=-6.4+i*step,nz=-5.2+j*step;nodes.push({x:nx,z:nz,i,j,ok:!targets.some(a=>Math.hypot(nx-a.x,nz-a.z)<.86)&&!obstacles.some(o=>overlaps(nx,nz,o,.4))&&!(roller&&Math.abs(nz+.25)<.82&&Math.abs(nx)<3.1)})}
   const closest=(px,pz)=>nodes.reduce((best,n)=>n.ok&&Math.hypot(n.x-px,n.z-pz)<Math.hypot(best.x-px,best.z-pz)?n:best,nodes.find(n=>n.ok));
   const start=closest(player.position.x,player.position.z),end=closest(THREE.MathUtils.clamp(x,-6.4,6.4),THREE.MathUtils.clamp(z,-5.2,5.6)),queue=[start],prev=new Map([[start,null]]);
   for(let head=0;head<queue.length;head++){const n=queue[head];if(n===end)break;for(const[di,dj]of[[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,-1],[1,-1],[-1,1]]){const i=n.i+di,j=n.j+dj;if(i<0||i>32||j<0||j>27)continue;const next=nodes[j*33+i];if(!next.ok||prev.has(next))continue;if(di&&dj&&(!nodes[n.j*33+i].ok||!nodes[j*33+n.i].ok))continue;prev.set(next,n);queue.push(next)}}
-  if(!prev.has(end)){onPrompt('Try approaching from another side.');return}
+  if(!prev.has(end)){onPrompt(nl?'Probeer het vanaf een andere kant.':'Try approaching from another side.');return}
   const route=[];for(let n=end;n&&n!==start;n=prev.get(n))route.unshift(new THREE.Vector3(n.x,0,n.z));
   waypoints=route;selected=waypoints.shift()||new THREE.Vector3(end.x,0,end.z);
  }
- function focus(id){const item=targets.find(x=>x.id===id);if(!item)return;walkTo(item.x+.8,item.z+1.2);pending=id}
+ function focus(id){const item=targets.find(x=>x.id===id);if(!item)return;walkTo(item.approachX??item.x+.8,item.approachZ??item.z+1.2);pending=id}
  function showOutcome(room,choice){effect={room,choice,at:t};}
  function celebrate(){celebrationAt=t;}
- function nearest(){if(!player)return null;let near=null,dist=2.1;for(const item of targets){const d=Math.hypot(player.position.x-item.x,player.position.z-item.z);if(d<dist){dist=d;near=item}}if(Math.hypot(player.position.x-4,player.position.z+5)<2.1)return 'exit';return near}
+ function nearest(){if(!player)return null;let near=null,dist=2.1;for(const item of targets){const d=Math.hypot(player.position.x-item.x,player.position.z-item.z);if(d<dist){dist=d;near=item}}if(!hubMode&&Math.hypot(player.position.x-4,player.position.z+5)<2.1)return 'exit';return near}
  function interact(){if(document.querySelector('.modal-backdrop'))return;const near=nearest();if(near==='exit'){if(resolved)onExit();else onPrompt('Make your decision to open the passage.')}else if(near){pending=null;onInteract(near.id)}}
- function keydown(e){if((e.target.closest('input,textarea,select,a,[contenteditable="true"]')||(e.target.closest('button')&&e.code==='Space'))||document.querySelector('.modal-backdrop'))return;if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyE','Space'].includes(e.code)){e.preventDefault();keys.add(e.code);if(['KeyE','Space'].includes(e.code)&&!e.repeat)interact()}}
- function keyup(e){keys.delete(e.code)}function blur(){keys.clear()}
+ function jump(){if(frameworkMode&&jumpWalker(walker,obstacles)){keys.delete('Space');return true}return false}
+ function toggleCrouch(){crouchToggle=!walker.crouched}
+ function keydown(e){
+  if((e.target.closest('input,textarea,select,a,.f-source-reader,[contenteditable="true"]')||(e.target.closest('button')&&e.code==='Space'))||document.querySelector('.modal-backdrop'))return;
+  if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','KeyE','Space','KeyC'].includes(e.code)){
+   e.preventDefault();keys.add(e.code);
+   if(!e.repeat){if(e.code==='Space'&&frameworkMode)jump();else if(e.code==='KeyE'||(e.code==='Space'&&!frameworkMode))interact()}
+  }
+ }
+ function keyup(e){keys.delete(e.code)}function blur(){keys.clear();crouchToggle=false}
  function pointerdown(e){lastPointer={x:e.clientX,y:e.clientY}}
  function pointerup(e){
   if(!lastPointer||Math.hypot(e.clientX-lastPointer.x,e.clientY-lastPointer.y)>8)return;
   const rect=canvas.getBoundingClientRect();pointer.set((e.clientX-rect.left)/rect.width*2-1,-(e.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);
   const hit=new THREE.Vector3();if(!raycaster.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0,1,0),0),hit))return;
   const hits=raycaster.intersectObjects(targets.map(t=>t.group),true);if(hits.length){let obj=hits[0].object;while(obj&&!obj.userData.id)obj=obj.parent;if(obj){focus(obj.userData.id);return}}
-  if(Math.abs(hit.x)<=7&&Math.abs(hit.z)<=6){walkTo(hit.x,hit.z);pending=Math.hypot(hit.x-4,hit.z+5)<1.7?'exit':null}
+  if(Math.abs(hit.x)<=7&&Math.abs(hit.z)<=6){walkTo(hit.x,hit.z);pending=!hubMode&&Math.hypot(hit.x-4,hit.z+5)<1.7?'exit':null}
  }
- function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);const aspect=w/h,size=aspect<1.1?12.4:10.6;camera.left=-size*aspect;camera.right=size*aspect;camera.top=size;camera.bottom=-size;camera.updateProjectionMatrix()}
+ function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;if(!w||!h)return;renderer.setSize(w,h,false);const aspect=w/h,size=frameworkMode?Math.max(8.1,9/aspect):(aspect<1.1?12.4:10.6);camera.left=-size*aspect;camera.right=size*aspect;camera.top=size;camera.bottom=-size;camera.updateProjectionMatrix()}
  const ro=new ResizeObserver(resize);ro.observe(canvas);window.addEventListener('keydown',keydown);window.addEventListener('keyup',keyup);window.addEventListener('blur',blur);canvas.addEventListener('pointerdown',pointerdown);canvas.addEventListener('pointerup',pointerup);
  function animate(now){
   if(disposed)return;frame=requestAnimationFrame(animate);const dt=Math.min((now-last)/1000,.05);last=now;if(document.hidden)return;t+=dt;
@@ -132,14 +175,26 @@ export function createWorld(canvas, {onInteract,onExit,onPrompt}) {
    const sx=(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0),sy=(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0);
    if(sx||sy){selected=null;waypoints=[];pending=null;dx=sx*.82-sy*.57;dz=-sx*.57-sy*.82}
    else if(selected){dx=selected.x-player.position.x;dz=selected.z-player.position.z;if(Math.hypot(dx,dz)<.13){selected=waypoints.shift()||null;dx=0;dz=0;if(!selected&&pending){const id=pending;pending=null;if(id==='exit'){if(resolved)onExit();else onPrompt('Finish helping the residents to open the passage.')}else onInteract(id)}}}
-   const len=Math.hypot(dx,dz);if(len>.03){
+   const len=Math.hypot(dx,dz);
+   if(frameworkMode){
+    const hazard=roller?patrolPosition(t,courseVariant):null;
+    if(roller){roller.position.set(hazard.x,0,hazard.z);roller.rotation.z=reduced?0:Math.sin(t*3)*.08}
+    const solids=[...obstacles,...targets.map(a=>({kind:'post',x:a.x,z:a.z,w:.68,d:.68,height:3.5}))];
+    const result=stepWalker(walker,{dx,dz,crouch:keys.has('KeyC')||crouchToggle,dt,solids,hazard,spawn:hubMode?{x:0,z:.6}:{x:.6,z:4.4}});
+    if(result.bumped){selected=null;pending=null;waypoints=[];keys.clear();if(t-lastBump>1){lastBump=t;onNotice('Oeps, de rolsteen! Je staat weer bij de ingang. Jullie antwoorden blijven bewaard.')}}
+    player.position.set(walker.x,walker.y,walker.z);player.scale.y=walker.crouched?.42:1;
+    if(len>.03){player.rotation.y=Math.atan2(dx,dz);stepT+=dt*12;if(walker.grounded&&!walker.crouched&&!reduced)player.position.y+=Math.abs(Math.sin(stepT))*.045}
+    const mk=`${walker.crouched}-${!walker.grounded}`;if(mk!==motionKey){motionKey=mk;onMotion({crouched:walker.crouched,airborne:!walker.grounded})}
+   }else{
+if(len>.03){
     const nx=THREE.MathUtils.clamp(player.position.x+dx/len*dt*3.3,-6.6,6.6),nz=THREE.MathUtils.clamp(player.position.z+dz/len*dt*3.3,-5.3,5.7);
     const collides=(x,z)=>targets.some(a=>Math.hypot(x-a.x,z-a.z)<.62);
     if(!collides(nx,nz)){player.position.x=nx;player.position.z=nz}else if(!collides(nx,player.position.z))player.position.x=nx;else if(!collides(player.position.x,nz))player.position.z=nz;
     player.rotation.y=Math.atan2(dx,dz);stepT+=dt*12;player.position.y=reduced?0:Math.abs(Math.sin(stepT))*.09;
    }else player.position.y=reduced?0:Math.sin(t*2)*.015;
+   }
    const px=player.position.x+1.1-pip.position.x,pz=player.position.z+.3-pip.position.z;if(Math.hypot(px,pz)>1){pip.position.x+=px*dt*2;pip.position.z+=pz*dt*2;pip.rotation.y=Math.atan2(px,pz)}pip.position.y=reduced?0:Math.sin(t*3)*.035;
-   const near=nearest(),next=near==='exit'?(resolved?'E · Enter the next chamber':'The passage awaits your decision'):near?`E · ${near.kind==='goblin'?'Talk to Bramble':near.kind==='mushroom'?'Talk to Mallow':'Investigate'}`:'';if(next!==prompt){prompt=next;onPrompt(next)}
+   const near=nearest(),next=near==='exit'?(nl?'E · Terug naar het beginportaal':resolved?'E · Enter the next chamber':'The passage awaits your decision'):near?(nl?`E · ${near.label||'Informatie bekijken'}`:`E · ${near.kind==='goblin'?'Talk to Bramble':near.kind==='mushroom'?'Talk to Mallow':'Investigate'}`):'';if(next!==prompt){prompt=next;onPrompt(next)}
   }
   if(effect){
    const age=t-effect.at,factor=reduced?1:Math.min(age*.35,1);
@@ -153,5 +208,5 @@ export function createWorld(canvas, {onInteract,onExit,onPrompt}) {
   renderer.render(scene,camera);
  }
  setRoom(0);resize();frame=requestAnimationFrame(animate);
- return {setRoom,setState,focus,interact,showOutcome,celebrate,dispose(){disposed=true;cancelAnimationFrame(frame);ro.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',blur);canvas.removeEventListener('pointerdown',pointerdown);canvas.removeEventListener('pointerup',pointerup);clearRoom();renderer.dispose();mats.forEach(m=>m.dispose());cube.dispose()}};
+ return {setRoom,setHub,setTopic,setState,focus,interact,jump,toggleCrouch,showOutcome,celebrate,dispose(){disposed=true;cancelAnimationFrame(frame);ro.disconnect();window.removeEventListener('keydown',keydown);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',blur);canvas.removeEventListener('pointerdown',pointerdown);canvas.removeEventListener('pointerup',pointerup);clearRoom();renderer.dispose();mats.forEach(m=>m.dispose());cube.dispose()}};
 }

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.DS_Store
+data/
+.env
+.env.*
+!.env.example
+*.log
+.wrangler/
+public/game.bundle.js
+public/game.bundle.js.map
+share/

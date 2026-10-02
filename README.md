@@ -1,79 +1,61 @@
-# The Golem Below
+# Het Gewelf 3.0
 
-A cooperative voxel 3D adventure about thoughtful AI decisions in public services. One player explores on the big screen. Up to 15 audience members join on their phones, read the situation and vote on advice. The player decides whether to follow the council.
+Een Nederlandstalige 3D-afdaling door het AI-raamwerk. De wethouder wil weten of de gemeente een digitale assistent met AI gaat inzetten. Eén speler loopt in first person door het Gewelf onder het stadhuis. Maximaal vijftien adviseurs denken mee via hun telefoon. Onderaan, in de Zegelkamer, besluiten jullie: **niet met AI**, **eerst onderzoeken**, **een begrensde pilot** of **invoeren met waarborgen**.
 
-## Play the dungeon
+De vorige top-down voxelversie (The Golem Below 2.1, inclusief het Engelstalige vijfkamer-avontuur) staat volledig in [`backup/golem-below-2.1`](backup/golem-below-2.1/BACKUP.md).
 
-Requires Node.js 22.13+ (Node.js 26 recommended for the tests).
+## Starten
+
+Node.js 22.13+ (Node.js 26 voor de tests).
 
 ```bash
 npm install
 npm start
 ```
 
-Open `http://localhost:5173` and select **Begin adventure**. Use **WASD / arrow keys** to walk and **E** to interact, or click characters, objects or the objectives in the quest panel. Sound is optional. The game saves progress after each action.
+Open `http://localhost:5173` en kies **Begin de afdaling**.
 
-Select **Invite audience / Council** to show a QR code and audience link. Phones must use the network address printed by the server and share the computer’s Wi-Fi. The invite dialog automatically uses a network address when the player opened localhost. The computer needs to remain running, and its firewall must allow the Node server on port 5173. On devices with several network interfaces, use the printed address for the shared Wi-Fi.
+| Toets | Actie |
+|---|---|
+| Klik in de wereld | rondkijken met de muis (Esc geeft de muis vrij) |
+| WASD / pijltjes | lopen en draaien |
+| Shift | rennen |
+| Spatie | springen |
+| E of klikken | praten, een bron lezen, het zegel aanraken |
+| M | kaart: direct naar een kamer reizen |
 
-Phones receive a separate text-only council view: story briefing, discovered clues, advisory voting, the player’s decision and its consequences. They never need to see the 3D scene. A session code grants audience membership; a separate device pass grants player control. Passes are kept on the joining device and never included in session views or invite links.
+Pip, de lantaarngolem, vliegt vooruit naar het volgende doel. Trappen lopen echt omlaag: loop erin om af te dalen. Zonder WebGL blijven alle kamers via de Kaart bereikbaar.
 
-## The five chambers
+## De afdaling
 
-1. **The Queue of Unfinished Business** — explore the problem before choosing AI.
-2. **The Very Confident Library** — useful search, unreliable data and checking sources.
-3. **The Gate and the Emergency Buns** — unequal treatment, explanations and real appeals.
-4. **Pip and the Extremely Important Pump** — workable oversight, limits and fallback.
-5. **The Heart of the Town** — ownership, monitored pilots and changing conditions.
+| Diepte | Ruimte | Wat er gebeurt |
+|---|---|---|
+| 0 | De Ontvangsthal | De brief van de wethouder op de lessenaar. |
+| 1 | De Kamer van de Vraag | Probleem & noodzaak: is AI hier eigenlijk het antwoord? |
+| 2 | De Hal der Fundamenten | Governance, Cultuur & Adoptie, Kennis & Capaciteit, Infrastructuur & Data. |
+| 3 | De Galerij der Domeinen | Tien domeinen, van Evaluatie tot Beveiliging. Kies wat telt. |
+| 4 | De Zegelkamer | Het besluit, de afspraken en het besluitdossier. |
 
-Each chamber has three discoveries, three policy choices, visible consequences, a small repair task and an optional project reflection. Any decision can lead onward after helping the residents. There is no legal-compliance score. The final **Town Charter** exports choices, frozen audience votes, reasoning, benefits, concerns, project notes and next-step commitments as Markdown.
+Elke kamer werkt zoals in de vorige versie: een herkenbare casus, drie optionele bronnen op sokkels in de kamer, meerdere passende maatregelen, een adviesronde op de telefoons en uitleg per optie (kernmaatregel, nuttige aanvulling, niet passend). Daarna komt de kamer in het **dossier**:
 
-The initial adventure is in English. Learning links point to the Dutch Algoritmekader and European Commission. Story decisions are scripted; the game does not send player input to an AI model.
+- **Stevig** — alle kernmaatregelen gekozen en geen ongeschikte aanpak (groene markering);
+- **Open punten** — er ontbreekt iets of er is een ongeschikte aanpak gekozen (oranje);
+- **Blinde vlek** — niet besproken (de deuropening gloeit nog).
 
-## Development and persistence
+In de Zegelkamer zien speler en raad eerst het dossier, kiezen dan zelf een besluit en zien pas daarna welk besluit het dossier kon dragen en waarom (bijvoorbeeld: *zonder eigenaar kan zelfs een pilot niet verantwoord draaien*). Stoppen is altijd een legitieme uitkomst. Er is geen score. Tot slot leggen jullie eigenaar, eerste stap, evaluatiedatum en stopcriterium vast en downloaden jullie het besluitdossier (Markdown). Zie [docs/spel-3.0.md](docs/spel-3.0.md) voor de regels.
 
-- `npm run check`: syntax checks for the game and preserved workshop.
-- `npm run build`: browser bundle and Sites-compatible Worker output.
-- `npm test`: integration tests; run the build first because hosted-storage tests import the built Worker.
-- Dungeon data: `data/golem-sessions.json`; original workshop data: `data/sessions.json`.
-- Set `PORT` to change the server port, or `GOLEM_DATA_FILE` to isolate dungeon data.
-- Hosted version: D1 persistence with conditional writes so simultaneous votes cannot overwrite each other or a closed decision. Schema is in `db/schema.ts`; migrations are in `drizzle/`.
-- Sites access controls apply before people can join a hosted session. An owner-only preview is not yet a publicly shareable audience game. Local network play is available independently of Sites access.
+## Adviesraad
 
-This is a first playable five-room adventure, with light exploration and decision puzzles rather than combat. The existing workshop remains available at `/workshop.html` on the local server, with its original flows and storage.
+Via **Adviesraad** verschijnt een QR-code en deelnamelink. Computer en telefoons moeten hetzelfde netwerk gebruiken. De telefoon toont de casus, alle bronnen, de stemopties, het dossier en het besluit; het 3D-scherm is niet nodig. Stemmen zijn advies; de speler beslist.
 
----
+## Ontwikkeling
 
-# Original AI-kader Quest workshop
+- `npm run check` — syntaxcontrole.
+- `npm run build` — browserbundel en Worker-uitvoer voor hosting.
+- `npm test` — regels van het dossier en een volledige afdaling via de API.
+- `npm run package:partners` — ZIP voor partners in `share/`.
+- Code: `client/dungeon.js` (Three.js-wereld), `client/descent.js` (HUD, panelen, telefoons), `game/descent.cjs` (spelregels en dossier), `game/descent.json` (brief, Kamer van de Vraag, besluitopties), `game/topics.json` (de veertien raamwerkkamers).
+- Lokale opslag: `data/gewelf-sessions.json` (of `GOLEM_DATA_FILE`). Gehost: dezelfde D1-tabel met voorwaardelijke schrijfacties. Sessies van de vorige versie worden netjes geweigerd.
+- `?debug` achter de URL zet `window.__gewelf` aan voor testen.
 
-Een DnD-achtige serious game voor teams van 1 tot 15 ambtenaren die een AI-toepassing willen verkennen langs het Nederlandse AI-kader.
-
-## Starten
-
-```bash
-npm start
-```
-
-Open daarna:
-
-- `http://localhost:5173` op deze machine
-- het lokale netwerkadres dat de server print voor andere deelnemers op hetzelfde netwerk
-
-De eerste deelnemer of degene die "Ik faciliteer deze sessie" aanvinkt krijgt facilitatorrechten. De facilitator opent levels, sluit of opent stemmen, kiest kaarten en rolt AI-kader encounters.
-
-## Spelverloop
-
-1. **Probleem en noodzaak** - sticky notes, stemmen, gekozen probleem en oplossingsroute.
-2. **Mens-assistent relatie** - keuze uit tools, chat, agents en copilot, met specifieke rollen uit de PDF-brief.
-3. **AI-kader proef** - D20 encounters rond AI Act risico, rechten, data/privacy, transparantie, menselijke regie en lifecycle.
-4. **Implementatiepact** - besluit, acties, eigenaar, evaluatiemoment en markdown verslag.
-
-De server bewaart sessies lokaal in `data/sessions.json` zodra een sessie wordt gebruikt. Het verslag is te downloaden via de knop **Download verslag**.
-
-## Bronnen In Het Spel
-
-- Algoritmekader: https://minbzk.github.io/Algoritmekader/
-- Digitale Overheid: Algoritmekader: https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/algoritmes/algoritmekader/
-- EU AI Act: https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai
-- Algoritmeregister: https://www.digitaleoverheid.nl/overzicht-van-alle-onderwerpen/algoritmes/algoritmeregister/
-
-Bronnen verwerkt op 1 juli 2026. Dit spel vervangt geen juridisch advies.
+De oorspronkelijke workshop blijft lokaal beschikbaar op `/workshop.html`. Dit spel genereert geen antwoorden met een AI-model en vervangt geen juridisch advies.

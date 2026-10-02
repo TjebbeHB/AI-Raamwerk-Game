@@ -1,13 +1,14 @@
 {
-  "name": "ai-kader-quest",
-  "version": "1.0.0",
-  "description": "A team facilitation game for Dutch government AI-kader decisions.",
+  "name": "het-gewelf",
+  "version": "3.0.0",
+  "description": "Het Gewelf: a first-person 3D descent through the Dutch AI framework that guides civil servants to a reasoned decision on whether to implement AI.",
   "main": "server.js",
   "scripts": {
     "start": "node scripts/build.cjs --client && node server.js",
     "build": "node scripts/build.cjs",
-    "check": "node --check server.js && node --check public/app.js && node --check client/game.js && node --check client/world.js && node --check game/engine.cjs && node --check game/local-api.cjs",
-    "test": "node --test test/*.test.cjs"
+    "check": "node --check server.js && node --check public/app.js && node --check client/entry.js && node --check client/descent.js && node --check client/dungeon.js && node --check game/engine.cjs && node --check game/descent.cjs && node --check game/local-api.cjs && node --check game/worker.js",
+    "test": "node --test test/*.test.cjs",
+    "package:partners": "npm run build && python3 scripts/package-partners.py"
   },
   "keywords": [
     "ai-kader",

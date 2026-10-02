@@ -3,7 +3,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const {execFileSync}=require('node:child_process');
 async function main(){
- await build({entryPoints:['client/game.js'],bundle:true,outfile:'public/game.bundle.js',minify:true,target:['es2022'],logLevel:'info'});
+ await build({entryPoints:['client/entry.js'],bundle:true,outfile:'public/game.bundle.js',minify:true,target:['es2022'],logLevel:'info'});
  if(process.argv.includes('--client'))return;
  fs.rmSync('dist',{recursive:true,force:true});
  execFileSync(process.execPath,['node_modules/vite/bin/vite.js','build'],{stdio:'inherit'});

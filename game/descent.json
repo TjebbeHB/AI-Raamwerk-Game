@@ -1,0 +1,108 @@
+{
+  "intro": {
+    "municipality": "Dalwijk",
+    "letter": "Aan het team Dienstverlening. Inwoners wachten gemiddeld negen werkdagen op antwoord over vergunningen, afspraken en toeslagen. Een leverancier biedt een digitale assistent aan die ‘binnen zes weken live kan’. Ik wil volgende maand een besluit: zetten we AI in, of niet? Neem de tijd om het goed te onderzoeken. — De wethouder",
+    "pip": "Ik ben Pip. Onder het stadhuis ligt het Gewelf: elke kamer bewaart een vraag die je moet stellen vóór je ‘ja’ zegt tegen AI. Onderaan wacht de Zegelkamer. Daar besluiten jullie."
+  },
+  "depths": [
+    {"id": 0, "name": "De Ontvangsthal", "label": "Diepte 0", "line": "Lees de brief van de wethouder en daal af."},
+    {"id": 1, "name": "De Kamer van de Vraag", "label": "Diepte 1", "line": "Is AI hier eigenlijk wel het antwoord?"},
+    {"id": 2, "name": "De Hal der Fundamenten", "label": "Diepte 2", "line": "Vier fundamenten dragen elke toepassing. Ontbreekt er één, dan zakt alles."},
+    {"id": 3, "name": "De Galerij der Domeinen", "label": "Diepte 3", "line": "Tien domeinen. Kies wat voor jullie toepassing telt; wat je overslaat, blijft een blinde vlek."},
+    {"id": 4, "name": "De Zegelkamer", "label": "Diepte 4", "line": "Hier wordt het besluit bezegeld."}
+  ],
+  "necessity": {
+    "id": "necessity",
+    "group": "necessity",
+    "number": 0,
+    "color": "#e7c37a",
+    "title": "Probleem & Noodzaak",
+    "place": "De Kamer van de Vraag",
+    "npc": "Vrouwe Waarom",
+    "hook": "Vrouwe Waarom stelt maar één vraag, steeds opnieuw: welk probleem lossen we eigenlijk op?",
+    "scenario": "De wachttijd van negen dagen is het startpunt van het voorstel. Niemand heeft nog uitgezocht welke vragen het meest gesteld worden, waarom ze blijven liggen of wat inwoners zelf het lastigst vinden. De leverancier toont een indrukwekkende demo; de wethouder wil graag iets innovatiefs laten zien.",
+    "question": "Wat moeten jullie eerst vastleggen voordat AI überhaupt een optie is?",
+    "options": [
+      {
+        "text": "Breng het probleem in kaart met cijfers en verhalen: welke vragen, waarom de vertraging, en wie er last van heeft.",
+        "status": "correct",
+        "feedback": "Zonder heldere probleemanalyse is niet te beoordelen of welke oplossing dan ook helpt. Begin bij de inwoner en de werkpraktijk, niet bij de techniek."
+      },
+      {
+        "text": "Vergelijk AI met eenvoudigere oplossingen, zoals betere webteksten, een ander proces of extra capaciteit in de piek.",
+        "status": "correct",
+        "feedback": "Passende complexiteit: kies de eenvoudigste oplossing die het probleem werkelijk oplost. AI moet zich bewijzen tegenover alternatieven zonder AI."
+      },
+      {
+        "text": "Formuleer de publieke waarde en meetbare succescriteria, inclusief wanneer jullie zouden stoppen.",
+        "status": "correct",
+        "feedback": "Succes- en stopcriteria vooraf voorkomen dat een project doorloopt omdat het al gestart is. Ze maken latere evaluatie mogelijk."
+      },
+      {
+        "text": "Vraag na hoe andere gemeenten een vergelijkbaar probleem hebben aangepakt.",
+        "status": "supporting",
+        "feedback": "Een nuttige aanvulling: ervaringen elders besparen tijd. Hun situatie is niet de jouwe, dus het vervangt de eigen probleemanalyse niet."
+      },
+      {
+        "text": "Start met de demo van de leverancier: de techniek is beschikbaar, het probleem volgt vanzelf.",
+        "status": "incorrect",
+        "feedback": "Een oplossing die een probleem zoekt, leidt tot dure projecten zonder publieke waarde. Een demo laat zien wat kan, niet wat nodig is."
+      },
+      {
+        "text": "Kies voor AI omdat het bestuur innovatie wil laten zien.",
+        "status": "incorrect",
+        "feedback": "Bestuurlijke ambitie is een legitiem signaal, maar geen onderbouwing. Het besluit moet uitlegbaar zijn aan inwoners, ook als het nee wordt."
+      }
+    ],
+    "clues": [
+      {
+        "id": "a",
+        "title": "De spiegel van de inwoner",
+        "body": "Kijk naar het probleem door de ogen van de inwoner en de medewerker. Waar loopt het vast?",
+        "explanation": "Een wachttijd is een symptoom. De oorzaak kan liggen in onduidelijke informatie, een ingewikkeld proces, ontbrekende koppelingen of te weinig mensen op piekmomenten. Elk van die oorzaken vraagt om een andere oplossing. Klantreizen, klachtenanalyse en gesprekken met medewerkers aan de balie leveren vaak meer op dan een technische verkenning.",
+        "steps": [
+          "Analyseer de tien meest gestelde vragen en waarom ze niet direct beantwoord worden.",
+          "Spreek met inwoners die moeite hebben met digitale kanalen; zij blijven ook na invoering bestaan."
+        ],
+        "example": "In Dalwijk blijkt een derde van de vragen over één onduidelijke brief te gaan. Een betere brief lost dat sneller op dan een assistent.",
+        "section": "Probleemanalyse"
+      },
+      {
+        "id": "b",
+        "title": "De ladder van eenvoud",
+        "body": "Begin onderaan: kan het zonder technologie? Zonder AI? Pas dan met AI.",
+        "explanation": "Passende complexiteit betekent dat je de eenvoudigste oplossing kiest die werkt. Een generatieve assistent brengt risico’s mee: onjuiste antwoorden, afhankelijkheid van een leverancier, beheerlast en energieverbruik. Die zijn alleen te rechtvaardigen als eenvoudiger alternatieven aantoonbaar tekortschieten.",
+        "steps": [
+          "Zet minstens één oplossing zonder AI naast het AI-voorstel en vergelijk kosten, risico en effect.",
+          "Leg vast waarom het eenvoudiger alternatief wel of niet volstaat."
+        ],
+        "example": "Een slimme zoekfunctie op de website en een terugbelservice in de piek halveren de wachttijd al. De vraag wordt: wat voegt AI daar nog aan toe?",
+        "section": "Passende complexiteit"
+      },
+      {
+        "id": "c",
+        "title": "Het kompas van publieke waarde",
+        "body": "Wat wordt beter voor wie, hoe meet je dat, en wanneer stop je?",
+        "explanation": "Publieke waarde gaat verder dan efficiëntie: toegankelijkheid, gelijke behandeling, vertrouwen en de kwaliteit van werk voor medewerkers tellen mee. Leg succescriteria en stopcriteria vast vóór de start. Dan kun je later eerlijk evalueren, ook als het antwoord ‘dit werkt niet’ is.",
+        "steps": [
+          "Formuleer twee of drie meetbare doelen, bijvoorbeeld wachttijd, juistheid en tevredenheid van kwetsbare groepen.",
+          "Spreek af bij welke uitkomst het project stopt of wordt bijgestuurd."
+        ],
+        "example": "Dalwijk spreekt af: de wachttijd moet onder de drie dagen, en het percentage onjuiste antwoorden mag niet boven de twee procent komen.",
+        "section": "Publieke waarde en criteria"
+      }
+    ],
+    "reflection": "Welk probleem lossen jullie in je eigen project op, en welk alternatief zonder AI hebben jullie serieus overwogen?",
+    "source": "‘Kaders rondom het raamwerk’ en de algemene introductie van het AI-raamwerk"
+  },
+  "verdict": {
+    "question": "Zetten jullie AI in voor de inwonersvragen van Dalwijk?",
+    "options": [
+      {"key": "stop", "title": "Niet met AI", "text": "Stop het AI-traject. Los het probleem op een andere manier op, of laat het voorstel rusten."},
+      {"key": "research", "title": "Eerst verder onderzoeken", "text": "Nog geen ja of nee. Onderzoek eerst de open vragen en kom met een onderbouwd voorstel terug."},
+      {"key": "pilot", "title": "Een begrensde pilot", "text": "Start een kleine, tijdelijke pilot met duidelijke eigenaar, meetpunten en stopcriteria."},
+      {"key": "implement", "title": "Invoeren met waarborgen", "text": "Breng de assistent in productie, met de vastgelegde waarborgen, monitoring en verantwoording."}
+    ],
+    "critical": ["ethics", "compliance", "security"]
+  }
+}

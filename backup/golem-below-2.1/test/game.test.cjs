@@ -109,3 +109,15 @@ test('hosted Worker CAS preserves simultaneous votes and freezes one decision',a
  assert.equal((await call(code+'/action','POST',{type:'vote',room:0,option:1},joined[0].data.token)).status,409);
  const noauth=await call(code);assert.equal(noauth.status,401);sql.close();
 });
+
+test('local framework API retains visits, audience multiselect and notes on disk',async()=>{
+ const made=await request('create','POST',{mode:'framework'});assert.equal(made.status,201);let s=made.data.session;const host=made.data.token,code=s.code;
+ assert.equal((await request(code+'/info')).data.mode,'framework');
+ const a=(await request(code+'/join','POST',{name:'Adviseur'})).data.token;
+ const act=async(type,extra={},pass=host)=>{const r=await request(code+'/action','POST',{type,topic:s.topic,epoch:s.epoch,...extra},pass);assert.equal(r.status,200);s=r.data.session;return r};
+ await act('enter',{target:'security'});for(const clue of ['a','b','c'])await act('inspect',{clue});await act('openVote');
+ await act('vote',{selection:[1,3,4]},a);await act('decide',{selection:[1,3,4]});assert.equal(s.topics.security.result.complete,true);
+ await act('note',{note:'Toolrechten beperken'});await act('hub');await act('finish');
+ const stored=JSON.parse(fs.readFileSync(process.env.GOLEM_DATA_FILE,'utf8')).sessions[code];assert.equal(stored.topics.security.note,'Toolrechten beperken');
+ const report=await request(code+'/report','GET',undefined,a);assert.equal(report.status,200);assert.ok(report.data.includes('Toolrechten beperken'));noTokens(report.data,host,a);
+});

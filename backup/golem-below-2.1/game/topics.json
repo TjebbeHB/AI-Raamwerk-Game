@@ -1,0 +1,1147 @@
+[
+  {
+    "id": "governance",
+    "group": "foundation",
+    "title": "Governance",
+    "place": "De Raadzaal van Niemand",
+    "npc": "Griffel",
+    "hook": "Griffel heeft zes verantwoordelijke stempels, maar ze wijzen allemaal naar een andere stoel.",
+    "scenario": "Een digitale assistent geeft een inwoner een onjuist antwoord over een vergunning. IT wijst naar beleid, beleid naar de leverancier. Niemand weet wie de kwaliteit bewaakt, de fout herstelt of verantwoordelijkheid draagt voor besluiten.",
+    "question": "Welke maatregelen leggen het ontbrekende eigenaarschap rechtstreeks vast?",
+    "options": [
+      {
+        "text": "Leg vanuit bestaande functies taken, mandaten en eindverantwoordelijkheid vast in een rollenmatrix (RACI/RASCI).",
+        "status": "correct",
+        "feedback": "Een expliciete rolverdeling maakt duidelijk wie uitvoert, beslist, ondersteunt en aanspreekbaar is."
+      },
+      {
+        "text": "Laat een afzonderlijk AI-bestuur elk operationeel besluit goedkeuren.",
+        "status": "incorrect",
+        "feedback": "Alles centraliseren maakt besluitvorming kwetsbaar en vervangt geen verantwoordelijkheid in het werkproces. Centrale kaders kunnen wel helpen."
+      },
+      {
+        "text": "Benoem een domeinverantwoordelijke die kwaliteit en verantwoord gebruik binnen het werkgebied bewaakt.",
+        "status": "correct",
+        "feedback": "Deze rol bewaakt de toepassing doorlopend en is aanspreekpunt voor structurele problemen."
+      },
+      {
+        "text": "Maak medewerkers die besluiten nemen met assistentoutput expliciet besluit-eigenaar, met ruimte om te corrigeren of escaleren.",
+        "status": "correct",
+        "feedback": "Verantwoordelijkheid voor individuele besluiten is iets anders dan eigendom van brondata of techniek."
+      },
+      {
+        "text": "Organiseer AI-governance volledig los van bestaande data-governance.",
+        "status": "incorrect",
+        "feedback": "Hergebruik bestaande structuren en vul gericht aan. Parallelle structuren kunnen rolverwarring veroorzaken."
+      },
+      {
+        "text": "Richt logging en tracing in om bronnen, output en fouten te onderzoeken.",
+        "status": "supporting",
+        "feedback": "Een goede aanvulling: logs leveren bewijs. Ze wijzen op zichzelf geen verantwoordelijke eigenaar aan."
+      }
+    ],
+    "clues": [
+      {
+        "id": "a",
+        "title": "De rollenkaart",
+        "body": "Hergebruik bestaande functies. Leg per taak vast wie uitvoert, ondersteunt en eindverantwoordelijk is.",
+        "explanation": "Een rollenmatrix verbindt verantwoordelijkheden aan concrete werkzaamheden: bronbeheer, testen, vrijgave, incidentafhandeling en besluiten. De uitvoerder hoeft niet de eindverantwoordelijke te zijn. Hergebruik bestaande functies en spreek af wie bij twijfel knopen mag doorhakken.",
+        "steps": [
+          "Benoem per taak één aanspreekbare eindverantwoordelijke en de mensen die uitvoeren, adviseren en geïnformeerd worden.",
+          "Leg ook vast wie een onjuist antwoord herstelt, wie de inwoner helpt en wie de toepassing mag pauzeren."
+        ],
+        "example": "Bij een fout vergunningantwoord herstelt de inhoudsbeheerder de bron; de domeinverantwoordelijke beslist of de assistent tijdelijk anders moet worden ingezet.",
+        "section": "Rollen en verantwoordelijkheden"
+      },
+      {
+        "id": "b",
+        "title": "De twee zegels",
+        "body": "De domeinverantwoordelijke bewaakt de toepassing. De besluit-eigenaar verantwoordt de individuele beslissing op basis van de output.",
+        "explanation": "Eigenaarschap kent verschillende niveaus. Een domeinverantwoordelijke bewaakt de toepassing binnen een werkgebied. Een besluit-eigenaar verantwoordt een concreet besluit waarbij de assistent is gebruikt. De organisatie moet deze mensen voldoende informatie, tijd en bevoegdheden geven; verantwoordelijkheid mag niet alleen op de eindgebruiker worden afgeschoven.",
+        "steps": [
+          "Maak onderscheid tussen de kwaliteit van de dienst en de verantwoordelijkheid voor een individuele beslissing.",
+          "Beschrijf een escalatieroute voor twijfel, structurele fouten en conflicten tussen beleid en techniek."
+        ],
+        "example": "De vergunningverlener kan een advies afwijzen. Terugkerende fouten gaan naar de domeinverantwoordelijke, die bronbeheer en techniek samen laat verbeteren.",
+        "section": "Domeinverantwoordelijke en besluit-eigenaar"
+      },
+      {
+        "id": "c",
+        "title": "Het sprekende logboek",
+        "body": "Logging maakt handelen zichtbaar. Een aangewezen eigenaar moet de signalen kunnen beoordelen en erop handelen.",
+        "explanation": "Een log kan helpen reconstrueren welke vraag is gesteld, welke bronnen zijn gebruikt en welke systeemversie het antwoord maakte. Dat levert aanwijzingen over de oorzaak. Het logboek beslist niet wie moet handelen en is dus een aanvulling op duidelijke governance.",
+        "steps": [
+          "Leg alleen relevante gebeurtenissen vast en regel passende toegang en bewaartermijnen.",
+          "Koppel foutsignalen aan een eigenaar, een herstelactie en een terugkerend evaluatiemoment."
+        ],
+        "example": "Het log laat zien dat een verouderde regeling is opgehaald. Zonder bron-eigenaar blijft de fout terugkomen, hoeveel details het log ook bevat.",
+        "section": "Logging, tracing en verantwoording"
+      }
+    ],
+    "reflection": "Wie bewaakt in jullie project de toepassing, en wie is verantwoordelijk voor besluiten op basis van de output?",
+    "source": "Fundament 1 - Governance.docx",
+    "number": 1,
+    "color": "#d4ae6d",
+    "scene": 2
+  },
+  {
+    "id": "culture",
+    "group": "foundation",
+    "title": "Cultuur & Adoptie",
+    "place": "Het Huis van de Aarzelende Vonken",
+    "npc": "Vonk",
+    "hook": "Vonk heeft een AI-spreekuur met koekjes georganiseerd; alleen de koekjes worden goed gebruikt.",
+    "scenario": "Een gemeentelijke assistent werkt technisch, maar bijna alleen voorlopers gebruiken hem. Collega's twijfelen aan de betrouwbaarheid, zien weinig voordeel of verwachten extra werk. Teamleiders geven weinig richting.",
+    "question": "Welke maatregelen richten de adoptieaanpak op verschillen tussen gebruikers en hun drijfveren?",
+    "options": [
+      {
+        "text": "Onderzoek gebruikersgroepen en maak persona's met hun behoeften, zorgen en werksituatie.",
+        "status": "correct",
+        "feedback": "Begrijpen waarom mensen wel of niet meedoen maakt gerichte ondersteuning mogelijk."
+      },
+      {
+        "text": "Geef technische training over prompts en functies.",
+        "status": "supporting",
+        "feedback": "Training helpt bij vaardigheden en vertrouwen, maar verhelpt niet automatisch ontbrekende meerwaarde, zorgen of leiderschap."
+      },
+      {
+        "text": "Ontwerp interventies per drijfveer, zoals verwachte voordelen, ervaren moeite, beschikbare hulp en sociale invloed.",
+        "status": "correct",
+        "feedback": "Verschillende belemmeringen vragen verschillende vormen van ondersteuning."
+      },
+      {
+        "text": "Stel hetzelfde verplichte gebruiksquotum in voor alle teams, zonder hun werkzaamheden te onderzoeken.",
+        "status": "incorrect",
+        "feedback": "Een quotum zonder context kan ongeschikt gebruik stimuleren en echte belemmeringen verbergen."
+      },
+      {
+        "text": "Deel herkenbare praktijkvoorbeelden en laat collega's en leidinggevenden tonen wat wel en niet werkt.",
+        "status": "correct",
+        "feedback": "Concrete voorbeelden verduidelijken de waarde. Openheid ondersteunt vertrouwen en gezamenlijk leren."
+      },
+      {
+        "text": "Houd de assistent permanent exclusief beschikbaar voor voorlopers.",
+        "status": "incorrect",
+        "feedback": "Een beperkte pilot kan nuttig zijn, maar permanente uitsluiting helpt niet bij brede adoptie."
+      }
+    ],
+    "clues": [
+      {
+        "id": "a",
+        "title": "De personamuur",
+        "body": "Een sceptische jurist en een drukke beleidsmedewerker kunnen andere behoeften hebben. Onderzoek hun werk en zorgen voordat je interventies kiest.",
+        "explanation": "Gebruikers verschillen in werkdruk, ervaring, vertrouwen en behoefte aan ondersteuning. Onderzoek waarom mensen een assistent wel of niet gebruiken voordat je een uniforme interventie kiest. Een persona is een werkhypothese over behoeften, geen vast etiket voor een collega.",
+        "steps": [
+          "Spreek zowel frequente gebruikers als twijfelaars en niet-gebruikers; bekijk hun echte werkzaamheden.",
+          "Maak per groep zichtbaar welke taak voordeel oplevert en welke zorg of drempel eerst moet worden opgelost."
+        ],
+        "example": "Een jurist wil bronnen kunnen controleren; een baliemedewerker heeft vooral behoefte aan een snelle uitleg en directe hulp bij vastlopen.",
+        "section": "Gebruikersgroepen, persona’s en drijfveren"
+      },
+      {
+        "id": "b",
+        "title": "Het drijfverenkompas",
+        "body": "Onderzoek voordelen, moeite, middelen, zelfvertrouwen, vaardigheden en sociale invloed. Stem de adoptieaanpak daarop af.",
+        "explanation": "Adoptie hangt niet alleen af van technische vaardigheid. Mensen moeten meerwaarde zien, het gebruik haalbaar vinden en voldoende ondersteuning ervaren. Verwachte voordelen, ervaren moeite, beschikbare middelen en sociale invloed kunnen om verschillende interventies vragen.",
+        "steps": [
+          "Koppel iedere interventie aan een concrete belemmering en een observeerbaar resultaat.",
+          "Gebruik training voor kennis- of vaardigheidstekorten; onderzoek andere oorzaken wanneer training het gedrag niet verandert."
+        ],
+        "example": "Een extra prompttraining helpt weinig als medewerkers geen tijd krijgen om antwoorden te controleren. Dan zijn werkafspraken en capaciteit nodig.",
+        "section": "Gerichte adoptie-interventies"
+      },
+      {
+        "id": "c",
+        "title": "Het worstelbord",
+        "body": "Deel goede voorbeelden en bespreek problemen. Oefen in een gecontroleerde omgeving en organiseer hulp en voorbeeldgedrag.",
+        "explanation": "Vertrouwen groeit als teams bruikbare toepassingen én mislukkingen kunnen bespreken. Leidinggevenden kunnen richting geven door passend gebruik te laten zien en ruimte te maken voor veilig oefenen. Alleen een verplicht gebruiksquotum zegt weinig over nuttige inzet.",
+        "steps": [
+          "Deel herkenbare voorbeelden met de winst, beperking en manier waarop een mens controleert.",
+          "Plan korte leermomenten en organiseer hulp van ervaren collega’s; gebruik signalen om de dienst te verbeteren."
+        ],
+        "example": "Een teamleider laat zien hoe een concepttekst tijd bespaart, maar ook waar een bron ontbrak en waarom zij het voorstel heeft aangepast.",
+        "section": "Voorbeeldgedrag en veilig leren"
+      }
+    ],
+    "reflection": "Welke gebruikersgroep krijgt nu onvoldoende hulp, en welke belemmering wil je eerst begrijpen?",
+    "source": "Fundament 2 - Cultuur en adoptie.docx",
+    "number": 2,
+    "color": "#d4ae6d",
+    "scene": 0
+  },
+  {
+    "id": "capacity",
+    "group": "foundation",
+    "title": "Kennis & Capaciteit",
+    "place": "De Werkplaats van het Gedeelde Geheugen",
+    "npc": "Mallow",
+    "hook": "Mallow heeft alle kennis veilig opgeborgen in het hoofd van een collega die vandaag op vakantie gaat.",
+    "scenario": "Een overheidsorganisatie koopt een assistent in. De leverancier beheert het model. Intern weet niemand wie wijzigingen beoordeelt, wie antwoordkwaliteit bewaakt of waar eerdere ontwerpkeuzes staan.",
+    "question": "Welke maatregelen borgen interne regie en kennis bij deze ingekochte assistent?",
+    "options": [
+      {
+        "text": "Benoem een interne product owner of AI-coördinator die de leverancier aanstuurt en de benodigde rollen organiseert.",
+        "status": "correct",
+        "feedback": "Ook bij inkopen blijven interne richting en regie nodig. Een coördinator vervangt niet alle benodigde deskundigheid."
+      },
+      {
+        "text": "Leg alle technische en inhoudelijke verantwoordelijkheid volledig bij de leverancier.",
+        "status": "incorrect",
+        "feedback": "Zonder interne kennis kan de organisatie leverancierskeuzes en hun gevolgen onvoldoende beoordelen."
+      },
+      {
+        "text": "Borg intern architectuur- en datakennis om voorstellen en wijzigingen kritisch te beoordelen.",
+        "status": "correct",
+        "feedback": "Ook bij een buy-strategie zijn deze vaardigheden nodig om grip op de toepassing te houden."
+      },
+      {
+        "text": "Train uitsluitend eindgebruikers en richt geen interne beheer- of beoordelingskennis in.",
+        "status": "incorrect",
+        "feedback": "Gebruikerstraining is nuttig. De beperking tot uitsluitend gebruikers laat regie, kwaliteitsbewaking en beheer ongedekt."
+      },
+      {
+        "text": "Houd een toegankelijk, levend kennisdocument bij met keuzes, bronnen, wijzigingen, tests en incidenten, onder een duidelijke eigenaar.",
+        "status": "correct",
+        "feedback": "Zo blijft kennis actueel, overdraagbaar en bruikbaar bij personeelswisselingen."
+      },
+      {
+        "text": "Reserveer pas capaciteit voor kwaliteitsbewaking en beheer zodra de assistent grootschalig wordt gebruikt.",
+        "status": "incorrect",
+        "feedback": "De hele levenscyclus vraagt capaciteit. Ook een pilot heeft begeleiding, beheer en evaluatie nodig."
+      }
+    ],
+    "clues": [
+      {
+        "id": "a",
+        "title": "Het inkoopcontract",
+        "body": "Buy betekent niet dat alle kennis en verantwoordelijkheid naar buiten verdwijnen. Borg intern regie, architectuurkennis en datavaardigheden.",
+        "explanation": "Een leverancier kan techniek en onderhoud uitvoeren, maar de organisatie moet richting kunnen geven en de resultaten beoordelen. Een interne product owner verbindt de publieke taak, gebruikersbehoeften en het leverancierswerk. Deze rol moet inhoudelijke en technische deskundigen kunnen inschakelen.",
+        "steps": [
+          "Leg vast wie wijzigingen accepteert, kwaliteit bewaakt en de leverancier aanspreekt.",
+          "Reserveer interne tijd voor beoordeling en overleg; een naam zonder beschikbare capaciteit is onvoldoende."
+        ],
+        "example": "Voor een modelupdate levert de leverancier testresultaten aan. De interne eigenaar laat vakexperts beoordelen of de toepassing nog geschikt is.",
+        "section": "Interne regie bij inkoop"
+      },
+      {
+        "id": "b",
+        "title": "De gereedschapsbank",
+        "body": "Organiseer sturing, inhoud, techniek en data. Stem de benodigde capaciteit af op fase en complexiteit, inclusief beheer en monitoring.",
+        "explanation": "De benodigde kennis hangt af van fase en complexiteit. Een kleine pilot vraagt minder mensen dan een brede dienst, maar ook een pilot heeft sturing, inhoudelijke beoordeling en beheer nodig. Alleen eindgebruikers trainen dekt architectuur, data en integraties niet af.",
+        "steps": [
+          "Breng benodigde vaardigheden en beschikbare uren in kaart, inclusief monitoring, incidenten en doorontwikkeling.",
+          "Borg intern voldoende architectuur- en datakennis om leveranciersvoorstellen kritisch te beoordelen."
+        ],
+        "example": "Wanneer de assistent dossiers gaat gebruiken, zijn naast gesprekstraining ook kennis van gegevensrechten, bronkwaliteit en koppelingen nodig.",
+        "section": "Multidisciplinair team en levenscycluscapaciteit"
+      },
+      {
+        "id": "c",
+        "title": "Het levende archief",
+        "body": "Leg keuzes, wijzigingen, tests en incidenten vast op een vindbare plek. Benoem iemand die het document actueel houdt.",
+        "explanation": "Een levend kennisdocument bewaart niet alleen handleidingen, maar ook de redenen achter keuzes. Het moet actueel, vindbaar en bruikbaar zijn voor collega’s die later aansluiten. Een eigenaar organiseert onderhoud; bijdragen kunnen uit het hele team komen.",
+        "steps": [
+          "Leg doel, scope, bronnen, wijzigingen, tests, incidenten en escalatieafspraken op één plek vast.",
+          "Werk het document bij na releases en incidenten en neem overdracht op in het vertrekproces van sleutelfiguren."
+        ],
+        "example": "Een nieuwe beheerder ziet waarom een gegevensbron is uitgesloten en welke test opnieuw moet draaien voordat die bron wordt toegevoegd.",
+        "section": "Levend kennisdocument en overdracht"
+      }
+    ],
+    "reflection": "Welke kennis moet jullie organisatie zelf behouden als de leverancier morgen verandert of een collega vertrekt?",
+    "source": "Fundament 3 - Kennis & capaciteit.docx",
+    "number": 3,
+    "color": "#d4ae6d",
+    "scene": 1
+  },
+  {
+    "id": "infrastructure",
+    "group": "foundation",
+    "title": "Infrastructuur & Data",
+    "place": "De Poort van de Verwisselbare Wolken",
+    "npc": "Wolk",
+    "hook": "Wolk verkoopt de snelste wolkenpoort van het rijk; de uitgang staat helaas nog op de bouwtekening.",
+    "scenario": "Een pilot wordt opgeschaald. De assistent gaat openbare informatie en gevoelige dossiers verwerken. Het team wil snel een commerciële API kiezen, maar afspraken over datagebruik, zeggenschap en vertrek bij de leverancier ontbreken.",
+    "question": "Welke keuzes vormen samen een bewuste infrastructuuraanpak voor deze opschaling?",
+    "options": [
+      {
+        "text": "Classificeer werklasten per toepassing op gevoeligheid en risico en vertaal dit naar infrastructuureisen.",
+        "status": "correct",
+        "feedback": "Verschillende gegevens en toepassingen kunnen verschillende bescherming vereisen."
+      },
+      {
+        "text": "Kies de snelste commerciële API en onderzoek data- en exitvoorwaarden pas na livegang.",
+        "status": "incorrect",
+        "feedback": "Snelheid is relevant, maar onvoldoende voor een productiekeuze. Een commerciële dienst is niet op zichzelf uitgesloten; beoordeel eerst de voorwaarden."
+      },
+      {
+        "text": "Vergelijk eigen of soevereine infrastructuur, Europese cloud en publieke cloud op de eisen van de toepassing.",
+        "status": "correct",
+        "feedback": "De passende keuze volgt uit gegevens, risico's, zeggenschap, continuïteit en organisatiecontext."
+      },
+      {
+        "text": "Neem een concrete exitstrategie op en toets of data, modellen of diensten daadwerkelijk te migreren zijn.",
+        "status": "correct",
+        "feedback": "Zeggenschap vraagt een uitvoerbaar alternatief, niet alleen een contractuele belofte."
+      },
+      {
+        "text": "Laat het ontwikkelteam zelfstandig kiezen zonder architectuur-, beleids- of beveiligingskaders.",
+        "status": "incorrect",
+        "feedback": "Deze keuzes raken publieke waarden en organisatieverantwoordelijkheid, naast techniek."
+      },
+      {
+        "text": "Onderzoek passende overheidsvoorzieningen en open standaarden voordat je alles nieuw bouwt.",
+        "status": "correct",
+        "feedback": "Hergebruik kan helpen. Beoordeel of voorzieningen en standaarden toegankelijk zijn en passen bij jullie toepassing."
+      }
+    ],
+    "clues": [
+      {
+        "id": "a",
+        "title": "De classificatietafel",
+        "body": "Open waar het kan, beschermen waar het moet. Begin bij de toepassing en gegevens en vertaal de risico's naar eisen.",
+        "explanation": "Een infrastructuurkeuze begint bij de toepassing en de gegevens, niet bij de snelste demonstratie. Openbare informatie, interne kennis en gevoelige dossiers kunnen verschillende eisen stellen aan toegang, verwerking, beheer en continuïteit. Serverlocatie is één onderdeel van die afweging.",
+        "steps": [
+          "Classificeer gegevens en werklasten en beschrijf welke bescherming en beschikbaarheid nodig zijn.",
+          "Vergelijk infrastructuuropties op die eisen samen met architectuur, informatiebeveiliging en beleid."
+        ],
+        "example": "Openbare openingstijden kunnen een andere route volgen dan persoonlijke dossiers. Hetzelfde model hoeft niet voor beide dezelfde gegevensomgeving te gebruiken.",
+        "section": "Bewuste infrastructuurkeuzen en classificatie"
+      },
+      {
+        "id": "b",
+        "title": "De nooduitgang",
+        "body": "Waar data staat is één vraag. Kun je aantoonbaar vertrekken en elders verder? Documenteer en toets de migratieroute.",
+        "explanation": "Een exitstrategie beschrijft hoe de dienst kan doorgaan wanneer een leverancier stopt, duurder wordt of niet meer voldoet. Daarvoor zijn overdraagbare gegevens, configuraties en kennis nodig. Een contractuele mogelijkheid tot export is nog geen bewezen overstap.",
+        "steps": [
+          "Leg exportformaten, afhankelijkheden, beschikbare alternatieven, tijd en verantwoordelijkheden vast.",
+          "Test een migratie op een beperkte set en beoordeel de kwaliteit van de antwoorden na de overstap."
+        ],
+        "example": "Het team exporteert de bronnen, maar ontdekt in een oefening dat de documentverwerking niet overdraagbaar is. Dat knelpunt wordt vóór opschaling opgelost.",
+        "section": "Exitstrategie en migratietesten"
+      },
+      {
+        "id": "c",
+        "title": "De bouwblokkenkast",
+        "body": "Onderzoek bestaande overheidsvoorzieningen en open standaarden. Hergebruik wat bij de eisen en mogelijkheden van jouw organisatie past.",
+        "explanation": "Bestaande voorzieningen en open standaarden kunnen dubbel werk beperken en uitwisseling eenvoudiger maken. Hergebruik is geen automatische garantie voor geschiktheid. Beschikbaarheid, beheerafspraken, ondersteuning en aansluiting op het eigen werkproces moeten worden onderzocht.",
+        "steps": [
+          "Inventariseer passende overheidsvoorzieningen en standaarden voordat je een nieuwe omgeving bouwt.",
+          "Controleer ook gegevenskwaliteit, bron-eigenaarschap en actualisatie; goede infrastructuur herstelt slechte informatie niet."
+        ],
+        "example": "Een gedeeld platform levert het technische fundament, terwijl de gemeente zelf de eigenaar en updatecyclus van haar regelingen organiseert.",
+        "section": "Hergebruik, standaarden en datagovernance"
+      }
+    ],
+    "reflection": "Welke gegevens vragen extra bescherming, en hoe toon je aan dat jullie later van leverancier kunnen wisselen?",
+    "source": "Fundament 4. Infrastructuur en data.docx",
+    "number": 4,
+    "color": "#d4ae6d",
+    "scene": 3
+  },
+  {
+    "id": "evaluation",
+    "group": "domain",
+    "title": "Evaluatie digitale assistent",
+    "place": "De Proeftuin van Morgen",
+    "npc": "Mira de meetmeester",
+    "hook": "Mira heeft een meetlat van drie meter. Alleen meet niemand het goede ding.",
+    "scenario": "Een gemeentelijke assistent is in productie. Antwoorden wisselen, maar het team kan niet aantonen of updates de dienstverlening verbeteren. Bestuur, vakexperts en techniek kijken naar andere cijfers.",
+    "question": "Welke maatregelen maken de evaluatie herhaalbaar en bruikbaar voor verschillende betrokkenen?",
+    "options": [
+      {
+        "text": "Evalueer vanaf de proefopzet, door de pilot heen en tijdens productie.",
+        "status": "correct",
+        "feedback": "Elke fase stelt andere eisen. Evaluatie loopt mee met wijzigingen en echt gebruik."
+      },
+      {
+        "text": "Start de beoordeling pas wanneer inwoners klachten indienen.",
+        "status": "incorrect",
+        "feedback": "Klachten zijn waardevolle signalen, maar stille fouten en niet-gebruik blijven daarmee buiten beeld."
+      },
+      {
+        "text": "Test wijzigingen eerst op een vaste, representatieve set vragen en verwachte resultaten.",
+        "status": "correct",
+        "feedback": "Een herhaalbare regressietest laat zien wat verbetert én wat achteruitgaat. Houd de set actueel."
+      },
+      {
+        "text": "Maak responstijd en beschikbaarheid zichtbaar op een dashboard.",
+        "status": "supporting",
+        "feedback": "Nuttig voor techniek, maar een snel fout antwoord helpt niemand. Dienstresultaat en inhoud vragen eigen metingen."
+      },
+      {
+        "text": "Combineer dienstverleningsdoelen, inhoudelijke criteria en technische metingen met duidelijke eigenaren.",
+        "status": "correct",
+        "feedback": "Zo krijgen bestuurders, vakexperts en beheerders bewijs dat past bij hun verantwoordelijkheid."
+      },
+      {
+        "text": "Laat de leverancier de hele evaluatie doen zonder intern iemand verantwoordelijk te maken.",
+        "status": "incorrect",
+        "feedback": "Ondersteuning inkopen kan; de organisatie moet zelf kunnen beoordelen of haar publieke taak goed wordt uitgevoerd."
+      }
+    ],
+    "clues": [
+      {
+        "id": "a",
+        "title": "De meetlat met drie schalen",
+        "body": "Meet nuttige dienstverlening, inhoudelijke juistheid en technische werking. Eén score vertelt niet het hele verhaal.",
+        "explanation": "Verschillende betrokkenen hebben verschillende signalen nodig. Managers willen weten of de dienst waarde toevoegt, vakexperts beoordelen inhoud en engineers bewaken de technische werking. Een gemiddelde tevredenheidsscore of hoge beschikbaarheid is daarom geen volledige evaluatie.",
+        "steps": [
+          "Beschrijf per doel wat je meet, hoe je het meet en wie op een afwijking handelt.",
+          "Combineer resultaat voor de gebruiker, inhoudelijke kwaliteit en techniek; leg kritieke fouten apart vast."
+        ],
+        "example": "Een antwoord kan snel en vriendelijk zijn, terwijl de inwoner alsnog bij het verkeerde loket eindigt. Meet daarom ook of de hulpvraag is opgelost.",
+        "section": "Evaluatie op organisatieniveau"
+      },
+      {
+        "id": "b",
+        "title": "Het herhaalbare proefboek",
+        "body": "Een vaste, representatieve testset maakt versies vergelijkbaar. Neem echte vragen, randgevallen en bekende fouten op.",
+        "explanation": "Een vaste testset maakt versies vergelijkbaar. Neem veelvoorkomende vragen, randgevallen en bekende fouten op, met door deskundigen beoordeelde uitkomsten. Gebruik die set vóór een wijziging en vul haar aan met nieuwe lessen uit de praktijk.",
+        "steps": [
+          "Test gewijzigde prompts, modellen en bronnen vóór vrijgave tegen dezelfde representatieve gevallen.",
+          "Laat onzekere beoordelingen door vakexperts controleren; ook een AI-beoordelaar kan fouten maken."
+        ],
+        "example": "Een nieuwe prompt verbetert eenvoudige vragen, maar verslechtert uitzonderingssituaties. De regressietest maakt die achteruitgang zichtbaar vóór uitrol.",
+        "section": "Offline validatie en gekalibreerde beoordeling"
+      },
+      {
+        "id": "c",
+        "title": "De kalender zonder einddatum",
+        "body": "Evalueer in proefopzet, pilot én productie. Gebruik praktijkproblemen om de volgende test en verbetering te kiezen.",
+        "explanation": "Evaluatie verandert gedurende de levenscyclus. Een proefopzet onderzoekt haalbaarheid; een pilot toetst gebruik in een afgebakende context; productie vraagt doorlopende signalering en opvolging. Online monitoring vervangt het testen van wijzigingen vóór livegang niet.",
+        "steps": [
+          "Reserveer uren en eigenaren voor evaluatie, ook nadat de eerste versie klaar is.",
+          "Koppel klachten, foutmeldingen en menselijke correcties aan herstel en nieuwe testgevallen."
+        ],
+        "example": "Bij een gewijzigde subsidieregeling worden bronnen en testvragen bijgewerkt. Daarna volgt controle in productie om nieuwe misverstanden te signaleren.",
+        "section": "Projectfase en voortdurende evaluatie"
+      }
+    ],
+    "reflection": "Welk resultaat zouden jullie meten om te weten of inwoners daadwerkelijk beter geholpen worden?",
+    "source": "01. Evaluatie digitale assistent.docx",
+    "number": 5,
+    "color": "#7cbaae",
+    "scene": 4
+  },
+  {
+    "id": "quality",
+    "group": "domain",
+    "title": "Kwaliteit van de output",
+    "place": "De Bibliotheek van Bijna Waar",
+    "npc": "Mallow de bibliothecaris",
+    "hook": "Mallow heeft twee officiële antwoorden. Ze spreken elkaar tegen. Hij heeft ze alvast allebei ingelijst.",
+    "scenario": "Een assistent geeft verschillende antwoorden op dezelfde vraag over een lokale regeling. Er staan oude en nieuwe versies in de kennisbank. Het team wil weten waar de fout ontstaat.",
+    "question": "Welke maatregelen onderzoeken en verbeteren de inhoudelijke betrouwbaarheid van deze antwoorden?",
+    "options": [
+      {
+        "text": "Maak een representatieve vragenset met door vakexperts beoordeelde antwoorden en beoordelingscriteria.",
+        "status": "correct",
+        "feedback": "Een golden set maakt fouten zichtbaar en helpt verbeteringen toetsen aan inhoudelijke eisen."
+      },
+      {
+        "text": "Verander alleen de prompt tot een paar voorbeeldantwoorden beter klinken.",
+        "status": "incorrect",
+        "feedback": "Een overtuigende formulering bewijst geen juistheid en kan fouten in bronnen of opgehaalde passages verbergen."
+      },
+      {
+        "text": "Controleer welke actuele, gezaghebbende bronnen worden opgehaald en waar de keten fout gaat.",
+        "status": "correct",
+        "feedback": "Beoordeel bronkwaliteit, selectie van passages en antwoordvorming samen. Meer bronnen is niet automatisch beter."
+      },
+      {
+        "text": "Toon gebruikte bronnen, onzekerheden en een route om een fout te melden.",
+        "status": "supporting",
+        "feedback": "Dit helpt gebruikers controleren en verbeteren, maar maakt foutieve informatie niet vanzelf correct."
+      },
+      {
+        "text": "Vervang de assistent door een autonomere agent en ga ervan uit dat de kwaliteit daarmee geregeld is.",
+        "status": "incorrect",
+        "feedback": "Meer autonomie lost slechte bronnen niet op en vraagt juist extra evaluatie van handelingen en tussenstappen."
+      }
+    ],
+    "clues": [
+      {
+        "id": "a",
+        "title": "Het gouden vragenboek",
+        "body": "Laat vakexperts bepalen wat een bruikbaar en juist antwoord is. Test ook randgevallen en vragen waarop geen antwoord mogelijk is.",
+        "explanation": "Een golden set beschrijft wat een goed antwoord is voor representatieve vragen. Daarbij horen de relevante bronnen, vereiste onderdelen en onacceptabele fouten. Laat deskundigen ook voorbeelden opnemen waarop de assistent moet doorvragen of geen betrouwbaar antwoord kan geven.",
+        "steps": [
+          "Beoordeel juistheid, volledigheid en brongetrouwheid afzonderlijk; mooi geformuleerd is niet hetzelfde als correct.",
+          "Vul de set aan met echte fouten en controleer nieuwe voorbeelden inhoudelijk voordat je ze gebruikt."
+        ],
+        "example": "Bij een vergunningvraag hoort het antwoord niet alleen een termijn te noemen, maar ook de relevante uitzondering en actuele bron.",
+        "section": "Golden dataset voor antwoorden en retrieval"
+      },
+      {
+        "id": "b",
+        "title": "De stoffige bronkast",
+        "body": "Een antwoord kan misgaan bij de bron, het ophalen van informatie of het formuleren. Controleer elke stap en de actualiteit.",
+        "explanation": "Bij zoeken met een taalmodel ontstaat het antwoord in meerdere stappen. Eerst moeten de juiste documenten beschikbaar zijn, daarna moeten relevante passages worden gevonden, en vervolgens moet het model die informatie juist gebruiken. Een fout kan in elk van die stappen ontstaan.",
+        "steps": [
+          "Controleer gezag, versie en actualiteit van de bron en leg vast wie haar onderhoudt.",
+          "Bekijk welke passages werkelijk zijn opgehaald; pas daarna gericht de zoekstrategie of antwoordvorming aan."
+        ],
+        "example": "Het model citeert correct uit een oude regeling. De prompt aanpassen is dan onvoldoende: de verouderde bron moet worden vervangen of duidelijk als historisch gemarkeerd.",
+        "section": "Kwaliteit in iedere stap van de assistent"
+      },
+      {
+        "id": "c",
+        "title": "De spiegel van zekerheid",
+        "body": "Vloeiende taal en een bronverwijzing zijn geen bewijs. Combineer inzichtelijke antwoorden met inhoudelijke toetsing en opvolging van feedback.",
+        "explanation": "Bronverwijzingen en zichtbare onzekerheid helpen gebruikers antwoorden beoordelen, maar herstellen de kwaliteit niet vanzelf. De organisatie moet fouten kunnen herkennen en opvolgen. De verantwoordelijkheid mag niet volledig bij de inwoner komen te liggen.",
+        "steps": [
+          "Bied een bruikbare vervolgstap: bron bekijken, gegevens verduidelijken of contact met een medewerker.",
+          "Combineer feedback met inhoudelijke controles en onderzoek terugkerende foutpatronen."
+        ],
+        "example": "De melding ‘controleer dit zelf’ voorkomt niet dat een onjuiste termijn schade veroorzaakt. Het team moet de bron en het antwoordproces verbeteren.",
+        "section": "Transparantie en feedback"
+      }
+    ],
+    "reflection": "Wie kan bij jullie een inhoudelijk fout antwoord herkennen en de onderliggende bron herstellen?",
+    "source": "02. Kwaliteit van de output.docx",
+    "number": 6,
+    "color": "#a19cc6",
+    "scene": 1
+  },
+  {
+    "id": "interaction",
+    "group": "domain",
+    "title": "Mens-assistentinteractie",
+    "place": "De Balie van de Tweede Kans",
+    "npc": "Noor de loketwachter",
+    "hook": "De balie zegt steeds ‘ik begrijp u’. De bezoeker zou liever eindelijk verder kunnen.",
+    "scenario": "Een inwoner vraagt hulp bij een regeling. De assistent klinkt alsof hij beslist over de aanvraag, herhaalt zijn antwoord en biedt geen duidelijke weg naar een medewerker. De inwoner weet niet wat er met het gesprek wordt opgeslagen.",
+    "question": "Welke ontwerpkeuzes geven deze inwoner begrijpelijke hulp en daadwerkelijke regie?",
+    "options": [
+      {
+        "text": "Maak duidelijk wat de assistent kan, welke informatie hij gebruikt en dat hij hier geen formeel besluit neemt.",
+        "status": "correct",
+        "feedback": "De rol en grenzen moeten tijdens het gesprek begrijpelijk blijven. De interface mag geen bevoegdheid suggereren die ontbreekt."
+      },
+      {
+        "text": "Maak de assistent menselijker en laat hem zeggen dat hij precies begrijpt hoe de inwoner zich voelt.",
+        "status": "incorrect",
+        "feedback": "Dat kan onterecht vertrouwen wekken. Een vriendelijke, heldere toon hoeft geen menselijke gevoelens te suggereren."
+      },
+      {
+        "text": "Bied verduidelijking, correctie en zichtbare overdracht naar menselijke hulp; laat de inwoner controleren wat meegaat.",
+        "status": "correct",
+        "feedback": "Herstel en overdracht horen bij de normale route. De gebruiker houdt grip op belangrijke vervolgstappen."
+      },
+      {
+        "text": "Voeg een algemene tevredenheidsknop toe onder elk gesprek.",
+        "status": "supporting",
+        "feedback": "Een signaal is nuttig, maar zonder gerichte feedback en opvolging blijven misverstanden en blokkades bestaan."
+      },
+      {
+        "text": "Test eenvoudige, stapsgewijze uitleg met verschillende gebruikers en maak bewaarde context inzichtelijk en aanpasbaar.",
+        "status": "correct",
+        "feedback": "Toegankelijke hulp en controle over geheugen helpen mensen met uiteenlopende vaardigheden en omstandigheden."
+      }
+    ],
+    "clues": [
+      {
+        "id": "a",
+        "title": "Het eerlijke naambord",
+        "body": "Informeren, adviseren en handelen zijn verschillende rollen. Laat de vorm en taal aansluiten op wat het systeem werkelijk doet.",
+        "explanation": "De vorm en taal van de assistent moeten aansluiten op zijn werkelijke rol. Informatie geven, een voorstel voorbereiden en een handeling uitvoeren zijn verschillende dingen. Gebruikers moeten tijdens het gesprek kunnen zien wat het systeem doet en waarop het zich baseert.",
+        "steps": [
+          "Leg in gewone taal uit wat de assistent kan, wat hij niet kan en welke informatie hij gebruikt.",
+          "Voorkom dat toon of uiterlijk een menselijke deskundige of formele beslisser suggereren."
+        ],
+        "example": "Zeg bij een voorbereidende aanvraag: ‘Dit is een voorstel dat u kunt controleren’, in plaats van te suggereren dat de aanvraag al is goedgekeurd.",
+        "section": "Kies de rol en maak grenzen duidelijk"
+      },
+      {
+        "id": "b",
+        "title": "De bel die wél werkt",
+        "body": "Vraag door, laat corrigeren en bied hulp van een medewerker. Toon welke gespreksinformatie bij een overdracht wordt meegestuurd.",
+        "explanation": "Misverstanden en overdracht horen bij het normale ontwerp. Een inwoner moet kunnen corrigeren, verduidelijken en een ander kanaal kiezen. Wanneer gespreksinformatie wordt overgedragen, moet duidelijk zijn wat meegaat en moet onjuiste context kunnen worden aangepast.",
+        "steps": [
+          "Bied gerichte vervolgvragen en zichtbare opties voor opnieuw beginnen, corrigeren of menselijke hulp.",
+          "Laat vóór een handeling met gevolgen de relevante gegevens en vervolgstap controleren."
+        ],
+        "example": "De assistent vraagt welke regeling wordt bedoeld en toont daarna welke samenvatting naar de medewerker gaat. De inwoner kan een verkeerde aanname herstellen.",
+        "section": "Menselijke regie, overdracht en herstel"
+      },
+      {
+        "id": "c",
+        "title": "De doorzichtige rugzak",
+        "body": "Leg uit wat wordt onthouden en waarom. Bied controle en verwijdering waar passend, en test uitleg met verschillende gebruikers.",
+        "explanation": "Geheugen kan gesprekken eenvoudiger maken, maar gebruikers moeten begrijpen wat wordt onthouden, waarom en hoelang. Tijdelijke context is iets anders dan een blijvend profiel. Toegankelijkheid vraagt daarnaast tests met uiteenlopende vaardigheden en omstandigheden.",
+        "steps": [
+          "Gebruik alleen noodzakelijke context en maak bekijken, aanpassen of verwijderen mogelijk waar passend.",
+          "Test eenvoudige taal, stapsgewijze uitleg en alternatieve routes met verschillende gebruikers."
+        ],
+        "example": "Een eerdere aanname over iemands woonsituatie blijkt onjuist. De inwoner kan die context corrigeren zodat latere antwoorden niet dezelfde fout herhalen.",
+        "section": "Controleerbaar geheugen en inclusief ontwerp"
+      }
+    ],
+    "reflection": "Waar kan een inwoner in jullie dienst vastlopen, corrigeren of hulp van een mens krijgen?",
+    "source": "03. NIEUW Mens-assistent interactie.docx",
+    "number": 7,
+    "color": "#dfad81",
+    "scene": 0
+  },
+  {
+    "id": "performance",
+    "group": "domain",
+    "title": "Technische prestaties",
+    "place": "De Postkamer in de Piek",
+    "npc": "Bram de postkobold",
+    "hook": "Bram telt de wachtrij. Bij duizend is hij opnieuw begonnen, voor zijn gemoedsrust.",
+    "scenario": "Na een gemeentelijke campagne gebruiken veel inwoners tegelijk de assistent. Antwoorden worden traag en verzoeken vallen uit. Ook eenvoudige vragen gaan door het zwaarste model.",
+    "question": "Welke maatregelen helpen deze piek beheersen zonder onnodig zware verwerking?",
+    "options": [
+      {
+        "text": "Schaal capaciteit op basis van responstijden en wachtrijen en test bekende pieksituaties.",
+        "status": "correct",
+        "feedback": "Schaalregels en belastingtests helpen grenzen vooraf zien. Controleer ook knelpunten in gekoppelde diensten."
+      },
+      {
+        "text": "Gebruik voor elke vraag het grootste model, ongeacht taak en vertraging.",
+        "status": "incorrect",
+        "feedback": "Meer modelcapaciteit per vraag is geen oplossing voor een overbelaste keten en kan de wachtrij vergroten."
+      },
+      {
+        "text": "Hergebruik geschikte antwoorden met afspraken over actualiteit en toegangsrechten.",
+        "status": "correct",
+        "feedback": "Caching beperkt dubbel werk, mits verouderde of persoonlijke informatie niet verkeerd wordt gedeeld."
+      },
+      {
+        "text": "Routeer eenvoudige vragen naar een zoekfunctie of licht model en zwaardere taken naar een passende route.",
+        "status": "correct",
+        "feedback": "De snelste route moet ook voldoende kwaliteit en veiligheid bieden. Meet dat per vraagtype."
+      },
+      {
+        "text": "Sla monitoring over zodat alle rekencapaciteit naar antwoorden kan gaan.",
+        "status": "incorrect",
+        "feedback": "Zonder zicht op vertraging, fouten en wachtrijen kan het team niet tijdig en gericht bijsturen."
+      }
+    ],
+    "clues": [
+      {
+        "id": "a",
+        "title": "De wachtrijmeter",
+        "body": "Volg vertraging, uitval en drukte door de hele keten. Oefen een campagnepiek voordat inwoners hem veroorzaken.",
+        "explanation": "Responstijd hangt af van de hele keten: zoeken, modelaanroep, gegevenskoppelingen en wachtrijen. Meer capaciteit op één plek lost een ander knelpunt niet op. Belastingtests laten zien wat er gebeurt wanneer veel verzoeken tegelijk binnenkomen.",
+        "steps": [
+          "Bepaal een prestatiedoel per vraagtype en volg vertraging, uitval en wachtrijlengte.",
+          "Schaal op tijd op en test ook de capaciteit en foutafhandeling van gekoppelde systemen."
+        ],
+        "example": "Na een campagne groeit de wachtrij terwijl het model snel blijft. De dossierkoppeling blijkt de bottleneck; alleen extra modelcapaciteit helpt niet.",
+        "section": "Autoscaling en end-to-end monitoring"
+      },
+      {
+        "id": "b",
+        "title": "De kaarten voor hergebruik",
+        "body": "Een eerder antwoord kan tijd besparen. Controleer context, rechten en houdbaarheid voordat je het hergebruikt.",
+        "explanation": "Caching hergebruikt eerdere resultaten en kan onnodig werk voorkomen. Daarvoor moet duidelijk zijn welke antwoorden voor welke gebruiker en situatie opnieuw bruikbaar zijn. Inhoud die verandert of persoonsgebonden is, vraagt extra zorgvuldige sleutels en vervalregels.",
+        "steps": [
+          "Bepaal wat gecachet mag worden en wanneer een opgeslagen antwoord moet vervallen.",
+          "Controleer geregeld of hergebruikte antwoorden nog juist zijn en bij de juiste toegangsrechten horen."
+        ],
+        "example": "Openingstijden kunnen kort worden hergebruikt. Een antwoord over een persoonlijk dossier mag niet zonder meer aan een andere inwoner worden teruggegeven.",
+        "section": "Caching, houdbaarheid en kwaliteitscontrole"
+      },
+      {
+        "id": "c",
+        "title": "De lichte en zware postduif",
+        "body": "Niet elke vraag heeft hetzelfde model nodig. Kies de eenvoudigste route die de taak voldoende goed uitvoert.",
+        "explanation": "Verschillende taken vragen verschillende verwerkingsroutes. Een vaste opzoekvraag kan met zoeken worden opgelost; een complexere vraag kan meer modelcapaciteit of een mens nodig hebben. Routering moet passen bij kwaliteit, risico en gewenste snelheid.",
+        "steps": [
+          "Definieer eenvoudige en complexe vraagtypen en controleer of de gekozen route goed genoeg werkt.",
+          "Meet fouten en vertraging per route; pas de indeling aan wanneer moeilijke vragen verkeerd terechtkomen."
+        ],
+        "example": "Een vraag naar het bezoekadres gaat rechtstreeks naar een gecontroleerde informatiekaart. Een onduidelijke persoonlijke situatie wordt verduidelijkt of overgedragen.",
+        "section": "Select-then-route en modelbeoordeling"
+      }
+    ],
+    "reflection": "Welke responstijd en foutmarge zijn acceptabel voor jullie belangrijkste gebruikersvragen?",
+    "source": "04. technische prestaties.docx",
+    "number": 8,
+    "color": "#8bb3ca",
+    "scene": 3
+  },
+  {
+    "id": "functionality",
+    "group": "domain",
+    "title": "Functionaliteit",
+    "place": "Het afsprakenatelier",
+    "npc": "Noor",
+    "hook": "Loketkabouter Noor heeft drie afsprakenkaartjes en vier boze wekkers: ergens is iets verkeerd verplaatst.",
+    "scenario": "De gemeenteassistent helpt inwoners afspraken verplaatsen. Hij verwisselt soms twee aanvragen en meldt “geregeld” terwijl de koppeling met het afsprakensysteem is vastgelopen. Noor vangt de teleurgestelde bezoekers op.",
+    "question": "Welke maatregelen maken het verplaatsen van afspraken betrouwbaarder?",
+    "options": [
+      {
+        "text": "Houd per gesprek bij welke afspraak, gebruiker en ontbrekende gegevens aan de orde zijn.",
+        "status": "correct",
+        "feedback": "Actief gespreksgeheugen voorkomt verkeerd ingevulde verwijzingen. Bewaar alleen de context die nodig is."
+      },
+      {
+        "text": "Toon tijdens het wachten een duidelijke voortgangsmelding.",
+        "status": "supporting",
+        "feedback": "Dat maakt wachten begrijpelijker, maar bewijst niet dat de afspraak daadwerkelijk is gewijzigd."
+      },
+      {
+        "text": "Leg een vaste taakflow vast en meld afronding pas na bevestiging uit het afsprakensysteem.",
+        "status": "correct",
+        "feedback": "Een overtuigend antwoord is geen uitgevoerde transactie. Controleer de echte taakstatus."
+      },
+      {
+        "text": "Laat een krachtiger model bij onduidelijkheid de waarschijnlijk bedoelde afspraak kiezen.",
+        "status": "incorrect",
+        "feedback": "Meer modelcapaciteit neemt onduidelijkheid niet weg. Vraag door voordat je mogelijk de verkeerde afspraak wijzigt."
+      },
+      {
+        "text": "Vraag gericht door en bied bij herhaald falen een overdracht naar de balie.",
+        "status": "correct",
+        "feedback": "Verduidelijking en een bruikbare menselijke uitweg voorkomen eindeloze mislukte gesprekken."
+      }
+    ],
+    "clues": [
+      {
+        "id": "a",
+        "title": "Het verwisselde afspraakkaartje",
+        "body": "Gesprekscontext bevat de bedoelde zaak, gebruikersrol en al verzamelde gegevens. Beheer die context bewust en beperkt.",
+        "explanation": "Een gesprek verwijst vaak naar informatie die eerder is genoemd. De assistent moet kunnen onderscheiden welke gebruiker, zaak en afspraak centraal staan en welke gegevens ontbreken. Dat vraagt gerichte context, geen onbegrensde opslag van alles wat iemand zegt.",
+        "steps": [
+          "Houd de bedoelde taak en noodzakelijke gegevens bij en vraag door bij dubbelzinnigheid.",
+          "Laat de gebruiker controleren welke afspraak of zaak wordt aangepast voordat een wijziging volgt."
+        ],
+        "example": "‘Verplaats die naar vrijdag’ is onduidelijk wanneer twee afspraken besproken zijn. De assistent vraagt eerst welke afspraak wordt bedoeld.",
+        "section": "Gesprekscontext en verduidelijking"
+      },
+      {
+        "id": "b",
+        "title": "De lege ontvangstbevestiging",
+        "body": "Een taak is pas afgerond wanneer de bijbehorende systeemactie aantoonbaar is geslaagd. Een voortgangsmelding vervangt die controle niet.",
+        "explanation": "Een taalantwoord is geen bewijs dat een gekoppeld systeem iets heeft uitgevoerd. Betrouwbare functionaliteit volgt een taakflow met een echte status: voorbereiding, bevestiging, uitvoering en resultaat. Bij een storing hoort het systeem eerlijk te melden wat nog niet is gelukt.",
+        "steps": [
+          "Meld afronding pas nadat de ontvangende dienst de wijziging heeft bevestigd.",
+          "Ontwerp een herstelroute voor time-outs en voorkom dat een herhaalde poging ongemerkt een dubbele handeling veroorzaakt."
+        ],
+        "example": "De afspraakservice reageert niet. De assistent zegt dat de wijziging nog niet is bevestigd en biedt een controle of overdracht aan.",
+        "section": "Taakflows en betrouwbare uitvoering"
+      },
+      {
+        "id": "c",
+        "title": "De bel naar de balie",
+        "body": "Begripsfouten, ongeldige gegevens en systeemstoringen vragen verschillende herstelroutes. Vraag gericht door en maak menselijke hulp bereikbaar.",
+        "explanation": "Verschillende fouten vragen verschillende vervolgstappen. Bij een onduidelijke vraag helpt verduidelijking; bij ongeldige gegevens helpt correctie; bij een storing kan een ander kanaal nodig zijn. Steeds hetzelfde antwoord herhalen vergroot de frustratie.",
+        "steps": [
+          "Maak duidelijk wat misgaat en geef een concrete herstelmogelijkheid.",
+          "Bied bij herhaald falen overdracht aan een medewerker met de relevante, gecontroleerde context."
+        ],
+        "example": "Na twee mislukte pogingen toont de assistent het balienummer en een samenvatting van de gewenste wijziging, zodat de inwoner niet opnieuw alles hoeft uit te leggen.",
+        "section": "Herstelroutes en menselijke overdracht"
+      }
+    ],
+    "reflection": "Bij welke taak in jullie organisatie mag de assistent pas “geregeld” zeggen na controle in een ander systeem?",
+    "source": "05. Functionaliteit.docx",
+    "number": 9,
+    "color": "#8db9ac",
+    "scene": 2
+  },
+  {
+    "id": "sustainability",
+    "group": "domain",
+    "title": "Duurzaamheid",
+    "place": "De warme machinekamer",
+    "npc": "Bram",
+    "hook": "Bram bakt broodjes op de modelmachine, maar vraagt zich af waarom openingstijden zoveel warmte opleveren.",
+    "scenario": "De publieksassistent beantwoordt dagelijks duizenden vragen over openingstijden en afvalpassen. Elke vraag gaat met de volledige gesprekshistorie naar het grootste model. Het team wil minder verspillen zonder slechtere hulp te bieden.",
+    "question": "Welke keuzes verminderen onnodig verbruik met behoud van voldoende antwoordkwaliteit?",
+    "options": [
+      {
+        "text": "Verkort alle antwoorden en beschouw daarmee de duurzaamheidsvraag als opgelost.",
+        "status": "incorrect",
+        "feedback": "Kortere antwoorden kunnen helpen, maar bewijzen niets over de totale impact of behouden kwaliteit."
+      },
+      {
+        "text": "Gebruik voor vaste opzoekvragen een zoekfunctie en vergelijk voor overige taken kleinere modellen op een testset.",
+        "status": "correct",
+        "feedback": "Begin met de eenvoudigste oplossing die de taak goed uitvoert. Schaal op wanneer metingen dat rechtvaardigen."
+      },
+      {
+        "text": "Hergebruik geschikte antwoorden en begrens onnodige context en antwoordlengte; blijf kwaliteit toetsen.",
+        "status": "correct",
+        "feedback": "Minder overbodige aanroepen en tokens kunnen verspilling verminderen. Te sterke beperking kan de kwaliteit schaden."
+      },
+      {
+        "text": "Maak het tokenverbruik zichtbaar op een dashboard.",
+        "status": "supporting",
+        "feedback": "Dit maakt verspilling bespreekbaar, maar tokens zijn geen volledige meting van energiegebruik of milieu-impact."
+      },
+      {
+        "text": "Meet of schat energie en emissies per afgeronde hulpvraag, naast kwaliteit en gebruiksvolume.",
+        "status": "correct",
+        "feedback": "Zo vergelijk je oplossingen voor dezelfde nuttige taak en zie je ook wat opschaling betekent."
+      }
+    ],
+    "clues": [
+      {
+        "id": "a",
+        "title": "De kleine gereedschapskist",
+        "body": "Niet iedere taak vraagt AI; niet iedere AI-taak vraagt een groot model. Vergelijk op de eigen taak en kwaliteitseisen.",
+        "explanation": "De eenvoudigste werkende oplossing is een nuttig vertrekpunt. Niet iedere taak vraagt een generatief model; niet ieder modelantwoord vraagt het grootste model. Vergelijk alternatieven op dezelfde taak en stel vast welke kwaliteit minimaal nodig is.",
+        "steps": [
+          "Onderzoek eerst vaste antwoorden, zoeken of een eenvoudige regel voor voorspelbare vragen.",
+          "Vergelijk kleinere modellen op representatieve vragen en schaal alleen op als hun kwaliteit onvoldoende is."
+        ],
+        "example": "Voor het adres van het gemeentehuis volstaat een gecontroleerde informatiekaart. Een groot model voegt daar mogelijk geen nuttige waarde toe.",
+        "section": "Passende modelkeuze en alternatieven voor AI"
+      },
+      {
+        "id": "b",
+        "title": "De herbruikbare antwoordkaart",
+        "body": "Caching en gerichte context beperken herhaald rekenwerk, mits antwoorden bruikbaar en actueel blijven.",
+        "explanation": "Overbodige context en herhaalde berekeningen vergroten het verbruik. Gericht ophalen, passende antwoordlengte en veilig hergebruik kunnen dit beperken. De kortste prompt is niet automatisch de beste: ontbrekende context kan fouten en extra herstelgesprekken veroorzaken.",
+        "steps": [
+          "Stuur alleen relevante passages mee en begrens context zonder noodzakelijke informatie weg te laten.",
+          "Controleer bij caching zowel actualiteit en privacy als het effect op antwoordkwaliteit."
+        ],
+        "example": "In plaats van een heel beleidsboek mee te sturen, haalt het team de relevante artikelen op en test of uitzonderingen nog correct worden behandeld.",
+        "section": "Efficiënte prompts, context en hergebruik"
+      },
+      {
+        "id": "c",
+        "title": "De meter naast de broodjes",
+        "body": "Kijk naar impact per nuttig resultaat én het aantal keren dat de dienst wordt gebruikt. Tokenverbruik geeft slechts een deel van het beeld.",
+        "explanation": "Een tokenmeter geeft inzicht in gebruik, maar is geen volledige milieumeting. Kijk naar energie en emissies voor een nuttig resultaat, naast kwaliteit, infrastructuur en totaal gebruik. Een efficiëntere losse vraag kan samengaan met hoger totaalverbruik als de dienst veel meer wordt gebruikt.",
+        "steps": [
+          "Vergelijk oplossingen per afgeronde hulpvraag en vermeld onzekerheden in metingen of schattingen.",
+          "Volg ook het totale volume en neem mislukte gesprekken en herstelwerk mee in de afweging."
+        ],
+        "example": "Een kleiner model verbruikt minder per poging maar vraagt veel extra gesprekken. De vergelijking per opgeloste vraag laat zien of er werkelijk winst is.",
+        "section": "Impact meten en verantwoord opschalen"
+      }
+    ],
+    "reflection": "Welke veelvoorkomende vraag zou bij jullie met een eenvoudige zoekfunctie of hergebruikt antwoord kunnen worden afgehandeld?",
+    "source": "06. Duurzaamheid.docx",
+    "number": 10,
+    "color": "#aabd7e",
+    "scene": 3
+  },
+  {
+    "id": "sovereignty",
+    "group": "domain",
+    "title": "Digitale soevereiniteit",
+    "place": "De brug van zeven sleutels",
+    "npc": "Mira",
+    "hook": "Brugwachter Mira bezit de toegangssleutel, maar ontdekt dat de leverancier alle brugdelen heeft vastgelijmd.",
+    "scenario": "De leverancier van een gemeentelijke assistent verhoogt zijn tarieven. Overstappen blijkt lastig: prompts, documentverwerking en evaluaties zitten in zijn platform. “Maar onze servers staan toch in Europa?”, vraagt de beheerder.",
+    "question": "Welke keuzes geven de gemeente meer regie en een uitvoerbare uitweg?",
+    "options": [
+      {
+        "text": "Maak data, prompts, workflows en evaluaties overdraagbaar en oefen een overstap.",
+        "status": "correct",
+        "feedback": "Een exitplan krijgt betekenis als de benodigde onderdelen beschikbaar zijn en de overstap daadwerkelijk werkt."
+      },
+      {
+        "text": "Kies een Europees datacenter en beschouw daarmee alle afhankelijkheidsrisico’s als afgedekt.",
+        "status": "incorrect",
+        "feedback": "Serverlocatie vertelt niet wie toegang heeft, welke partijen de dienst beheersen of hoe gemakkelijk overstappen is."
+      },
+      {
+        "text": "Leg extra afspraken vast over bereikbaarheid bij storingen.",
+        "status": "supporting",
+        "feedback": "Dat ondersteunt continuïteit, maar maakt prompts, gegevens en workflows nog niet overdraagbaar."
+      },
+      {
+        "text": "Gebruik vervangbare koppelingen voor modellen en embeddings en test alternatieven op kwaliteit.",
+        "status": "correct",
+        "feedback": "Technische uitwisselbaarheid voorkomt niet automatisch kwaliteitsverlies. Beproef beide."
+      },
+      {
+        "text": "Onderzoek leverancier, onderaannemers, toegangsrechten en toepasselijke rechtsstelsels bij de hostingkeuze.",
+        "status": "correct",
+        "feedback": "Regie omvat technische, operationele en juridische afhankelijkheden. De passende keuze hangt af van de toepassing."
+      }
+    ],
+    "clues": [
+      {
+        "id": "a",
+        "title": "De zeven koffers",
+        "body": "Exit raakt model, prompts, brondata, vectoropslag, orkestratie, eventuele fine-tunes en monitoring/evaluaties. Oefen de hele verhuizing.",
+        "explanation": "Een overstap raakt meer dan het taalmodel. Ook prompts, documenten, documentverwerking, vectoropslag, workflows, eventuele aanpassingen en evaluaties kunnen aan een platform vastzitten. Digitale regie vraagt dat de noodzakelijke onderdelen beschikbaar en bruikbaar overdraagbaar zijn.",
+        "steps": [
+          "Inventariseer afhankelijkheden en regel export van gegevens, configuraties en evaluatiemateriaal.",
+          "Oefen een overstap en leg tijd, kosten, ontbrekende onderdelen en verantwoordelijken vast."
+        ],
+        "example": "De documenten zijn geëxporteerd, maar de zoekindex moet opnieuw worden opgebouwd. Dat hoort in de planning van de exit, niet pas in de verrassing achteraf.",
+        "section": "Portabiliteit en uitvoerbare exit"
+      },
+      {
+        "id": "b",
+        "title": "De verwisselbare brugdelen",
+        "body": "Een eigen interface helpt leveranciers wisselen. Controleer ook de kwaliteit en het gedrag van de vervanger.",
+        "explanation": "Vervangbare koppelingen helpen onderdelen wisselen zonder de hele toepassing te herbouwen. Toch kan een ander model of embeddingmodel ander gedrag opleveren. Technische uitwisselbaarheid moet daarom samengaan met opnieuw testen van de dienst.",
+        "steps": [
+          "Scheid leveranciersspecifieke onderdelen van de eigen taaklogica waar dat zinvol is.",
+          "Test alternatieven met dezelfde inhoudelijke en technische criteria en documenteer de resterende verschillen."
+        ],
+        "example": "Een andere zoekcomponent accepteert dezelfde API-aanroep maar haalt minder relevante passages op. De golden set brengt dat kwaliteitsverlies aan het licht.",
+        "section": "Modulaire architectuur en alternatieven testen"
+      },
+      {
+        "id": "c",
+        "title": "De bezoekerslijst van het datacenter",
+        "body": "Vraag wie kan beheren en ondersteunen, welke partijen betrokken zijn en welke juridische afhankelijkheden spelen; niet alleen waar de server staat.",
+        "explanation": "De locatie van een server vertelt niet volledig wie de dienst bestuurt of toegang kan krijgen. Onderzoek ook de leverancier, onderaannemers, beheertoegang, contractafspraken en toepasselijke rechtsstelsels. De afweging hangt af van de concrete toepassing en gegevens.",
+        "steps": [
+          "Maak de keten van partijen en bevoegdheden inzichtelijk en laat relevante expertise meekijken.",
+          "Weeg controle, continuïteit, overdraagbaarheid en risico’s samen, in plaats van één locatiekenmerk als garantie te zien."
+        ],
+        "example": "Een dienst draait in Europa, maar ondersteuning en beheer lopen via andere partijen. Het team onderzoekt wat dit voor toegang en zeggenschap betekent.",
+        "section": "Hostingkeuze en operationele afhankelijkheden"
+      }
+    ],
+    "reflection": "Welke onderdelen zouden jullie vandaag kunnen meenemen als de huidige leverancier morgen stopt?",
+    "source": "07. Digitale soevereiniteit.docx",
+    "number": 11,
+    "color": "#baa0cd",
+    "scene": 2
+  },
+  {
+    "id": "ethics",
+    "group": "domain",
+    "title": "Ethiek & Mensenrechten",
+    "place": "De luisterzaal",
+    "npc": "Linde",
+    "hook": "Lindes luisterhoorn verstaat keurige volzinnen prima, maar mist juist de bewoners die het hardst hulp nodig hebben.",
+    "scenario": "Een assistent helpt inwoners gemeentelijke ondersteuning vinden. Formele vragen krijgen passende verwijzingen, maar korte vragen, spelfouten en emotionele formuleringen leiden vaker tot vastlopende gesprekken. Medewerkers nemen het advies meestal over omdat de wachtrij groeit.",
+    "question": "Welke maatregelen beschermen gelijke toegang en maken menselijke controle betekenisvol?",
+    "options": [
+      {
+        "text": "Volg het gemiddelde tevredenheidscijfer van alle gebruikers.",
+        "status": "supporting",
+        "feedback": "Dat geeft een algemeen signaal, maar kan verbergen dat bepaalde groepen structureel slechter worden geholpen."
+      },
+      {
+        "text": "Test vergelijkbare hulpvragen met verschillende formuleringen en laat afwijkingen door mensen beoordelen.",
+        "status": "correct",
+        "feedback": "Zo onderzoek je ongewenste verschillen die in gemiddelden verdwijnen. Herhaal dit na relevante wijzigingen."
+      },
+      {
+        "text": "Geef beoordelaars tijd, informatie en bevoegdheid om af te wijken, te escaleren of te stoppen.",
+        "status": "correct",
+        "feedback": "Een menselijke handtekening is onvoldoende wanneer iemand feitelijk geen zelfstandige afweging kan maken."
+      },
+      {
+        "text": "Rond één ethische checklist af en gebruik die als blijvende goedkeuring voor uitbreidingen.",
+        "status": "incorrect",
+        "feedback": "Andere doelgroepen, bronnen en taken kunnen nieuwe effecten hebben. Ethische afweging vraagt onderhoud."
+      },
+      {
+        "text": "Onderzoek de impact op betrokken inwoners en bespreek ontwerpkeuzes met hen en passende deskundigen.",
+        "status": "correct",
+        "feedback": "Toetsing en gesprek vullen elkaar aan. Vertaal zorgen naar concrete grenzen, herstelmogelijkheden en ontwerpkeuzes."
+      }
+    ],
+    "clues": [
+      {
+        "id": "a",
+        "title": "Twee brieven, één hulpvraag",
+        "body": "Verschillende taalstijlen kunnen tot ongelijke behandeling leiden zonder dat dit bewust is ontworpen. Test vergelijkbare situaties en beoordeel de verschillen.",
+        "explanation": "Een algemeen gemiddelde kan ongelijke uitkomsten verbergen. Vergelijk hulpvragen die inhoudelijk hetzelfde zijn maar anders worden geformuleerd. Laat mensen beoordelen of verschillen verklaarbaar en aanvaardbaar zijn, en onderzoek oorzaken voordat je een verbetering kiest.",
+        "steps": [
+          "Neem taalvariatie, onduidelijke formuleringen en complexe omstandigheden op in de tests.",
+          "Herhaal de toets bij wijzigingen en betrek mensen die de gevolgen van fouten ondervinden."
+        ],
+        "example": "Een formeel geformuleerde hulpvraag krijgt een passende verwijzing; dezelfde vraag met spelfouten niet. Het team onderzoekt herkenning en herstel in beide routes.",
+        "section": "Gelijke behandeling en herhaald toetsen"
+      },
+      {
+        "id": "b",
+        "title": "De stempel zonder bedenktijd",
+        "body": "Controle werkt pas als de beoordelaar informatie, tijd en ruimte heeft om daadwerkelijk in te grijpen.",
+        "explanation": "Menselijke controle is pas betekenisvol als iemand werkelijk zelfstandig kan oordelen. Alleen een handtekening of knop maakt het proces niet verantwoord. De beoordelaar heeft context, tijd, deskundigheid en de bevoegdheid nodig om te corrigeren of in te grijpen.",
+        "steps": [
+          "Bepaal wanneer beoordeling plaatsvindt en welke informatie de beoordelaar nodig heeft.",
+          "Maak afwijken, escaleren en zo nodig stoppen praktisch mogelijk en kijk of die mogelijkheden ook worden gebruikt."
+        ],
+        "example": "Als een medewerker onder tijdsdruk ieder advies automatisch goedkeurt, moet de organisatie het werkproces aanpassen; alleen een extra bevestigingsknop helpt niet.",
+        "section": "Betekenisvolle menselijke controle"
+      },
+      {
+        "id": "c",
+        "title": "De lege stoel aan tafel",
+        "body": "Betrek de mensen die gevolgen ondervinden bij de afweging van waarden en effecten. Onderzoek impact opnieuw bij relevante veranderingen.",
+        "explanation": "Ethische afweging begint bij de mensen die voordeel of nadeel kunnen ervaren. Verschillende waarden kunnen botsen, zoals snelheid, gelijke toegang en zorgvuldigheid. Bespreek zulke spanning expliciet en vertaal haar naar ontwerpkeuzes en herstelmogelijkheden.",
+        "steps": [
+          "Betrek relevante gebruikers en deskundigen bij het onderzoeken van effecten en alternatieven.",
+          "Herzie de afweging als doelgroep, taken, gegevens of mate van autonomie veranderen."
+        ],
+        "example": "Een assistent verkort de wachtrij maar sluit mensen met complexe vragen sneller uit. Samen met betrokken inwoners wordt een zichtbare menselijke route ontworpen.",
+        "section": "Impact onderzoeken en betrokkenen betrekken"
+      }
+    ],
+    "reflection": "Wie kan door jullie assistent minder goed worden geholpen, en hebben jullie die mensen zelf al gesproken?",
+    "source": "08. Ethiek & Mensenrechten.docx",
+    "number": 12,
+    "color": "#db9f9f",
+    "scene": 0
+  },
+  {
+    "id": "compliance",
+    "group": "domain",
+    "title": "Compliance",
+    "place": "Het stempelarchief",
+    "npc": "Otto",
+    "hook": "Archiefuil Otto heeft een indrukwekkende goedkeuringsstempel, maar die blijkt bij een heel andere proef te horen.",
+    "scenario": "Een uitvoeringsorganisatie testte een assistent met openbare informatie. Nu wil het team persoonlijke dossiers koppelen en medewerkers helpen aanvragen voorbereiden. De oorspronkelijke pilotgoedkeuring ligt nog boven op het projectdossier.",
+    "question": "Welke stappen passen bij deze uitbreiding van de toepassing?",
+    "options": [
+      {
+        "text": "Beoordeel opnieuw doel, gegevensgebruik, risico’s en toepasselijke eisen met juridische, privacy- en uitvoeringskennis.",
+        "status": "correct",
+        "feedback": "Een wijziging kan de beoordeling veranderen. Welke eisen en toetsen gelden, moet per situatie worden vastgesteld."
+      },
+      {
+        "text": "Gebruik een compliancechecklist of scantool om mogelijke hiaten te vinden.",
+        "status": "supporting",
+        "feedback": "Een hulpmiddel ondersteunt onderzoek, maar vervangt geen beoordeling van de concrete toepassing en verantwoordelijkheden."
+      },
+      {
+        "text": "Neem de leverancierscertificering over als volledige onderbouwing voor de eigen ingebruikname.",
+        "status": "incorrect",
+        "feedback": "Een verklaring over de leverancier beoordeelt niet vanzelf jullie gegevens, werkproces en inzetcontext."
+      },
+      {
+        "text": "Leg begrijpelijk uit dat gebruikers met AI werken, wat de dienst kan en waar zij passende menselijke hulp vinden.",
+        "status": "correct",
+        "feedback": "Duidelijke informatie en routes naar hulp maken werking en beperkingen begrijpelijk. Werk toepasselijke eisen concreet uit."
+      },
+      {
+        "text": "Houd risico’s, ontwerpkeuzes en controles aantoonbaar bij, met beschermde logs en passende bewaartermijnen.",
+        "status": "correct",
+        "feedback": "Verantwoording vraagt bewijs én zorgvuldig gegevensbeheer. Verzamel daarvoor niet ongericht alles."
+      }
+    ],
+    "clues": [
+      {
+        "id": "a",
+        "title": "De oude goedkeuringsstempel",
+        "body": "Een beoordeling hoort bij een bepaalde toepassing. Uitbreiding kan nieuwe risico’s en toepasselijke eisen meebrengen.",
+        "explanation": "Een beoordeling hoort bij een specifieke inzet: doel, gebruikers, gegevens, handelingen en risico’s. Een uitbreiding kan daarom een nieuwe afweging vragen. Een leveranciersverklaring of oude pilotgoedkeuring beoordeelt niet automatisch het gewijzigde eigen werkproces.",
+        "steps": [
+          "Beschrijf de verandering en bepaal met juridische, privacy- en uitvoeringskennis welke eisen en toetsen relevant zijn.",
+          "Leg vast wie de beoordeling uitvoert, welke acties volgen en wanneer opnieuw wordt gekeken."
+        ],
+        "example": "Een assistent die openbare informatie doorzoekt gaat persoonlijke dossiers samenvatten. Het team beoordeelt die uitbreiding voordat de nieuwe functie in gebruik gaat.",
+        "section": "Toepasselijkheid van eisen en herbeoordeling"
+      },
+      {
+        "id": "b",
+        "title": "Het etiket op de balie",
+        "body": "Gebruikers moeten de aard, mogelijkheden en beperkingen van de dienst kunnen begrijpen en passende hulp kunnen vinden.",
+        "explanation": "Gebruikers moeten kunnen begrijpen dat zij met een digitale assistent werken, wat deze kan en waar de grenzen liggen. Goede informatie is begrijpelijk en op het juiste moment beschikbaar. Een lange disclaimer alleen biedt nog geen bruikbare route bij een probleem.",
+        "steps": [
+          "Leg de rol, beperkingen en relevante gegevensverwerking uit in taal die bij de doelgroep past.",
+          "Maak passende menselijke hulp en correctie van fouten zichtbaar in de werkelijke gebruikersroute."
+        ],
+        "example": "Een medewerker ziet dat een dossiersamenvatting een hulpmiddel is en kan de onderliggende passage controleren of een onjuiste samenvatting laten herstellen.",
+        "section": "Transparantie en begrijpelijke dienstverlening"
+      },
+      {
+        "id": "c",
+        "title": "Het verzegelde logboek",
+        "body": "Leg relevante keuzes en gebeurtenissen toetsbaar vast. Bepaal wie ze mag inzien, hoe ze worden beschermd en hoelang ze nodig zijn.",
+        "explanation": "Verantwoording vraagt relevante vastlegging van keuzes, controles, wijzigingen en incidenten. Ook die vastlegging moet zorgvuldig worden beheerd. Alles onbeperkt opslaan is geen vervanging voor bepalen welk bewijs nodig is en wie dat mag gebruiken.",
+        "steps": [
+          "Koppel documentatie en logs aan concrete verantwoordingsvragen en aangewezen eigenaren.",
+          "Regel bescherming, toegang en passende bewaartermijnen; toets of informatie achteraf bruikbaar is."
+        ],
+        "example": "Bij een incident kan het team de gebruikte versie en uitgevoerde controles terugvinden, zonder onnodig volledige persoonlijke dossiers in een open log te bewaren.",
+        "section": "Aantoonbaarheid en zorgvuldig logbeheer"
+      }
+    ],
+    "reflection": "Welke verandering aan jullie toepassing zou aanleiding zijn om de juridische en organisatorische beoordeling opnieuw te doen?",
+    "source": "09. Compliance.docx",
+    "number": 13,
+    "color": "#93bac7",
+    "scene": 1
+  },
+  {
+    "id": "security",
+    "group": "domain",
+    "title": "Beveiliging",
+    "place": "De fluisterbibliotheek",
+    "npc": "Slotje",
+    "hook": "Boekenwachter Slotje vindt een bijlage die heel beleefd om de sleutel van alle dossiers vraagt.",
+    "scenario": "Een gemeentelijke assistent doorzoekt vergunningstukken en kan berichten versturen. Een binnengekomen bijlage bevat verborgen aanwijzingen om dossiers naar buiten te sturen. De assistent heeft ruime toegang tot documenten en tools.",
+    "question": "Welke maatregelen beperken de kans en gevolgen van deze aanval?",
+    "options": [
+      {
+        "text": "Voeg aan de systeemprompt toe dat de assistent verborgen opdrachten moet negeren en vertrouw daarop als beveiliging.",
+        "status": "incorrect",
+        "feedback": "Een prompt vormt geen betrouwbare autorisatiegrens. Rechten en toegestane acties moeten onafhankelijk worden afgedwongen."
+      },
+      {
+        "text": "Laat zoekresultaten en toolrechten aansluiten op de bevoegdheden van de gebruiker, met minimale toegangsrechten.",
+        "status": "correct",
+        "feedback": "De assistent hoort geen documenten of acties beschikbaar te maken die buiten de toegestane scope vallen."
+      },
+      {
+        "text": "Leer medewerkers verdachte bijlagen en onverwacht assistentgedrag herkennen.",
+        "status": "supporting",
+        "feedback": "Bewustwording helpt signaleren, maar voorkomt niet zelfstandig dat een aangevallen assistent te ruime rechten gebruikt."
+      },
+      {
+        "text": "Behandel opgehaalde documenten als onbetrouwbare invoer en test expliciet op verborgen instructies en gegevenslekken.",
+        "status": "correct",
+        "feedback": "Een vertrouwde ophaalroute maakt de inhoud nog geen vertrouwde opdracht. Combineer ontwerpmaatregelen met herhaald testen."
+      },
+      {
+        "text": "Begrens tools en uitgaande verbindingen buiten het model en vereis passende bevestiging voor gevoelige acties.",
+        "status": "correct",
+        "feedback": "Afgedwongen grenzen en menselijke controle beperken wat een gemanipuleerde assistent daadwerkelijk kan uitvoeren."
+      }
+    ],
+    "clues": [
+      {
+        "id": "a",
+        "title": "De fluisterende bijlage",
+        "body": "Aanvallende instructies kunnen via documenten, e-mails en opgehaalde passages binnenkomen. Behandel broninhoud niet als een opdracht.",
+        "explanation": "Een opgehaald document kan informatie bevatten én een poging om het gedrag van de assistent te sturen. Dat het document via een vertrouwde zoekfunctie binnenkomt, maakt zulke opdrachten niet bevoegd. Verborgen instructies kunnen ook in e-mails of bijlagen voorkomen.",
+        "steps": [
+          "Behandel opgehaalde tekst als invoer en scheid die van opdrachten en bevoegdheden van het systeem.",
+          "Test expliciet of gemanipuleerde documenten tot ongewenste antwoorden, toolgebruik of gegevensuitvoer leiden."
+        ],
+        "example": "Een bijlage zegt dat een dossier naar buiten moet worden gestuurd. Die tekst hoort gelezen te worden als documentinhoud, niet uitgevoerd als nieuwe systeemopdracht.",
+        "section": "Promptinjectie en onbetrouwbare invoer"
+      },
+      {
+        "id": "b",
+        "title": "De veel te grote sleutelbos",
+        "body": "Minimaal benodigde rechten beperken de schade wanneer het model wordt misleid. Dwing toegangsgrenzen buiten het model af.",
+        "explanation": "Minimale rechten beperken de gevolgen als de assistent wordt misleid. De beschikbare documenten en handelingen moeten aansluiten op de bevoegdheden van de gebruiker en de taak. Deze grenzen moeten buiten het taalmodel worden afgedwongen.",
+        "steps": [
+          "Controleer rechten bij zowel ophalen van documenten als uitvoeren van iedere toolactie.",
+          "Beperk toegestane tools en bestemmingen en vraag passende bevestiging bij gevoelige handelingen."
+        ],
+        "example": "Een medewerker mag één dossier lezen. De assistent krijgt daardoor geen toegang tot alle dossiers en mag niet zelf een willekeurig extern ontvangstadres kiezen.",
+        "section": "Autorisatie en minimale bevoegdheden"
+      },
+      {
+        "id": "c",
+        "title": "De oefenaanval",
+        "body": "Test aanvalsscenario’s en controleer werkelijk toolgedrag. Een nette weigeringstekst alleen is geen bewijs van beveiliging.",
+        "explanation": "Een nette weigeringstekst bewijst niet dat een aanval geen effect heeft gehad. Kijk ook naar werkelijk uitgevoerde acties en uitgaand gegevensverkeer. Combineer technische tests met detectie, opvolging en bewustwording bij medewerkers.",
+        "steps": [
+          "Oefen aanvallen via documenten en tools en controleer wat er daadwerkelijk is uitgevoerd.",
+          "Leg signalen en herstelafspraken vast en herhaal relevante tests na wijzigingen."
+        ],
+        "example": "Tijdens een oefenaanval weigert het model in woorden, maar probeert het toch een tool aan te roepen. Een afzonderlijke autorisatiecontrole moet die actie blokkeren.",
+        "section": "Weerbaarheid testen en incidenten opvolgen"
+      }
+    ],
+    "reflection": "Welke schade kan jullie assistent aanrichten met zijn huidige rechten als een ingelezen document hem probeert te misleiden?",
+    "source": "10. Beveiliging.docx",
+    "number": 14,
+    "color": "#adacc7",
+    "scene": 4
+  }
+]
