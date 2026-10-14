@@ -18,8 +18,8 @@
     ]
   },
   "tools": [
-    {"id": "lamp", "key": "1", "name": "Toetslamp", "icon": "🔦", "color": "#ffd36b", "text": "Toetsen en meten. Werkt tegen beloftes zonder bewijs, verzonnen antwoorden en rommelige bronnen."},
-    {"id": "scale", "key": "2", "name": "Weegschaal", "icon": "⚖️", "color": "#b9a2ff", "text": "Afwegen en de menselijke toets. Werkt tegen haast, vooroordelen en blind vertrouwen in de machine."},
-    {"id": "seal", "key": "3", "name": "Zegel", "icon": "🔒", "color": "#7fe0a4", "text": "Beschermen en begrenzen. Werkt tegen datalekken, verborgen instructies en te ruime rechten."}
+    {"id": "lamp", "key": "1", "name": "Toetslamp", "icon": "🔦", "color": "#ffd36b", "attack": "Vuurbal op afstand", "text": "Toetsen en meten: een vuurbal die je van ver kunt afvuren. Werkt tegen beloftes zonder bewijs, verzonnen antwoorden en rommelige bronnen."},
+    {"id": "scale", "key": "2", "name": "Weegschaal", "icon": "⚖️", "color": "#b9a2ff", "attack": "Cirkelslag rondom je", "text": "Afwegen en de menselijke toets: een magische cirkel die alles rondom je raakt. Werkt tegen haast, vooroordelen en blind vertrouwen in de machine."},
+    {"id": "seal", "key": "3", "name": "Zegel", "icon": "🔒", "color": "#7fe0a4", "attack": "Stempelslag van dichtbij", "text": "Beschermen en begrenzen: een stevige stempelslag van dichtbij. Werkt tegen datalekken, verborgen instructies en te ruime rechten."}
   ]
 }

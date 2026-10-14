@@ -234,8 +234,13 @@ export function createDungeon(canvas,{chambers:chamberDefs,onInteract=()=>{},onP
   if(typing()||paused||attract)return;
   if(MOVE.includes(e.code)){keys.add(e.code);if(e.code==='Space'||e.code.startsWith('Arrow'))e.preventDefault()}
   if(e.code==='Space'&&player.grounded){player.vy=4.6;player.grounded=false}
-  if((e.code==='KeyE'||e.code==='Enter')&&aimed&&!e.repeat){e.preventDefault();interact()}
-  if(fight&&!e.repeat){if(e.code==='KeyF')combat.fire();const n=['Digit1','Digit2','Digit3'].indexOf(e.code);if(n>=0)combat.setTool(n);if(e.code==='KeyQ')combat.setTool(TOOLS.indexOf(combat.tool)+1)}
+  if(e.repeat)return;
+  // weapons: R draws or holsters, 1/2/3 picks one, Q cycles; while armed E and F attack
+  const n=['Digit1','Digit2','Digit3'].indexOf(e.code);if(n>=0)combat.setTool(n);
+  if(e.code==='KeyR')combat.setArmed(!combat.armed);
+  if(e.code==='KeyQ'&&combat.armed)combat.setTool(TOOLS.indexOf(combat.tool)+1);
+  if(e.code==='KeyF'){if(combat.armed)combat.fire();else combat.setArmed(true)}
+  if(e.code==='KeyE'||e.code==='Enter'){if(combat.armed){e.preventDefault();combat.fire()}else if(aimed){e.preventDefault();interact()}}
  }
  function interact(){if(!aimed)return;const a=aimed;
   if(a.kind==='npc'){const n=rooms[a.id].npc;focusTarget=new THREE.Vector3(n.group.position.x,1.45,n.group.position.z)}
@@ -244,11 +249,11 @@ export function createDungeon(canvas,{chambers:chamberDefs,onInteract=()=>{},onP
   onInteract({kind:a.kind,id:a.id,clue:a.clue,index:a.index});
  }
  function onMouseMove(e){if(locked){player.yaw-=e.movementX*.0022;player.pitch=Math.max(-1.35,Math.min(1.35,player.pitch-e.movementY*.0022))}else if(dragging){player.yaw-=(e.clientX-dragging.x)*.005;player.pitch=Math.max(-1.35,Math.min(1.35,player.pitch-(e.clientY-dragging.y)*.005));dragging={x:e.clientX,y:e.clientY}}}
- function onDown(e){if(paused||attract)return;if(locked){if(e.button===0){if(fight&&!aimed)combat.fire();else interact()}return}
+ function onDown(e){if(paused||attract)return;if(locked){if(e.button===0){if(combat.armed)combat.fire();else interact()}return}
   if(e.pointerType==='mouse'&&canvas.requestPointerLock){const p=canvas.requestPointerLock();if(p?.catch)p.catch(()=>{});}
   dragging={x:e.clientX,y:e.clientY,start:performance.now()}}
- function onUp(){if(dragging&&performance.now()-dragging.start<220&&!locked){if(aimed)interact();else if(fight)combat.fire()}dragging=null}
- function onWheel(e){if(fight&&!paused){combat.setTool(TOOLS.indexOf(combat.tool)+(e.deltaY>0?1:-1))}}
+ function onUp(){if(dragging&&performance.now()-dragging.start<220&&!locked){if(combat.armed)combat.fire();else if(aimed)interact()}dragging=null}
+ function onWheel(e){if(combat.armed&&!paused){combat.setTool(TOOLS.indexOf(combat.tool)+(e.deltaY>0?1:-1))}}
  function onLockChange(){locked=document.pointerLockElement===canvas;if(!locked)keys.clear();onLock(locked)}
  function onBlur(){keys.clear()}
  addEventListener('keydown',onKey);addEventListener('keyup',onKey);addEventListener('mousemove',onMouseMove);addEventListener('blur',onBlur);canvas.addEventListener('pointerdown',onDown);addEventListener('pointerup',onUp);canvas.addEventListener('wheel',onWheel,{passive:true});document.addEventListener('pointerlockchange',onLockChange);
@@ -316,8 +321,8 @@ export function createDungeon(canvas,{chambers:chamberDefs,onInteract=()=>{},onP
   camera.getWorldDirection(fwd);ray.set(camera.position,fwd);let best=REACH;
   for(const it of interactables){if(it.level!==player.level||(it.enabled&&!it.enabled()))continue;const hit=ray.ray.intersectBox(it.box,tmp);if(hit){const d=hit.distanceTo(camera.position);if(d<best){best=d;aimed=it}}}
   if(!aimed&&!fight)for(const it of interactables){if(it.level!==player.level||(it.enabled&&!it.enabled()))continue;const c=it.box.getCenter(tmp);if(Math.hypot(c.x-player.x,c.z-player.z)<1.4){aimed=it;break}}
-  if(fight&&!aimed)aimedMob=combat.aim(camera.position,fwd);
-  const text=aimed?aimed.label:aimedMob?`mob:${aimedMob.key}`:'';if(text!==lastPrompt){lastPrompt=text;onPrompt(aimed?{text:aimed.label,kind:aimed.kind}:aimedMob?{mob:aimedMob.def,boss:!!aimedMob.boss,need:aimedMob.boss?aimedMob.def.phases[aimedMob.phase].tool:aimedMob.def.tool}:null)}
+  if(combat.armed&&fight&&!aimed)aimedMob=combat.aim(camera.position,fwd);
+  const text=aimed?aimed.label+(combat.armed?'#armed':''):aimedMob?`mob:${aimedMob.key}`:'';if(text!==lastPrompt){lastPrompt=text;onPrompt(aimed?{text:aimed.label,kind:aimed.kind,armed:combat.armed}:aimedMob?{mob:aimedMob.def,boss:!!aimedMob.boss,need:aimedMob.boss?aimedMob.def.phases[aimedMob.phase].tool:aimedMob.def.tool}:null)}
  }
  function updateNpcs(t,dt){
   for(const [id,room] of Object.entries(rooms)){if(room.level!==player.level)continue;const n=room.npc,g=n.group,dx=player.x-g.position.x,dz=player.z-g.position.z,dist=Math.hypot(dx,dz);
@@ -419,6 +424,8 @@ export function createDungeon(canvas,{chambers:chamberDefs,onInteract=()=>{},onP
   stopFight(){fight=null;combat.stop()},
   setTool(i){combat.setTool(i)},
   fire(){combat.fire()},
+  setArmed(on){combat.setArmed(on)},
+  get armed(){return combat.armed},
   heal(n){player.hp=Math.min(MAX_HP,player.hp+n)},
   setArenaDone(id,done){if(arenaState[id]){openGate(id,done);arenaState[id].armed=!done}},
   get fighting(){return !!fight},

@@ -85,15 +85,15 @@ export function createCombat({scene,camera,isFree,getPlayer,hurtPlayer,events,fl
  const tools=makeTools(camera);
  // one light reserved for the boss, created up front so the light count never changes mid-fight
  const bossLight=new THREE.PointLight(0xffe0c0,0,16,1.4);scene.add(bossLight);
- let active=null,tool=0,fireCd=0,kick=0,swap=0;const mobs=[],bolts=[],seen=new Set();
+ let active=null,armed=false,tool=0,fireCd=0,kick=0,swap=0,swing=0,spin=0;const fx=[];const mobs=[],bolts=[],seen=new Set();
  const boltGeo=new THREE.SphereGeometry(.11,10,8),haloGeo=new THREE.SphereGeometry(.24,10,8);
  const boltMats=Object.fromEntries(TOOLS.map(t=>[t,new THREE.MeshBasicMaterial({color:TOOL_COLOR[t],toneMapped:false})]));
  const haloMats=Object.fromEntries(TOOLS.map(t=>[t,new THREE.MeshBasicMaterial({color:TOOL_COLOR[t],transparent:true,opacity:.35,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false})]));
  // particle bursts on hits and defeats
  const MAXP=260,pGeo=new THREE.BoxGeometry(.08,.08,.08),pMat=new THREE.MeshBasicMaterial({toneMapped:false}),particles=new THREE.InstancedMesh(pGeo,pMat,MAXP);particles.frustumCulled=false;
- const pd=Array.from({length:MAXP},()=>({life:0,max:1,p:new THREE.Vector3(),v:new THREE.Vector3()}));let pNext=0;const m4=new THREE.Matrix4(),col=new THREE.Color(),zero=new THREE.Matrix4().makeScale(0,0,0);
+ const pd=Array.from({length:MAXP},()=>({life:0,max:1,g:7,p:new THREE.Vector3(),v:new THREE.Vector3()}));scene.add(particles);let pNext=0;const m4=new THREE.Matrix4(),col=new THREE.Color(),zero=new THREE.Matrix4().makeScale(0,0,0);
  for(let i=0;i<MAXP;i++){particles.setMatrixAt(i,zero);particles.setColorAt(i,col.set(0xffffff))}
- function burst(pos,color,n=18,speed=3.2){for(let k=0;k<n;k++){const i=pNext,q=pd[i];pNext=(pNext+1)%MAXP;q.life=q.max=.5+Math.random()*.5;q.p.copy(pos);q.v.set((Math.random()-.5)*speed,Math.random()*speed*.9,(Math.random()-.5)*speed);particles.setColorAt(i,col.set(color))}particles.instanceColor.needsUpdate=true}
+ function burst(pos,color,n=18,speed=3.2,grav=7,life=.5){for(let k=0;k<n;k++){const i=pNext,q=pd[i];pNext=(pNext+1)%MAXP;q.g=grav;q.life=q.max=life+Math.random()*life;q.p.copy(pos);q.v.set((Math.random()-.5)*speed,Math.random()*speed*.9,(Math.random()-.5)*speed);particles.setColorAt(i,col.set(color))}particles.instanceColor.needsUpdate=true}
  let ring=null;
  function spawnMob(key,def,at,group){
   const st=STATS[def.look]||STATS.wisp,look=makeLook(def.look,def.color);at=freeSpot(at,st.r);look.group.position.set(at.x,st.y,at.z);group.add(look.group);
@@ -114,7 +114,7 @@ export function createCombat({scene,camera,isFree,getPlayer,hurtPlayer,events,fl
   for(const {key,def,count} of w)for(let n=0;n<count;n++){const at=active.spawns[(i++ +active.wave*2)%active.spawns.length];spawnMob(key,def,{x:at.x+(Math.random()-.5)*.8,z:at.z+(Math.random()-.5)*.8},active.group)}
   events({type:'wave',index:active.wave,total:active.waves.length+(active.boss?1:0)});
  }
- function clearMobs(){for(const m of mobs)m.group.removeFromParent();mobs.length=0;for(const b of bolts){b.mesh.removeFromParent()}bolts.length=0;if(ring){ring.removeFromParent();ring=null}}
+ function clearMobs(){for(const m of mobs)m.group.removeFromParent();mobs.length=0;if(ring){ring.removeFromParent();ring=null}}
  function kill(m){m.dying=.35;burst(m.pos.clone().setY(m.boss?2:1),m.def.color??TOOL_COLOR.lamp,m.boss?60:22,m.boss?6:3.4);const first=!seen.has(m.key);seen.add(m.key);events({type:'kill',key:m.key,def:m.def,first,boss:!!m.boss})}
  function hit(m,t){
   if(m.dying)return;
@@ -150,32 +150,62 @@ export function createCombat({scene,camera,isFree,getPlayer,hurtPlayer,events,fl
   if(!best)return null;const vx=best.x-m.pos.x,vz=best.z-m.pos.z,l=Math.hypot(vx,vz)||1;return {x:vx/l,z:vz/l};
  }
  function freeSpot(at,r){if(isFree(at.x,at.z,r))return at;for(let rr=.6;rr<4;rr+=.6)for(let k=0;k<12;k++){const a=k/12*Math.PI*2,x=at.x+Math.cos(a)*rr,z=at.z+Math.sin(a)*rr;if(isFree(x,z,r))return {x,z}}return at}
+ // Three weapons: a fireball from the lantern, a stamp blow up close, a circle of judgement from the scale.
+ const fireGeo=new THREE.SphereGeometry(.12,12,10),flameGeo=new THREE.SphereGeometry(.26,12,10),glowGeo=new THREE.SphereGeometry(.42,12,10);
+ const fireMats=[new THREE.MeshBasicMaterial({color:0xfff2c0,toneMapped:false}),new THREE.MeshBasicMaterial({color:0xff9a30,transparent:true,opacity:.6,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false}),new THREE.MeshBasicMaterial({color:0xff4a10,transparent:true,opacity:.22,blending:THREE.AdditiveBlending,depthWrite:false,toneMapped:false})];
  function fire(){
-  if(!active||fireCd>0||swap>0)return;fireCd=.32;kick=1;
-  const t=TOOLS[tool],dir=new THREE.Vector3();camera.getWorldDirection(dir);const origin=camera.getWorldPosition(new THREE.Vector3()).add(dir.clone().multiplyScalar(.6)).add(new THREE.Vector3(0,-.15,0));
-  // gentle aim assist: home in on the monster closest to the crosshair
-  let target=null,best=.22;for(const m of mobs){if(m.dying)continue;const c=m.pos.clone().setY(m.boss?2:m.y+.6),to=c.clone().sub(origin),d=to.length();if(d>24||!sees(origin,c))continue;const ang=to.normalize().angleTo(dir);if(ang<best){best=ang;target=m}}
-  const g=new THREE.Group(),core=new THREE.Mesh(boltGeo,boltMats[t]),halo=new THREE.Mesh(haloGeo,haloMats[t]);g.add(core,halo);g.position.copy(origin);active.group.add(g);
-  bolts.push({mesh:g,pos:g.position,vel:dir.multiplyScalar(20),life:1.1,tool:t,target});
-  events({type:'fire',tool:t});
+  if(!armed||fireCd>0||swap>0)return false;kick=1;
+  const t=TOOLS[tool],dir=new THREE.Vector3();camera.getWorldDirection(dir);const eye=camera.getWorldPosition(new THREE.Vector3()),pl=getPlayer();
+  if(t==='lamp'){
+   fireCd=.4;const origin=eye.clone().add(dir.clone().multiplyScalar(.6)).add(new THREE.Vector3(0,-.15,0));
+   // gentle aim assist: home in on the monster closest to the crosshair
+   let target=null,best=.22;for(const m of mobs){if(m.dying)continue;const c=m.pos.clone().setY(m.boss?2:m.y+.6),to=c.clone().sub(origin),d=to.length();if(d>24||!sees(origin,c))continue;const ang=to.normalize().angleTo(dir);if(ang<best){best=ang;target=m}}
+   const g=new THREE.Group(),parts=[fireGeo,flameGeo,glowGeo].map((geo,k)=>new THREE.Mesh(geo,fireMats[k]));g.add(...parts);g.position.copy(origin);scene.add(g);
+   bolts.push({mesh:g,parts,pos:g.position,vel:dir.multiplyScalar(17),life:1.3,tool:t,target,t:0});burst(origin,0xffb050,8,1.4,-1,.15);
+  }else if(t==='seal'){
+   // the stamp lands a moment after the swing starts
+   fireCd=.6;swing=.42;fx.push({type:'stamp',delay:.14,dir:new THREE.Vector3(dir.x,0,dir.z).normalize(),from:new THREE.Vector3(pl.x,pl.y,pl.z)});
+  }else{
+   fireCd=1.25;spin=.7;const ring=new THREE.Mesh(new THREE.RingGeometry(.86,1,48),new THREE.MeshBasicMaterial({color:TOOL_COLOR.scale,transparent:true,opacity:.9,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));ring.rotation.x=-Math.PI/2;ring.position.set(pl.x,pl.y+.08,pl.z);scene.add(ring);
+   const wall=new THREE.Mesh(new THREE.CylinderGeometry(1,1,1.6,40,1,true),new THREE.MeshBasicMaterial({color:TOOL_COLOR.scale,transparent:true,opacity:.35,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));wall.position.set(pl.x,pl.y+.8,pl.z);scene.add(wall);
+   fx.push({type:'circle',t:0,ring,wall,hit:false,at:new THREE.Vector3(pl.x,pl.y,pl.z)});
+   for(let k=0;k<24;k++){const a=k/24*Math.PI*2;burst(new THREE.Vector3(pl.x+Math.cos(a)*.8,pl.y+.3,pl.z+Math.sin(a)*.8),0xd8c8ff,1,1.5,-2,.4)}
+  }
+  events({type:'fire',tool:t});return true;
+ }
+ const RANGE={stamp:2.5,circle:4.3};
+ function updateFx(dt){
+  for(let i=fx.length-1;i>=0;i--){const f=fx[i];
+   if(f.type==='stamp'){f.delay-=dt;if(f.delay>0)continue;const at=f.from.clone().addScaledVector(f.dir,1.4).setY(f.from.y+.9);let any=false;
+    for(const m of mobs){if(m.dying)continue;const to=new THREE.Vector3(m.pos.x-f.from.x,0,m.pos.z-f.from.z),d=to.length();if(d>RANGE.stamp+m.r)continue;if(d>1.1&&to.normalize().angleTo(f.dir)>.85)continue;any=true;hit(m,'seal')}
+    burst(at,any?0x7fe0a4:0xd0c8b0,any?16:8,any?3.2:1.8);shake(any?.18:.08);fx.splice(i,1);continue}
+   if(f.type==='circle'){f.t+=dt;const k=Math.min(1,f.t/.45),r=.5+k*RANGE.circle;f.ring.scale.setScalar(r);f.wall.scale.set(r,1-k*.5,r);f.ring.material.opacity=.9*(1-k);f.wall.material.opacity=.22*(1-k);
+    if(!f.hit&&f.t>.12){f.hit=true;for(const m of mobs){if(m.dying)continue;if(Math.hypot(m.pos.x-f.at.x,m.pos.z-f.at.z)<RANGE.circle+m.r)hit(m,'scale')}}
+    if(k>=1){f.ring.removeFromParent();f.wall.removeFromParent();f.ring.geometry.dispose();f.wall.geometry.dispose();fx.splice(i,1)}}
+  }
  }
  function update(dt,t){
-  fireCd=Math.max(0,fireCd-dt);kick=Math.max(0,kick-dt*6);swap=Math.max(0,swap-dt*5);
+  fireCd=Math.max(0,fireCd-dt);kick=Math.max(0,kick-dt*6);swap=Math.max(0,swap-dt*5);swing=Math.max(0,swing-dt);spin=Math.max(0,spin-dt);
   const boss=mobs.find(m=>m.boss&&!m.dying);bossLight.intensity=boss?9:0;if(boss){bossLight.position.set(boss.pos.x,4.6,boss.pos.z+1.6);bossLight.color.set(boss.def.color).lerp(new THREE.Color(0xffffff),.5)}
   // view model
-  tools.root.visible=!!active;
-  if(active){const vm=tools.models[TOOLS[tool]];for(const [k,m] of Object.entries(tools.models))m.visible=k===TOOLS[tool];const pl=getPlayer();vm.position.set(Math.sin(pl.bob)*.012,-swap*.4+Math.abs(Math.cos(pl.bob))*.01,kick*.08);vm.rotation.set(-kick*.5,Math.sin(t*1.2)*.05,0)}
+  tools.root.visible=armed;
+  if(armed){const name=TOOLS[tool],vm=tools.models[name];for(const [k,m] of Object.entries(tools.models))m.visible=k===name;const pl=getPlayer();
+   vm.position.set(Math.sin(pl.bob)*.012,-swap*.4+Math.abs(Math.cos(pl.bob))*.01,name==='lamp'?kick*.08:0);vm.rotation.set(name==='lamp'?-kick*.5:0,Math.sin(t*1.2)*.05,0);
+   if(name==='seal'&&swing>0){const p=1-swing/.42;vm.rotation.x=p<.3?p/.3*1.1:1.1-(p-.3)/.7*2.6;vm.position.z=-Math.sin(p*Math.PI)*.25;vm.position.y-=Math.sin(p*Math.PI)*.1}
+   if(name==='scale'&&spin>0){const p=1-spin/.7;vm.rotation.y=p*Math.PI*2;vm.position.y+=Math.sin(p*Math.PI)*.18}}
   // particles
-  for(let i=0;i<MAXP;i++){const q=pd[i];if(q.life<=0)continue;q.life-=dt;q.v.y-=7*dt;q.p.addScaledVector(q.v,dt);const s=Math.max(0,q.life/q.max);m4.makeScale(s,s,s).setPosition(q.p);particles.setMatrixAt(i,q.life>0?m4:zero)}particles.instanceMatrix.needsUpdate=true;
-  if(!active)return;
-  const pl=getPlayer(),pp=new THREE.Vector3(pl.x,pl.y,pl.z);
-  fieldT-=dt;if(fieldT<=0){fieldT=.35;buildField(pl.x,pl.z)}
+  for(let i=0;i<MAXP;i++){const q=pd[i];if(q.life<=0)continue;q.life-=dt;q.v.y-=q.g*dt;q.p.addScaledVector(q.v,dt);const s=Math.max(0,q.life/q.max);m4.makeScale(s,s,s).setPosition(q.p);particles.setMatrixAt(i,q.life>0?m4:zero)}particles.instanceMatrix.needsUpdate=true;
+  updateFx(dt);
   // bolts
   for(let i=bolts.length-1;i>=0;i--){const b=bolts[i];b.life-=dt;
    if(b.target&&!b.target.dying&&mobs.includes(b.target)){const want=b.target.pos.clone().setY(b.target.boss?2:b.target.y+.6).sub(b.pos).normalize().multiplyScalar(20);b.vel.lerp(want,Math.min(1,dt*7))}
    b.pos.addScaledVector(b.vel,dt);let gone=b.life<=0||!isFree(b.pos.x,b.pos.z,.05)||b.pos.y<.05;
    if(!gone)for(const m of mobs){if(m.dying)continue;const c=m.pos.clone().setY(m.boss?2:m.y+.55);if(c.distanceTo(b.pos)<m.r+(m.boss?.9:.32)){hit(m,b.tool);gone=true;break}}
-   if(gone){burst(b.pos,TOOL_COLOR[b.tool],6,1.6);b.mesh.removeFromParent();bolts.splice(i,1)}}
+   b.t+=dt;b.parts[1].scale.setScalar(1+Math.sin(b.t*40)*.15);b.parts[2].scale.setScalar(1+Math.sin(b.t*23)*.2);burst(b.pos,Math.random()<.5?0xff8a20:0xffd060,2,.6,-2,.18);
+   if(gone){burst(b.pos,0xff9a30,22,3.4,4,.35);b.mesh.removeFromParent();bolts.splice(i,1)}}
+  if(!active)return;
+  const pl=getPlayer(),pp=new THREE.Vector3(pl.x,pl.y,pl.z);
+  fieldT-=dt;if(fieldT<=0){fieldT=.35;buildField(pl.x,pl.z)}
   // monsters: only the nearest few may press in; the rest circle at a distance
   const near=mobs.filter(m=>!m.dying&&!m.boss).sort((a,b)=>Math.hypot(a.pos.x-pp.x,a.pos.z-pp.z)-Math.hypot(b.pos.x-pp.x,b.pos.z-pp.z)).slice(0,ATTACKERS);
   for(let i=mobs.length-1;i>=0;i--){const m=mobs[i];m.t+=dt;m.cd-=dt;m.wrongCd-=dt;m.retreat=Math.max(0,m.retreat-dt);
@@ -222,11 +252,13 @@ export function createCombat({scene,camera,isFree,getPlayer,hurtPlayer,events,fl
   burst,
   get active(){return active},
   get tool(){return TOOLS[tool]},
-  start(spec){clearMobs();active={...spec,wave:0,state:spec.waves.length?'fight':'pause',timer:.8,spawnBoss:!spec.waves.length&&!!spec.boss,bossDone:!spec.waves.length&&!!spec.boss};spec.group.add(particles);if(spec.waves.length)waveSpawn();events({type:'tool',tool:TOOLS[tool]})},
+  start(spec){clearMobs();active={...spec,wave:0,state:spec.waves.length?'fight':'pause',timer:.8,spawnBoss:!spec.waves.length&&!!spec.boss,bossDone:!spec.waves.length&&!!spec.boss};armed=true;events({type:'armed',on:true});if(spec.waves.length)waveSpawn();events({type:'tool',tool:TOOLS[tool]})},
   stop(){clearMobs();active=null},
   // After the player falls: restore the current wave so the fight can be retried without losing earlier progress.
   retry(){if(!active)return;const boss=mobs.find(m=>m.boss);for(const m of mobs)if(!m.boss)m.group.removeFromParent();for(let i=mobs.length-1;i>=0;i--)if(!mobs[i].boss)mobs.splice(i,1);if(boss){boss.hp=BOSS_HP;boss.pos.set(boss.spawn.x,0,boss.spawn.z);boss.slam=3.5}else if(active.state==='fight'){waveSpawn()}if(ring){ring.removeFromParent();ring=null}},
-  setTool(i){if(i===tool)return;tool=(i+TOOLS.length)%TOOLS.length;swap=1;events({type:'tool',tool:TOOLS[tool]})},
+  setTool(i){if(i===tool&&armed)return;tool=(i+TOOLS.length)%TOOLS.length;swap=1;if(!armed){armed=true;events({type:'armed',on:true})}events({type:'tool',tool:TOOLS[tool]})},
+  setArmed(on){if(on===armed)return;armed=on;swap=1;events({type:'armed',on})},
+  get armed(){return armed},
   fire,update,
   aim(origin,dir){let best=null,bd=26;for(const m of mobs){if(m.dying)continue;const c=m.pos.clone().setY(m.boss?2:m.y+.6),to=c.clone().sub(origin),d=to.length();if(d>bd||!sees(origin,c))continue;const perp=to.clone().sub(dir.clone().multiplyScalar(to.dot(dir)));if(to.dot(dir)>0&&perp.length()<m.r+(m.boss?1:.35)){bd=d;best=m}}return best},
   get mobCount(){return mobs.filter(m=>!m.dying).length},

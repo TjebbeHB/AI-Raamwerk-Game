@@ -143,3 +143,15 @@ input,textarea{width:100%;background:rgba(0,0,0,.35);border:1px solid rgba(232,1
 @media(max-width:760px){.g-combat{bottom:10px;gap:10px;padding:8px}.g-trust{min-width:110px}.g-tool b{display:none}.g-lesson{top:auto;bottom:90px;right:10px}}
 .g-start{align-items:flex-start}.g-start-inner{margin:auto 0}
 .is-choosing .g-hud-top{display:none}
+/* weapons are always at hand */
+.g-pip{bottom:100px}
+.g-attack{padding:9px 16px;border-radius:10px;background:linear-gradient(180deg,#f2d18d,#d9ad5f);color:#25190c;font-weight:700;font-size:14px;box-shadow:0 3px 0 #8e6a34}.g-attack:active{transform:translateY(2px);box-shadow:0 1px 0 #8e6a34}.g-attack kbd{margin-left:6px;color:#25190c;border-color:rgba(37,25,12,.4);background:rgba(255,255,255,.25)}
+.g-draw kbd,.g-holster kbd{margin-left:6px}.g-holster{opacity:.8}
+.g-combat{padding:8px 10px}.g-trust[hidden]{display:none}
+.g-guide-tool{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;margin:8px 0;border-radius:11px;border:1px solid color-mix(in srgb,var(--tool) 45%,transparent);background:rgba(0,0,0,.25)}.g-guide-tool span{font-size:24px}.g-guide-tool b{color:#fff3d8}.g-guide-tool p{font-size:13.5px;line-height:1.55;color:var(--muted);margin-top:4px}
+.is-armed .g-crosshair{width:12px;height:12px;margin:-6px 0 0 -6px;background:transparent;border:2px solid rgba(255,240,210,.85)}
+.is-title .g-combat{display:none}
+@media(max-width:760px){.g-holster{display:none}}
+.g-tool,.g-attack,.g-draw,.g-holster{white-space:nowrap}
+@media(max-width:1180px){.is-armed .g-controls{display:none}}
+.has-panel .g-combat{display:none}

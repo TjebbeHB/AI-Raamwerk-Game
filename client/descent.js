@@ -16,7 +16,7 @@ const face='<span class="g-face" aria-hidden="true"><i></i><i></i></span>';
 const brand=(sub='AI-RAAMWERK · AFDALING 3.1')=>`<a class="g-brand" href="/" aria-label="Het Gewelf, startpagina">${face}<span>HET GEWELF<small>${esc(sub)}</small></span></a>`;
 let session=null,token='',world=null,content=storyContent('loket'),busy=false,polling=false,pollTimer,toastTimer,pipTimer,lessonTimer,connected=true,panel=null,activeClue=null,letterRead=false,lastLevel=-1,modalRestore=null,started=false,choosing=false;
 let selected=[],selectionKey='',draftReason={},draftNotes={},draftCommit=null;
-let trial=null,judging=null,fight=null,cheersSeen=null,vendorDeclined=false,appliedStory=null,pickStory='loket',pickPeaceful=false,hp=100,tool='lamp',bossTool=null;
+let armed=false,wrongSeen=new Set(),trial=null,judging=null,fight=null,cheersSeen=null,vendorDeclined=false,appliedStory=null,pickStory='loket',pickPeaceful=false,hp=100,tool='lamp',bossTool=null;
 const doneTrials=new Set(),doneArenas=new Set(),finishedInWorld=new Set();
 const chamber=id=>content.chambers.find(c=>c.id===id);
 const room=id=>session?.topics[id];
@@ -87,11 +87,11 @@ function hostShell(){
  <div id="g-prompt" class="g-prompt" role="status"></div>
  <header class="g-hud-top">
   <div class="g-where"><div class="g-kicker" id="g-depth-label">DIEPTE 0</div><div class="g-where-name" id="g-depth-name">De Ontvangsthal</div><div class="g-objective" id="g-objective"></div><div class="g-tracker" id="g-tracker" hidden></div></div>
-  <nav class="g-actions" aria-label="Spelbediening"><button id="invite" class="g-btn" data-act>Adviesraad <b id="g-members">0</b></button><button id="map" class="g-btn">Kaart <kbd>M</kbd></button><button id="dossier" class="g-btn">Dossier</button><button id="sound" class="g-btn g-compact" aria-pressed="false">Geluid uit</button><button id="full" class="g-btn g-compact" aria-label="Volledig scherm">⛶</button></nav>
+  <nav class="g-actions" aria-label="Spelbediening"><button id="invite" class="g-btn" data-act>Adviesraad <b id="g-members">0</b></button><button id="map" class="g-btn">Kaart <kbd>M</kbd></button><button id="dossier" class="g-btn">Dossier</button><button id="guide" class="g-btn">Gids <kbd>G</kbd></button><button id="sound" class="g-btn g-compact" aria-pressed="false">Geluid uit</button><button id="full" class="g-btn g-compact" aria-label="Volledig scherm">⛶</button></nav>
  </header>
  <div class="g-pip" id="g-pip" aria-live="polite">${face}<div><b id="g-pip-name">Pip</b><p id="g-pip-text"></p></div></div>
  <aside class="g-lesson" id="g-lesson" aria-live="polite" hidden></aside>
- <div class="g-combat" id="g-combat" hidden><div class="g-trust"><span>Vertrouwen</span><div class="g-trust-bar"><i id="g-trust-fill"></i></div></div><div class="g-tools" id="g-tools"></div></div>
+ <div class="g-combat" id="g-combat" hidden><div class="g-trust" id="g-trust"><span>Vertrouwen</span><div class="g-trust-bar"><i id="g-trust-fill"></i></div></div><div class="g-tools" id="g-tools"></div></div>
  <div class="g-controls" id="g-controls"></div>
  <div class="g-titlecard" id="g-titlecard" aria-hidden="true"><small></small><h2></h2><p></p></div>
  <aside class="g-reader" id="g-reader" hidden aria-label="Bron"></aside>
@@ -114,12 +114,12 @@ function hostShell(){
  }catch(e){console.error(e);world=null;$('g-root').classList.add('no-webgl')}
  renderControls();
 }
-function renderControls(){const el=$('g-controls');if(!el)return;el.innerHTML=fight?`<span><kbd>Klik</kbd>/<kbd>F</kbd> gebruiken</span><span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> gereedschap</span><span><kbd>WASD</kbd> lopen</span><span><kbd>Shift</kbd> rennen</span>`:`<span><kbd>Klik</kbd> rondkijken</span><span><kbd>WASD</kbd> lopen</span><span><kbd>Shift</kbd> rennen</span><span><kbd>Spatie</kbd> springen</span><span><kbd>E</kbd> gebruiken</span><span><kbd>M</kbd> kaart</span>`}
+function renderControls(){const el=$('g-controls');if(!el)return;el.innerHTML=armed?`<span><kbd>E</kbd>/<kbd>F</kbd>/<kbd>Klik</kbd> aanvallen</span><span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> wapen</span><span><kbd>R</kbd> opbergen</span><span><kbd>G</kbd> gids</span>`:fight?`<span><kbd>Klik</kbd>/<kbd>F</kbd> gebruiken</span><span><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> gereedschap</span><span><kbd>WASD</kbd> lopen</span><span><kbd>Shift</kbd> rennen</span>`:`<span><kbd>Klik</kbd> rondkijken</span><span><kbd>WASD</kbd> lopen</span><span><kbd>Shift</kbd> rennen</span><span><kbd>Spatie</kbd> springen</span><span><kbd>E</kbd> gebruiken</span><span><kbd>R</kbd> wapen</span><span><kbd>M</kbd> kaart</span>`}
 function renderPrompt(p){
  const el=$('g-prompt');if(!el)return;$('g-crosshair')?.classList.toggle('is-target',!!p?.mob);
  if(!p){el.innerHTML='';return}
- if(p.mob){const t=toolOf(p.need);el.innerHTML=`<span class="g-mobname">${esc(p.mob.name)}</span> · zwak tegen <b style="color:${t.color}">${t.icon} ${esc(t.name)}</b> <kbd>${t.key}</kbd>`;return}
- el.innerHTML=`<kbd>E</kbd> ${esc(p.text)}`;
+ if(p.mob){el.innerHTML=`<span class="g-mobname">${esc(p.mob.name)}</span>`;return}
+ el.innerHTML=p.armed?`<kbd>R</kbd> wapen opbergen om te gebruiken: ${esc(p.text)}`:`<kbd>E</kbd> ${esc(p.text)}`;
 }
 function say(text,{name='Pip',ms=9000}={}){const el=$('g-pip');if(!el)return;$('g-pip-name').textContent=name;$('g-pip-text').textContent=text;el.classList.toggle('is-other',name!=='Pip');el.classList.add('show');clearTimeout(pipTimer);pipTimer=setTimeout(()=>el.classList.remove('show'),ms)}
 function lesson(title,text,kind='Les'){const el=$('g-lesson');if(!el)return;el.innerHTML=`<div class="g-kicker">📜 ${esc(kind)}</div><b>${esc(title)}</b><p>${esc(text)}</p>`;el.hidden=false;el.classList.remove('show');void el.offsetWidth;el.classList.add('show');clearTimeout(lessonTimer);lessonTimer=setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.hidden=true,400)},11000)}
@@ -239,22 +239,23 @@ function handleArena({id}){
  const st=content.story,A=st.arenas.find(a=>a.id===id);
  const waves=A.waves.map(w=>w.map(([key,count])=>({key,def:st.mobs[key],count})));
  fight={kind:'arena',id,level:{a1:2,a2:4,a3:6}[id],lessons:new Set(),wave:0,total:waves.length+(A.boss?1:0)};
- world.startFight({id,waves,boss:A.boss?st.boss:null,minion:{key:st.boss.minion,def:st.mobs[st.boss.minion]},peaceful:session.peaceful});
+ wrongSeen.clear();world.startFight({id,waves,boss:A.boss?st.boss:null,minion:{key:st.boss.minion,def:st.mobs[st.boss.minion]},peaceful:session.peaceful});
  say(A.intro,{ms:8000});
- if(!getStore('gewelf-tools-seen')){saveStore('gewelf-tools-seen',true);lesson('Drie gereedschappen',`${content.tools.map(t=>`${t.key} ${t.name}: ${t.text}`).join(' ')} Elk monster is zwak tegen één gereedschap. Kijk naar een monster om te zien welk.`,'Hoe vecht je?')}
+ if(!getStore('gewelf-tools-seen')){saveStore('gewelf-tools-seen',true);toast('Val aan met E, F of klikken; wissel met 1, 2 en 3. Welk wapen werkt tegen welk monster? Zoek het op in de Gids (G).')}
  renderCombat();renderHud();
 }
 function handleCombat(e){
  if(e.type==='hp'){hp=e.hp;const f=$('g-trust-fill');if(f){f.style.width=`${hp}%`;f.parentElement.classList.toggle('is-low',hp<35)}return}
+  if(e.type==='armed'){armed=e.on;renderCombat();renderPrompt(null);sound.tone(e.on?660:440,.15,.03,'triangle');return}
  if(e.type==='tool'){tool=e.tool;renderCombat();sound.tone(520,.12,.03,'triangle');return}
  if(e.type==='fire'){sound.zap(e.tool);return}
  if(!fight)return;
  if(e.type==='wave'){fight.wave=e.index;fight.total=e.total;renderHud();if(e.index>0)toast(`Golf ${e.index+1} van ${e.total}`);return}
  if(e.type==='kill'){fight.lessons.add(e.key);if(trial?.def.type==='fight')applyTrial(Trials.act(trial.def,trial.st,{type:'kill'}));
   if(e.boss)lesson(e.def.name,e.def.lesson,'Verslagen');else if(e.first)lesson(e.def.name,e.def.lesson);sound.chime(e.boss);renderHud();return}
- if(e.type==='wrong'){const t=toolOf(e.need);say(`${e.boss?e.def.name:e.def.name} is zwak tegen ${t.name} (${t.key}). ${t.text.split('.')[0]}.`,{ms:5000});sound.wrong();return}
- if(e.type==='bossIntro'){bossTool=e.tool;say(e.def.intro,{name:e.def.name,ms:9000});toast(`Zwak tegen: ${toolOf(e.tool).name} (${toolOf(e.tool).key})`);renderHud();return}
- if(e.type==='boss'){bossTool=e.tool;say(e.line,{ms:7000});toast(`${e.name} verandert! Zwak tegen: ${toolOf(e.tool).name} (${toolOf(e.tool).key})`);renderHud();return}
+ if(e.type==='wrong'){if(!wrongSeen.has(e.def.name)){wrongSeen.add(e.def.name);say(`Dat doet ${e.def.name} niets. Wat wel werkt, staat in de Gids (G).`,{ms:5000})}sound.wrong();return}
+ if(e.type==='bossIntro'){bossTool=e.tool;say(e.def.intro,{name:e.def.name,ms:9000});toast('Let op de kern op zijn borst: de kleur hoort bij een wapen. De Gids (G) helpt.');renderHud();return}
+ if(e.type==='boss'){bossTool=e.tool;say(e.line,{ms:7000});toast(`${e.name} verandert van kleur. Wat werkt nu?`);renderHud();return}
  if(e.type==='down'){toast('Het vertrouwen is op. Pip haalt je terug naar de ingang; jullie voortgang blijft bewaard.');return}
  if(e.type==='clear'){
   if(fight.kind==='arena'){const id=fight.id,lessons=[...fight.lessons].map(k=>k==='boss'?'boss':k);doneArenas.add(id);fight=null;bossTool=null;sound.chime(true);
@@ -265,9 +266,12 @@ function handleCombat(e){
 }
 function skipArena(){if(!fight||fight.kind!=='arena')return;const id=fight.id,lessons=[...fight.lessons];world?.stopFight();world?.setArenaDone(id,true);doneArenas.add(id);fight=null;bossTool=null;act('arena',{id,outcome:'skipped',lessons});say('De poort is open. Het gevecht staat als overgeslagen in het dossier.');renderCombat();renderHud()}
 function renderCombat(){
- const el=$('g-combat');if(!el)return;el.hidden=!fight;$('g-root')?.classList.toggle('is-fighting',!!fight);renderControls();if(!fight)return;
- $('g-tools').innerHTML=content.tools.map((t,i)=>`<button class="g-tool ${t.id===tool?'is-on':''} ${bossTool===t.id?'is-boss':''}" data-tool="${i}" style="--tool:${t.color}" title="${esc(t.text)}"><kbd>${t.key}</kbd><span>${t.icon}</span><b>${esc(t.name)}</b></button>`).join('');
+ const el=$('g-combat');if(!el)return;el.hidden=!started||!world;$('g-root')?.classList.toggle('is-fighting',!!fight);$('g-root')?.classList.toggle('is-armed',armed);renderControls();if(el.hidden)return;
+ $('g-trust').hidden=!fight;
+ $('g-tools').innerHTML=armed?content.tools.map((t,i)=>`<button class="g-tool ${t.id===tool?'is-on':''}" data-tool="${i}" style="--tool:${t.color}" title="${esc(t.attack)}"><kbd>${t.key}</kbd><span>${t.icon}</span><b>${esc(t.name)}</b></button>`).join('')+`<button class="g-attack" id="attack">⚔ Aanval <kbd>E</kbd></button><button class="g-btn g-holster" id="holster">Opbergen <kbd>R</kbd></button>`
+  :`<button class="g-btn g-draw" id="draw">🗡 Wapen trekken <kbd>R</kbd></button>`;
 }
+
 
 // ---------- panels ----------
 function panelInset(){world?.setInset(panel&&innerWidth>760?Math.min(520,innerWidth-36)+18:0)}
@@ -351,6 +355,11 @@ function renderPanel(){
   ${content.chambers.filter(c=>room(c.id).trial?.outcome==='done').length?`<h3 class="g-h3">Bevindingen uit de proeven</h3>${content.chambers.filter(c=>room(c.id).trial?.outcome==='done').map(c=>`<div class="g-note-entry"><b>${esc(c.title)} · ${esc(c.trial.title)}</b><p>${esc(c.trial.finding)}</p></div>`).join('')}`:''}
   ${ls.length?`<h3 class="g-h3">Lessen uit de tussenkamers</h3>${ls.map(m=>`<div class="g-note-entry"><b>${esc(m.name)}</b><p>${esc(m.lesson)}</p></div>`).join('')}`:''}
   ${content.chambers.filter(c=>room(c.id).note).map(c=>`<div class="g-note-entry"><b>Projectnotitie · ${esc(c.title)}</b><p>${esc(room(c.id).note)}</p></div>`).join('')}<button id="download" class="g-primary">Download het dossier ↓</button><p class="g-help">Het dossier legt een leergesprek vast. Het is geen toetsing of toestemming om AI in te zetten.</p>`;return}
+ if(panel==='guide'){const seen=new Set([...(fight?.lessons||[]),...Object.values(session.arenas).flatMap(a=>a?.lessons||[])]);const mobs=Object.entries(st.mobs);
+  p.innerHTML=`${close}<div class="g-kicker">GIDS · ${esc(st.title.toUpperCase())}</div><h2>Wat werkt tegen wat?</h2><p class="g-lead">Elk monster is zwak tegen één wapen. Een verkeerd wapen doet niets. De lessen lees je pas als je een monster hebt verslagen.</p>
+  <h3 class="g-h3">Je wapens</h3>${content.tools.map(t=>`<div class="g-guide-tool" style="--tool:${t.color}"><span>${t.icon}</span><div><b>${t.key} · ${esc(t.name)}</b> — ${esc(t.attack)}<p>${esc(t.text)}</p></div></div>`).join('')}
+  <h3 class="g-h3">Monsters in dit verhaal</h3>${mobs.map(([k,m])=>{const t=toolOf(m.tool);return `<div class="g-note-entry"><b>${esc(m.name)}</b> · zwak tegen <b style="color:${t.color}">${t.icon} ${esc(t.name)}</b><p>${seen.has(k)?esc(m.lesson):'<i>Versla er een om de les te lezen.</i>'}</p></div>`}).join('')}
+  <div class="g-note-entry"><b>${esc(st.boss.name)}</b> · eindbaas<p>Wisselt drie keer van zwakte. De kern op zijn borst krijgt de kleur van het wapen dat dan werkt.</p></div>`;return}
  if(panel==='verdict'){renderVerdict(p,close);return}
  const d=chamber(session.topic);if(!d){p.hidden=true;return}const r=room(d.id);
  const top=`${close}<div class="g-kicker" style="--accent:${d.color}">${esc(groupLabel(d))}</div><h2>${esc(d.place)}</h2>`;
@@ -394,7 +403,7 @@ function enterWorld(){
  started=true;choosing=false;lastLevel=-1;closeModal();applyStory();
  if(world){world.setAttract(false);const target=session.topic&&session.topic!=='verdict'?session.topic:session.topic==='verdict'?'verdict':session.level;world.goTo(target,true);world.lock()}
  else handleLevel(session.level);
- syncWorld();render();if(!letterRead)say('Ik ben Pip. Zie je die lessenaar met de brief? Daar begint ons verhaal. Loop erheen en druk op E.',{ms:12000});
+ syncWorld();render();renderCombat();if(!letterRead)say('Ik ben Pip. Zie je die lessenaar met de brief? Daar begint ons verhaal. Loop erheen en druk op E.',{ms:12000});
 }
 async function begin(){
  if(busy)return;busy=true;setBusy();
@@ -448,6 +457,10 @@ document.addEventListener('click',async e=>{
   case 'skip-to-case':await skipTrial(b.dataset.id);break;
   case 'skip-trial':if(trial){const id=trial.id;await skipTrial(id)}break;
   case 'skip-arena':skipArena();break;
+  case 'attack':world?.fire();break;
+  case 'draw':world?.setArmed(true);break;
+  case 'holster':world?.setArmed(false);break;
+  case 'guide':if(session){panel==='guide'?closePanel():openPanel('guide')}break;
   case 'take-shortcut':if(await act('shortcut')){const v=content.story.vendor;closePanel();say(v.taken,{name:v.name,ms:8000});world?.goTo(7);if(!world)handleLevel(7);toast('De Snelle Trap: alles wat jullie overslaan, blijft een blinde vlek in het dossier.')}break;
   case 'decline-shortcut':{const v=content.story.vendor;vendorDeclined=true;closePanel();say(v.declined,{name:v.name,ms:7000});break}
   case 'decide':{const id=session.topic;if(await act('decide',{selection:selected,reason:draftReason[id]||''})){const res=room(id).result;sound.chime(id==='verdict'||res?.complete);say(id==='verdict'?'Het zegel is gezet. Lees wat er een jaar later gebeurt, en leg vast wie wat doet.':res.complete?'Stevig! Dit kan het dossier dragen. Schrijf op wat het betekent voor jullie eigen project.':'Er blijven open punten. Dat is niet erg, zolang jullie ze meenemen naar het besluit.');$('g-panel').scrollTop=0}break}
@@ -478,6 +491,7 @@ document.addEventListener('keydown',e=>{
  if(judging){if(e.key==='Escape'){e.preventDefault();closeJudge()}return}
  if(/INPUT|TEXTAREA/.test(document.activeElement?.tagName||''))return;
  if(e.key==='Escape'){if(activeClue){closeReader();return}if(panel){persistNote();closePanel()}}
+ if((e.key==='g'||e.key==='G')&&started&&session){e.preventDefault();panel==='guide'?closePanel():openPanel('guide');return}
  if((e.key==='m'||e.key==='M')&&started&&session&&!fight){e.preventDefault();panel==='map'?closePanel():openPanel('map')}
 });
 document.addEventListener('submit',async e=>{if(e.target.id!=='join-form')return;e.preventDefault();if(busy)return;busy=true;const form=new FormData(e.target),code=String(form.get('code')).trim().toUpperCase(),b=e.target.querySelector('button');b.disabled=true;
