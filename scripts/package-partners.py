@@ -6,16 +6,19 @@ import zipfile
 import shutil
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-OUT = ROOT / 'share' / 'Het-Gewelf-3.0-Partner-Pack.zip'
-NAME = 'Het Gewelf 3.0'
+OUT = ROOT / 'share' / 'Het-Gewelf-3.1-Partner-Pack.zip'
+NAME = 'Het Gewelf 3.1'
 
-GUIDE = '''HET GEWELF 3.0 — PARTNEREDITIE
+GUIDE = '''HET GEWELF 3.1 — PARTNEREDITIE
 
-Een Nederlandstalige 3D-afdaling door het AI-raamwerk.
+Een Nederlandstalige 3D-afdaling door het AI-raamwerk, met drie verhalen:
+een digitale assistent voor inwonersvragen (Het Loket), een schrijfassistent
+voor beslissingen op bezwaar (De Bezwaarkamer) en een zoek- en lakassistent
+voor Woo-verzoeken (Het Woo-archief).
 Eén persoon loopt in first person door het Gewelf op het grote scherm;
 maximaal 15 anderen denken mee via hun telefoon. Samen besluiten jullie
-of de gemeente AI moet inzetten: niet doen, eerst onderzoeken, een
-begrensde pilot of invoeren met waarborgen.
+of AI de juiste stap is: niet doen, eerst onderzoeken, een begrensde
+pilot of invoeren met waarborgen.
 
 EERSTE KEER
 1. Download de ZIP en pak de HELE map uit op je computer.
@@ -36,27 +39,39 @@ Open daarna http://localhost:5173 in een moderne browser met WebGL.
 Houd het terminalvenster open tijdens het spelen. Ctrl+C stopt de server.
 
 SPELEN
-Kies 'Begin de afdaling'. Klik in de wereld om rond te kijken met de muis.
+Kies 'Begin de afdaling' en kies een verhaal. Zet 'Rustige modus' aan als de
+groep vooral wil praten: monsters vallen dan niet aan.
+Klik in de wereld om rond te kijken met de muis.
 WASD of pijltjestoetsen: lopen. Shift: rennen. Spatie: springen.
-E (of klikken): praten, een bron lezen of het zegel aanraken. M: kaart.
+E (of klikken): praten, een bron lezen, iets oppakken of gebruiken. M: kaart.
+In gevechten: klikken of F gebruikt je gereedschap, 1/2/3 wisselt.
 Esc geeft de muis weer vrij. Pip, de lantaarngolem, wijst de weg.
 
 De afdaling:
-- Diepte 0, de Ontvangsthal: de brief van de wethouder.
+- Diepte 0, de Ontvangsthal: de brief, een bewoner en een leverancier
+  met een verleidelijke Snelle Trap.
 - Diepte 1, de Kamer van de Vraag: is AI hier wel het antwoord?
+- Tussenkamer I: monsters van hype en haast.
 - Diepte 2, de Hal der Fundamenten: governance, cultuur, kennis, data.
+- Tussenkamer II: lekken, vooroordelen en verborgen instructies.
 - Diepte 3, de Galerij der Domeinen: tien domeinen; kies wat telt.
-- Diepte 4, de Zegelkamer: het besluit.
+- De Drempel: de eindbaas van jullie verhaal.
+- Diepte 4, de Zegelkamer: het besluit, en wat er een jaar later gebeurt.
 
-Per kamer: spreek de bewoner aan, lees naar behoefte de drie bronnen,
-kies samen alle passende maatregelen en bespreek de uitleg.
-Elke kamer komt in het dossier als Stevig, Open punten of Blinde vlek.
+Per kamer: spreek de bewoner aan en doe de proef (sorteren, verzamelen,
+beoordelen, hendels zetten, de goede volgorde vinden, getuigen horen of
+een gevecht). Lees naar behoefte de drie bronnen, kies samen alle passende
+maatregelen en bespreek de uitleg. Elke kamer komt in het dossier als
+Stevig, Open punten of Blinde vlek.
+Elk monster is zwak tegen één gereedschap: Toetslamp (toetsen), Weegschaal
+(afwegen) of Zegel (beschermen). Wie een monster verslaat, krijgt een les.
+Gevechten zijn altijd over te slaan.
 In de Zegelkamer kiezen jullie een besluit. Daarna laat het dossier zien
-welk besluit het kon dragen en waarom. Er is geen score.
-Leg tot slot eigenaar, eerste stap, evaluatiedatum en stopcriterium vast
-en download het besluitdossier.
+welk besluit het kon dragen en hoe het verhaal een jaar later afloopt.
+Er is geen score. Leg tot slot eigenaar, eerste stap, evaluatiedatum en
+stopcriterium vast en download het besluitdossier.
 
-Reken op 45 tot 90 minuten. Via de Kaart kun je direct naar een kamer
+Reken op 60 tot 120 minuten. Via de Kaart kun je direct naar een kamer
 reizen als de tijd dringt. Dit is een leergesprek, geen juridische toets
 of goedkeuring van een AI-toepassing.
 
@@ -65,6 +80,7 @@ Klik op 'Adviesraad'. Laat deelnemers de QR-code scannen of de link openen.
 Computer en telefoons moeten hetzelfde netwerk gebruiken. Alleen de computer
 heeft Node.js en dit pakket nodig; op telefoons volstaat een browser.
 Deelnemers lezen de casus en bronnen op hun telefoon en stemmen daar.
+Tijdens gevechten kunnen ze de speler steun sturen.
 Hun stemmen zijn advies; de speler beslist.
 
 Gebruik voor telefoons het netwerkadres, bijvoorbeeld http://192.168.1.84:5173.
@@ -132,10 +148,10 @@ def main():
         shutil.copytree(ROOT / 'public', package / 'public',
                         ignore=shutil.ignore_patterns('.DS_Store', '*.map'))
         (package / 'game').mkdir()
-        for filename in ['engine.cjs', 'descent.cjs', 'descent.json', 'local-api.cjs', 'topics.cjs', 'topics.json']:
+        for filename in ['engine.cjs', 'descent.cjs', 'descent.json', 'stories.cjs', 'stories.json', 'trials.json', 'local-api.cjs', 'topics.cjs', 'topics.json']:
             shutil.copy2(ROOT / 'game' / filename, package / 'game' / filename)
         (package / 'package.json').write_text(json.dumps({
-            'name': 'het-gewelf-partner-edition', 'version': '3.0.0',
+            'name': 'het-gewelf-partner-edition', 'version': '3.1.0',
             'private': True, 'license': 'MIT', 'main': 'server.js',
             'engines': {'node': '>=22.13.0'}, 'scripts': {'start': 'node server.js'}
         }, indent=2) + '\n')

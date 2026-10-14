@@ -18,7 +18,7 @@ module.exports=async function gameApi(req,res,url){
   }
   const body=req.method==='POST'?await bodyFor(req):{};
   if(req.method==='POST'&&url.pathname==='/api/game/create'){
-   let s=engine.newSession();while(sessions[s.code])s=engine.newSession();commit(s.code,s);send(res,201,{token:s.hostToken,session:engine.publicSession(s,s.hostToken)});return true;
+   let s=engine.newSession(undefined,{story:body.story,peaceful:body.peaceful===true});while(sessions[s.code])s=engine.newSession(undefined,{story:body.story,peaceful:body.peaceful===true});commit(s.code,s);send(res,201,{token:s.hostToken,session:engine.publicSession(s,s.hostToken)});return true;
   }
   const match=url.pathname.match(/^\/api\/game\/([A-Z2-9]{6})(?:\/(join|action|report|info))?$/);if(!match)engine.fail('Route niet gevonden.',404);
   const s=sessions[match[1]];if(!s)engine.fail('Deze sessie bestaat niet. Controleer de code bij de speler.',404);

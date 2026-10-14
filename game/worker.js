@@ -30,7 +30,7 @@ export default {
    if(!env.DB)throw new Error('De sessiedatabase is niet beschikbaar.');
    if(request.method==='POST'&&url.pathname==='/api/game/create'){
     for(let attempt=0;attempt<5;attempt++){
-     const s=engine.newSession(),written=await env.DB.prepare('INSERT INTO golem_sessions (code, data, revision) VALUES (?, ?, ?) ON CONFLICT(code) DO NOTHING').bind(s.code,JSON.stringify(s),s.revision).run();
+     const s=engine.newSession(undefined,{story:body.story,peaceful:body.peaceful===true}),written=await env.DB.prepare('INSERT INTO golem_sessions (code, data, revision) VALUES (?, ?, ?) ON CONFLICT(code) DO NOTHING').bind(s.code,JSON.stringify(s),s.revision).run();
      if(written.meta.changes===1)return json({token:s.hostToken,session:engine.publicSession(s,s.hostToken)},201);
     }
     engine.fail('Probeer opnieuw een afdaling te starten.',503);

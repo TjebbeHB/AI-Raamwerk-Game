@@ -1,0 +1,1226 @@
+[
+ {
+  "id": "loket",
+  "title": "Het Loket",
+  "org": "Gemeente Dalwijk",
+  "subtitle": "Een digitale assistent voor inwonersvragen",
+  "difficulty": "Instap",
+  "color": "#e8c27a",
+  "themes": [
+   "Dienstverlening",
+   "Transparantie",
+   "Menselijke uitweg"
+  ],
+  "pitch": "Inwoners wachten negen dagen op antwoord. Een leverancier belooft een digitale assistent die binnen zes weken live kan. Is dat de oplossing, of verplaatst het alleen het probleem?",
+  "letter": {
+   "to": "Aan het team Dienstverlening",
+   "from": "De wethouder",
+   "seal": "D",
+   "text": "Inwoners wachten gemiddeld negen werkdagen op antwoord over vergunningen, afspraken en toeslagen. Een leverancier biedt een digitale assistent aan die ‘binnen zes weken live kan’. Ik wil volgende maand een besluit: zetten we AI in, of niet? Neem de tijd om het goed te onderzoeken."
+  },
+  "pip": {
+   "intro": "Ik ben Pip. Onder het stadhuis ligt het Gewelf: elke kamer bewaart een vraag die je moet stellen vóór je ‘ja’ zegt tegen AI. Onderaan wacht de Zegelkamer. Daar besluiten jullie.",
+   "levels": [
+    "Hier begint het. Lees eerst de brief op de lessenaar. En kijk uit voor die man met de glimmende map.",
+    "Vrouwe Waarom wacht. Zij laat niemand verder zonder een goede vraag.",
+    "Hoor je dat gefladder? Beloftes uit de demo. Pak je Toetslamp.",
+    "Vier fundamenten. Zonder eigenaar, mensen, kennis en data draagt niets.",
+    "Het lekt hier. Data, vooroordelen, fluisteraars. Kies telkens het juiste gereedschap.",
+    "Tien domeinen. Kies wat voor de inwoners van Dalwijk telt; wat je overslaat, weet je niet.",
+    "Daar staat De Fabulant. Hij klinkt overtuigend. Laat je niet inpakken.",
+    "Hier wordt het besluit bezegeld. Kijk eerst naar wat jullie dossier draagt."
+   ]
+  },
+  "resident": {
+   "name": "Mevrouw Bakker",
+   "role": "inwoner, 79 jaar",
+   "hall": "Ik bel al drie keer over mijn parkeervergunning. Als u een computer neerzet, wie neemt er dan nog op?",
+   "seal": "Wat u ook besluit: vertel het me eerlijk. En zorg dat er iemand opneemt als ik bel."
+  },
+  "vendor": {
+   "name": "Glans",
+   "company": "PraatPal",
+   "pitch": "Waarom al die kamers? Onze assistent draait al bij ‘tientallen gemeenten’. Stap op mijn Snelle Trap, dan staan jullie zo in de Zegelkamer.",
+   "again": "Nog steeds aan het onderzoeken? Mijn trap staat er nog, hoor. Het aanbod geldt tot vrijdag.",
+   "taken": "Uitstekend! Ik stuur de factuur alvast naar de wethouder.",
+   "declined": "Zoals u wilt. Onderzoek kost tijd, hè."
+  },
+  "verdict": {
+   "question": "Zetten jullie AI in voor de inwonersvragen van Dalwijk?",
+   "critical": [
+    "quality",
+    "interaction",
+    "ethics"
+   ]
+  },
+  "necessity": {
+   "id": "necessity",
+   "group": "necessity",
+   "number": 0,
+   "color": "#e7c37a",
+   "title": "Probleem & Noodzaak",
+   "place": "De Kamer van de Vraag",
+   "npc": "Vrouwe Waarom",
+   "hook": "Vrouwe Waarom stelt maar één vraag, steeds opnieuw: welk probleem lossen we eigenlijk op?",
+   "scenario": "De wachttijd van negen dagen is het startpunt van het voorstel. Niemand heeft nog uitgezocht welke vragen het meest gesteld worden, waarom ze blijven liggen of wat inwoners zelf het lastigst vinden. De leverancier toont een indrukwekkende demo; de wethouder wil graag iets innovatiefs laten zien.",
+   "question": "Wat moeten jullie eerst vastleggen voordat AI überhaupt een optie is?",
+   "options": [
+    {
+     "text": "Breng het probleem in kaart met cijfers en verhalen: welke vragen, waarom de vertraging, en wie er last van heeft.",
+     "status": "correct",
+     "feedback": "Zonder heldere probleemanalyse is niet te beoordelen of welke oplossing dan ook helpt. Begin bij de inwoner en de werkpraktijk, niet bij de techniek."
+    },
+    {
+     "text": "Vergelijk AI met eenvoudigere oplossingen, zoals betere webteksten, een ander proces of extra capaciteit in de piek.",
+     "status": "correct",
+     "feedback": "Passende complexiteit: kies de eenvoudigste oplossing die het probleem werkelijk oplost. AI moet zich bewijzen tegenover alternatieven zonder AI."
+    },
+    {
+     "text": "Formuleer de publieke waarde en meetbare succescriteria, inclusief wanneer jullie zouden stoppen.",
+     "status": "correct",
+     "feedback": "Succes- en stopcriteria vooraf voorkomen dat een project doorloopt omdat het al gestart is. Ze maken latere evaluatie mogelijk."
+    },
+    {
+     "text": "Vraag na hoe andere gemeenten een vergelijkbaar probleem hebben aangepakt.",
+     "status": "supporting",
+     "feedback": "Een nuttige aanvulling: ervaringen elders besparen tijd. Hun situatie is niet de jouwe, dus het vervangt de eigen probleemanalyse niet."
+    },
+    {
+     "text": "Start met de demo van de leverancier: de techniek is beschikbaar, het probleem volgt vanzelf.",
+     "status": "incorrect",
+     "feedback": "Een oplossing die een probleem zoekt, leidt tot dure projecten zonder publieke waarde. Een demo laat zien wat kan, niet wat nodig is."
+    },
+    {
+     "text": "Kies voor AI omdat het bestuur innovatie wil laten zien.",
+     "status": "incorrect",
+     "feedback": "Bestuurlijke ambitie is een legitiem signaal, maar geen onderbouwing. Het besluit moet uitlegbaar zijn aan inwoners, ook als het nee wordt."
+    }
+   ],
+   "clues": [
+    {
+     "id": "a",
+     "title": "De spiegel van de inwoner",
+     "body": "Kijk naar het probleem door de ogen van de inwoner en de medewerker. Waar loopt het vast?",
+     "explanation": "Een wachttijd is een symptoom. De oorzaak kan liggen in onduidelijke informatie, een ingewikkeld proces, ontbrekende koppelingen of te weinig mensen op piekmomenten. Elk van die oorzaken vraagt om een andere oplossing. Klantreizen, klachtenanalyse en gesprekken met medewerkers aan de balie leveren vaak meer op dan een technische verkenning.",
+     "steps": [
+      "Analyseer de tien meest gestelde vragen en waarom ze niet direct beantwoord worden.",
+      "Spreek met inwoners die moeite hebben met digitale kanalen; zij blijven ook na invoering bestaan."
+     ],
+     "example": "In Dalwijk blijkt een derde van de vragen over één onduidelijke brief te gaan. Een betere brief lost dat sneller op dan een assistent.",
+     "section": "Probleemanalyse"
+    },
+    {
+     "id": "b",
+     "title": "De ladder van eenvoud",
+     "body": "Begin onderaan: kan het zonder technologie? Zonder AI? Pas dan met AI.",
+     "explanation": "Passende complexiteit betekent dat je de eenvoudigste oplossing kiest die werkt. Een generatieve assistent brengt risico’s mee: onjuiste antwoorden, afhankelijkheid van een leverancier, beheerlast en energieverbruik. Die zijn alleen te rechtvaardigen als eenvoudiger alternatieven aantoonbaar tekortschieten.",
+     "steps": [
+      "Zet minstens één oplossing zonder AI naast het AI-voorstel en vergelijk kosten, risico en effect.",
+      "Leg vast waarom het eenvoudiger alternatief wel of niet volstaat."
+     ],
+     "example": "Een slimme zoekfunctie op de website en een terugbelservice in de piek halveren de wachttijd al. De vraag wordt: wat voegt AI daar nog aan toe?",
+     "section": "Passende complexiteit"
+    },
+    {
+     "id": "c",
+     "title": "Het kompas van publieke waarde",
+     "body": "Wat wordt beter voor wie, hoe meet je dat, en wanneer stop je?",
+     "explanation": "Publieke waarde gaat verder dan efficiëntie: toegankelijkheid, gelijke behandeling, vertrouwen en de kwaliteit van werk voor medewerkers tellen mee. Leg succescriteria en stopcriteria vast vóór de start. Dan kun je later eerlijk evalueren, ook als het antwoord ‘dit werkt niet’ is.",
+     "steps": [
+      "Formuleer twee of drie meetbare doelen, bijvoorbeeld wachttijd, juistheid en tevredenheid van kwetsbare groepen.",
+      "Spreek af bij welke uitkomst het project stopt of wordt bijgestuurd."
+     ],
+     "example": "Dalwijk spreekt af: de wachttijd moet onder de drie dagen, en het percentage onjuiste antwoorden mag niet boven de twee procent komen.",
+     "section": "Publieke waarde en criteria"
+    }
+   ],
+   "reflection": "Welk probleem lossen jullie in je eigen project op, en welk alternatief zonder AI hebben jullie serieus overwogen?",
+   "source": "‘Kaders rondom het raamwerk’ en de algemene introductie van het AI-raamwerk",
+   "trial": {
+    "type": "witness",
+    "title": "Hoor de betrokkenen",
+    "intro": "Drie mensen wachten bij de bron van Waarom. Hoor ze alle drie voordat jullie iets kiezen.",
+    "task": "Spreek de drie betrokkenen bij de bron",
+    "done": "Drie stemmen, drie kanten van hetzelfde probleem. Wat zien jullie nu?",
+    "finding": "Een derde van de vragen komt voort uit één onduidelijke brief, en een deel van de inwoners kan of wil niet digitaal. Niemand heeft gemeten welke vragen er écht binnenkomen.",
+    "witnesses": [
+     {
+      "name": "Mevrouw Bakker, inwoner",
+      "line": "Ik bel omdat ik de website niet snap. Een computer die terugpraat, gaat mij niet helpen."
+     },
+     {
+      "name": "Ilse, KCC-medewerker",
+      "line": "Een derde van de telefoontjes gaat over die ene onduidelijke brief over de afvalpas. Die brief kunnen we gewoon herschrijven."
+     },
+     {
+      "name": "Glans, PraatPal",
+      "line": "Onze assistent beantwoordt álles! Welke vragen er precies binnenkomen? Dat zien we na livegang wel."
+     }
+    ]
+   }
+  },
+  "overrides": {},
+  "trials": {},
+  "mobs": {
+   "demo": {
+    "name": "Demo-dwaallicht",
+    "look": "wisp",
+    "tool": "lamp",
+    "color": "#ffd36b",
+    "lesson": "Een demo laat het mooiste geval zien. Toets beloftes met jullie eigen, representatieve testvragen."
+   },
+   "haste": {
+    "name": "Haastkobold",
+    "look": "imp",
+    "tool": "scale",
+    "color": "#ff8a5c",
+    "lesson": "‘Binnen zes weken live’ is geen reden om stappen over te slaan. Tijdsdruk vraagt juist om een bewuste afweging."
+   },
+   "leak": {
+    "name": "Datalekslijm",
+    "look": "slime",
+    "tool": "seal",
+    "color": "#7fe0a4",
+    "lesson": "Persoonsgegevens in prompts en logs lekken makkelijk weg. Bescherm ze met minimale gegevens, afspraken en toegangsrechten."
+   },
+   "bias": {
+    "name": "Vooroordeelschim",
+    "look": "shade",
+    "tool": "scale",
+    "color": "#b48cff",
+    "lesson": "Een assistent kan groepen ongelijk behandelen zonder dat iemand het merkt. Test met verschillende formuleringen en laat mensen afwegen."
+   },
+   "inject": {
+    "name": "Injectie-imp",
+    "look": "imp",
+    "tool": "seal",
+    "color": "#8fd0ff",
+    "lesson": "Verborgen instructies in documenten kunnen een assistent misleiden. Begrens rechten en behandel invoer als onbetrouwbaar."
+   },
+   "halluc": {
+    "name": "Hallucinaatje",
+    "look": "wisp",
+    "tool": "lamp",
+    "color": "#fff1b8",
+    "lesson": "Een taalmodel kan overtuigend klinkende onzin maken. Toon bronnen en toets antwoorden op een vaste vragenset."
+   }
+  },
+  "arenas": [
+   {
+    "id": "a1",
+    "name": "De Gang der Beloften",
+    "intro": "Hier fladderen de beloftes uit de demo. Ze glanzen, maar wat zit erachter?",
+    "waves": [
+     [
+      [
+       "demo",
+       3
+      ]
+     ],
+     [
+      [
+       "demo",
+       2
+      ],
+      [
+       "haste",
+       2
+      ]
+     ]
+    ]
+   },
+   {
+    "id": "a2",
+    "name": "De Lekkende Kelder",
+    "intro": "Hier sijpelt data door de kieren en verschuilen vooroordelen zich in het donker.",
+    "waves": [
+     [
+      [
+       "leak",
+       3
+      ]
+     ],
+     [
+      [
+       "bias",
+       2
+      ],
+      [
+       "leak",
+       1
+      ]
+     ],
+     [
+      [
+       "inject",
+       3
+      ],
+      [
+       "bias",
+       1
+      ]
+     ]
+    ]
+   },
+   {
+    "id": "a3",
+    "name": "De Drempel",
+    "intro": "Voor de Zegelkamer wacht De Fabulant. Hij weet alles, zegt hij.",
+    "boss": true,
+    "waves": []
+   }
+  ],
+  "boss": {
+   "name": "De Fabulant",
+   "look": "fabulant",
+   "color": "#e8c27a",
+   "intro": "‘Ik weet het antwoord op elke vraag. Of iets wat erop lijkt.’",
+   "minion": "halluc",
+   "phases": [
+    {
+     "tool": "lamp",
+     "line": "Toets zijn bronnen!"
+    },
+    {
+     "tool": "scale",
+     "line": "Weeg wie hij overslaat!"
+    },
+    {
+     "tool": "seal",
+     "line": "Begrens wat hij mag!"
+    }
+   ],
+   "lesson": "Vertrouwen verdien je met bewijs: toetsen wat de assistent zegt, afwegen wie hij mist en begrenzen wat hij mag."
+  },
+  "epilogues": {
+   "stop": {
+    "grounded": "Dalwijk zet de assistent niet in. Het team herschrijft de tien meest gelezen webpagina’s en die ene brief over de afvalpas, en zet een terugbelservice in tijdens piekuren. Na drie maanden is de wachttijd gehalveerd. Mevrouw Bakker krijgt nu binnen twee dagen een mens aan de lijn.",
+    "cautious": "Dalwijk stopt het traject, al liet het dossier ruimte voor een begrensde proef. De wachttijd daalt dankzij betere webteksten, maar de vraag of een assistent had kunnen helpen blijft open. Het team legt vast waarom het stopte, zodat een volgend voorstel niet bij nul begint."
+   },
+   "research": {
+    "ok": "Het team neemt drie maanden voor onderzoek: een klantreis, een vergelijking met oplossingen zonder AI en een testset van honderd echte vragen. Het voorstel dat daarna op tafel ligt, is kleiner en scherper. De wethouder is eerst ongeduldig, later trots."
+   },
+   "pilot": {
+    "ok": "Zes weken lang beantwoordt de assistent alleen vragen over afvalpassen en openingstijden, met een zichtbare knop naar een medewerker. Het team meet juistheid en wachttijd tegen een nulmeting. Mevrouw Bakker gebruikt hem niet, en dat hoeft ook niet: de telefoonlijn wordt rustiger, dus zij spreekt sneller iemand.",
+    "beyond": "De pilot start, maar niemand is eigenaar van de antwoorden en er is geen nulmeting. Na zes weken weet niemand of het werkt. Als de assistent een verkeerde vergunningstermijn noemt, wijst iedereen naar elkaar. De pilot stopt stilletjes; het vertrouwen van inwoners heeft een deuk."
+   },
+   "implement": {
+    "ok": "De assistent gaat live met een eigenaar, een testset, een zichtbare menselijke uitweg en maandelijkse evaluaties. Na een jaar is de wachttijd drie dagen. Twee keer wordt een update teruggedraaid omdat de testset fouten vond, precies zoals bedoeld.",
+    "beyond": "De assistent gaat binnen zes weken live. In de eerste maand noemt hij honderden inwoners een verouderde vergunningstermijn. De lokale krant schrijft erover en de raad stelt vragen. Mevrouw Bakker belt opnieuw, nu met een boete. Het project wordt stilgelegd voor een herstart."
+   }
+  }
+ },
+ {
+  "id": "bezwaar",
+  "title": "De Bezwaarkamer",
+  "org": "Uitvoeringsdienst Woonlasten",
+  "subtitle": "Een schrijfassistent voor beslissingen op bezwaar",
+  "difficulty": "Gevorderd",
+  "color": "#8fb7ff",
+  "themes": [
+   "Menselijke regie",
+   "Rechten van burgers",
+   "Zorgvuldigheid"
+  ],
+  "pitch": "Er liggen 1.400 bezwaren op de plank en de termijnen zijn verlopen. Een schrijfassistent kan beslissingen voorschrijven: ‘behandelaars hoeven alleen te tekenen’. Maar wie beslist er dan eigenlijk?",
+  "letter": {
+   "to": "Aan het team Bezwaar & Beroep",
+   "from": "De directeur Uitvoering",
+   "seal": "U",
+   "text": "Er liggen 1.400 bezwaren op de plank en de beslistermijnen zijn ruim overschreden. Een leverancier biedt een schrijfassistent die dossiers samenvat en beslissingen op bezwaar voorschrijft; ‘behandelaars hoeven alleen nog te tekenen’. Ik wil vóór het Kamerdebat weten: zetten we AI in, of niet? Zorgvuldigheid staat voorop."
+  },
+  "pip": {
+   "intro": "Ik ben Pip. Onder de dienst ligt het Gewelf: elke kamer bewaart een vraag die je moet stellen vóór een machine meeschrijft aan besluiten over mensen. Onderaan wacht de Zegelkamer.",
+   "levels": [
+    "Hier begint het. Lees de brief van de directeur. En let op die man met de glimmende map.",
+    "Vrouwe Waarom wacht. Waarom maken zoveel mensen eigenlijk bezwaar?",
+    "De stapels zijn tot leven gekomen! Weeg ze af met de Weegschaal en toets de beloftes met je lamp.",
+    "Vier fundamenten. Wie draagt een besluit als een machine het voorschreef?",
+    "Hier wordt elk bezwaar op hetzelfde sjabloon gedrukt. Kies je gereedschap zorgvuldig.",
+    "Tien domeinen. Kies wat telt voor de mensen die bezwaar maken.",
+    "De Stempelautomaat. Hij stempelt alles akkoord. Laat hem jullie besluit niet stempelen.",
+    "Hier wordt het besluit bezegeld. Wie tekent, moet ook kunnen afwijken."
+   ]
+  },
+  "resident": {
+   "name": "Karim",
+   "role": "bezwaarmaker",
+   "hall": "Ik wacht al vijf maanden op een beslissing over mijn bezwaar. Ik wil geen sneller nee. Ik wil dat iemand mijn brief echt leest.",
+   "seal": "Wat u ook besluit: zorg dat er iemand is die mijn verhaal kan uitleggen. Niet alleen een handtekening."
+  },
+  "vendor": {
+   "name": "Glans",
+   "company": "Concipio",
+   "pitch": "Behandelaars hoeven alleen nog te tekenen! Waarom zou u al die kamers bezoeken? Mijn Snelle Trap gaat rechtstreeks naar het besluit.",
+   "again": "Nog steeds kamers aan het bekijken? De achterstand groeit intussen, hoor.",
+   "taken": "Prachtig. De eerste duizend concepten staan morgen klaar.",
+   "declined": "U weet het beter, uiteraard."
+  },
+  "verdict": {
+   "question": "Zetten jullie een schrijfassistent in voor de beslissingen op bezwaar?",
+   "critical": [
+    "ethics",
+    "compliance",
+    "interaction"
+   ]
+  },
+  "necessity": {
+   "id": "necessity",
+   "group": "necessity",
+   "number": 0,
+   "color": "#e7c37a",
+   "title": "Probleem & Noodzaak",
+   "place": "De Kamer van de Vraag",
+   "npc": "Vrouwe Waarom",
+   "source": "‘Kaders rondom het raamwerk’ en de algemene introductie van het AI-raamwerk",
+   "hook": "Vrouwe Waarom stelt maar één vraag, steeds opnieuw: waarom maken al deze mensen bezwaar?",
+   "scenario": "De achterstand is 1.400 bezwaren. Niemand heeft geanalyseerd waarom mensen bezwaar maken of waar de behandeling vastloopt. Het voorstel: een assistent die dossiers samenvat en de beslissing op bezwaar voorschrijft. Behandelaars tekenen. De directie wil de achterstand weg vóór het debat.",
+   "question": "Wat moeten jullie eerst vastleggen voordat AI hier een optie is?",
+   "options": [
+    {
+     "text": "Analyseer waarom mensen bezwaar maken en waar de behandeling vastloopt, met cijfers en met de verhalen van bezwaarmakers.",
+     "status": "correct",
+     "feedback": "Een achterstand is een symptoom. Als bezwaren voortkomen uit onduidelijke besluiten of brieven, is bezwaren voorkomen effectiever dan sneller beslissen."
+    },
+    {
+     "text": "Vergelijk AI met oplossingen zonder AI: bezwaarmakers eerst bellen, primaire besluiten en brieven verbeteren, tijdelijk extra capaciteit.",
+     "status": "correct",
+     "feedback": "Passende complexiteit: een telefoontje lost veel bezwaren sneller en menselijker op dan een model. AI moet zich bewijzen tegenover die alternatieven."
+    },
+    {
+     "text": "Bepaal welke rol de assistent in het besluit krijgt, welke rechten van bezwaarmakers in het geding zijn en bij welke uitkomst jullie stoppen.",
+     "status": "correct",
+     "feedback": "Bij besluiten over mensen gaat zorgvuldigheid voor snelheid. Leg vooraf vast wie beslist, wat de assistent wel en niet doet en wanneer het project stopt."
+    },
+    {
+     "text": "Vraag andere uitvoeringsorganisaties naar hun ervaringen met schrijfassistenten.",
+     "status": "supporting",
+     "feedback": "Een nuttige aanvulling: ervaringen elders zijn waardevol. Hun processen en risico’s zijn niet de jouwe, dus het vervangt de eigen analyse niet."
+    },
+    {
+     "text": "Laat de assistent alle beslissingen voorschrijven; behandelaars tekenen toch, dus de verantwoordelijkheid blijft geborgd.",
+     "status": "incorrect",
+     "feedback": "Een handtekening onder een voorgeschreven besluit is geen menselijke afweging als tijd, informatie of ruimte om af te wijken ontbreken. Dat heet automatiseringsbias."
+    },
+    {
+     "text": "Meet succes alleen aan het aantal afgehandelde bezwaren per week.",
+     "status": "incorrect",
+     "feedback": "Productie zegt niets over zorgvuldigheid. Meet ook de kwaliteit van besluiten, vernietigingen door de rechter en gelijke behandeling."
+    }
+   ],
+   "clues": [
+    {
+     "id": "a",
+     "title": "Het bezwaar achter het bezwaar",
+     "body": "Waarom maken mensen bezwaar? Vaak omdat een besluit of brief niet te begrijpen is.",
+     "explanation": "Bezwaren zijn een signaal over de kwaliteit van primaire besluiten en communicatie. Een analyse van bezwaargronden laat vaak zien dat een paar oorzaken een groot deel van de bezwaren veroorzaken. Wie die oorzaken aanpakt, verkleint de stroom aan de voorkant.",
+     "steps": [
+      "Analyseer een steekproef van bezwaren op gronden en oorzaken.",
+      "Bespreek de uitkomsten met de afdeling die de primaire besluiten neemt."
+     ],
+     "example": "Bij de Uitvoeringsdienst Woonlasten blijkt 35 procent van de bezwaren over dezelfde terugvorderingsbrief te gaan.",
+     "section": "Probleemanalyse"
+    },
+    {
+     "id": "b",
+     "title": "De telefoon die wél werkt",
+     "body": "Bel bezwaarmakers eerst. Veel bezwaren lossen zich op in één gesprek.",
+     "explanation": "Een informele aanpak, zoals een persoonlijk telefoongesprek kort na ontvangst van het bezwaar, leidt vaak tot snellere oplossingen, meer begrip en minder formele procedures. Het is een beproefd alternatief zonder AI dat ook het vertrouwen in de overheid versterkt.",
+     "steps": [
+      "Bel binnen een week na ontvangst van het bezwaar.",
+      "Houd bij hoeveel bezwaren na een gesprek worden ingetrokken of opgelost."
+     ],
+     "example": "Een proef met bellen lost bij de dienst een derde van de bezwaren op zonder hoorzitting.",
+     "section": "Passende complexiteit"
+    },
+    {
+     "id": "c",
+     "title": "De handtekening onder de handtekening",
+     "body": "Wie tekent, moet ook kunnen afwijken. Anders is het een stempel, geen besluit.",
+     "explanation": "Bij besluiten over rechten en plichten van mensen horen zorgvuldigheid en een deugdelijke motivering. Als een assistent concepten voorschrijft, moet de behandelaar tijd, informatie en bevoegdheid hebben om af te wijken. Leg vooraf de rol van de assistent, de risico’s voor bezwaarmakers en stopcriteria vast.",
+     "steps": [
+      "Beschrijf welke stappen de assistent wel en niet doet.",
+      "Formuleer stopcriteria, bijvoorbeeld een stijging van vernietigde besluiten."
+     ],
+     "example": "De dienst spreekt af: de assistent vat samen, maar schrijft geen conclusie over gegrondheid.",
+     "section": "Publieke waarde en rechten"
+    }
+   ],
+   "reflection": "Welk probleem lossen jullie op met de assistent, en welk alternatief zonder AI hebben jullie serieus geprobeerd?",
+   "trial": {
+    "type": "witness",
+    "title": "Hoor de betrokkenen",
+    "intro": "Drie mensen wachten bij de bron van Waarom. Hoor ze alle drie voordat jullie iets kiezen.",
+    "task": "Spreek de drie betrokkenen bij de bron",
+    "done": "Drie stemmen. En geen van drieën vroeg om een schrijfmachine.",
+    "finding": "Veel bezwaren ontstaan door onduidelijke brieven en zijn met een telefoontje op te lossen. De tijd zit vooral in stukken opvragen en wachten, niet in het schrijven.",
+    "witnesses": [
+     {
+      "name": "Karim, bezwaarmaker",
+      "line": "Ik maakte bezwaar omdat ik de brief niet begreep. Had iemand me gebeld, dan was het in vijf minuten opgelost."
+     },
+     {
+      "name": "Esther, behandelaar",
+      "line": "Het schrijven kost niet de meeste tijd. Stukken opvragen en wachten op de hoorzitting wel."
+     },
+     {
+      "name": "Ruud, teamleider",
+      "line": "De directie wil de achterstand weg vóór het debat. Of de beslissingen dan nog kloppen, vraagt niemand."
+     }
+    ]
+   }
+  },
+  "overrides": {
+   "governance": {
+    "scenario": "Een behandelaar tekent een beslissing op bezwaar die de assistent voorschreef. Er blijkt een verkeerde termijn in te staan. Juridische zaken wijst naar IT, IT naar de leverancier. Niemand weet wie de kwaliteit van de concepten bewaakt of wie het besluit draagt."
+   },
+   "culture": {
+    "scenario": "De schrijfassistent staat klaar, maar ervaren behandelaars gebruiken hem nauwelijks: ze vertrouwen de samenvattingen niet en verwachten extra controlewerk. Nieuwe collega’s gebruiken hem juist voor alles. Teamleiders zeggen er weinig over."
+   },
+   "capacity": {
+    "scenario": "De dienst koopt de assistent in. De leverancier beheert het model en de juridische sjablonen. Intern weet niemand wie wijzigingen in de sjablonen beoordeelt, wie de kwaliteit van concepten bewaakt of waar eerdere ontwerpkeuzes staan."
+   },
+   "infrastructure": {
+    "scenario": "Na een proef met geanonimiseerde dossiers wil het team echte bezwaardossiers verwerken, inclusief medische en financiële gegevens. Het voorstel draait via een commerciële API buiten de eigen omgeving; afspraken over datagebruik, zeggenschap en vertrek ontbreken."
+   },
+   "evaluation": {
+    "scenario": "De assistent draait een halfjaar. De doorlooptijd daalt, maar niemand weet of de beslissingen even zorgvuldig zijn. Het management kijkt naar productie, juristen naar vernietigde besluiten, IT naar beschikbaarheid.",
+    "options": {
+     "1": {
+      "text": "Start de beoordeling pas wanneer bezwaarmakers in beroep gaan.",
+      "feedback": "Beroepszaken zijn waardevolle signalen, maar ze komen laat en lang niet iedereen gaat in beroep. Stille fouten blijven zo buiten beeld."
+     }
+    }
+   },
+   "quality": {
+    "scenario": "De assistent vat hetzelfde dossier verschillend samen. Soms noemt hij een beleidsregel die vorig jaar is ingetrokken. In de kennisbank staan oude en nieuwe werkinstructies door elkaar. Het team wil weten waar de fout ontstaat.",
+    "question": "Welke maatregelen onderzoeken en verbeteren de inhoudelijke betrouwbaarheid van deze concepten?"
+   },
+   "interaction": {
+    "hook": "De balie vraagt steeds ‘akkoord?’. De behandelaar zou liever eerst weten waarom.",
+    "scenario": "Behandelaars zien een strak geformuleerd concept met één grote knop: ‘Akkoord’. Waar de assistent twijfelt, is niet te zien. Wie een onderdeel wil aanpassen, moet het hele concept herschrijven. Bezwaarmakers weten niet dat een assistent meeschreef.",
+    "question": "Welke ontwerpkeuzes geven behandelaars en bezwaarmakers begrijpelijke hulp en daadwerkelijke regie?",
+    "options": {
+     "0": {
+      "text": "Maak duidelijk wat de assistent doet, welke dossierstukken hij gebruikte en dat de behandelaar beslist, niet de assistent.",
+      "feedback": "De rol en grenzen moeten in de werkomgeving zichtbaar blijven. Het scherm mag geen beslissing suggereren die de assistent niet hoort te nemen."
+     },
+     "1": {
+      "text": "Laat het concept zo zeker en afgerond mogelijk klinken, zodat behandelaars sneller kunnen tekenen.",
+      "feedback": "Dat wekt onterecht vertrouwen en lokt automatiseringsbias uit. Een concept hoort twijfel juist zichtbaar te maken."
+     },
+     "2": {
+      "text": "Toon onzekerheden en bronverwijzingen per onderdeel, maak gericht corrigeren mogelijk en maak afwijken net zo makkelijk als akkoord geven.",
+      "feedback": "Herstel en afwijken horen bij de normale route. Zo houdt de behandelaar grip op het besluit."
+     },
+     "3": {
+      "text": "Voeg een duim-omhoog-knop toe onder elk concept.",
+      "feedback": "Een signaal is nuttig, maar zonder gerichte feedback en opvolging blijven fouten in concepten bestaan."
+     },
+     "4": {
+      "text": "Test de werkwijze met behandelaars van verschillende ervaring en leg bezwaarmakers begrijpelijk uit dat en hoe AI is gebruikt.",
+      "feedback": "Werkwijzen die voor ervaren én nieuwe behandelaars werken, en eerlijke uitleg aan bezwaarmakers, maken menselijke regie echt."
+     }
+    }
+   },
+   "performance": {
+    "scenario": "Bij de jaarlijkse herberekening stromen in één maand 3.000 bezwaren binnen. De assistent wordt traag, concepten vallen halverwege uit en zelfs eenvoudige ontvangstbevestigingen gaan door het zwaarste model.",
+    "options": {
+     "2": {
+      "text": "Hergebruik geschikte bouwstenen, zoals vaste juridische passages, met afspraken over actualiteit en toegangsrechten."
+     },
+     "3": {
+      "text": "Routeer eenvoudige taken, zoals ontvangstbevestigingen, naar een sjabloon of licht model en zwaardere taken naar een passende route."
+     }
+    }
+   },
+   "functionality": {
+    "hook": "Noor heeft twee dossiers met dezelfde achternaam en één heel verwarde postbode.",
+    "scenario": "De assistent haalt stukken op uit het zaaksysteem en zet de beslissing klaar voor verzending. Soms verwisselt hij twee dossiers met dezelfde achternaam en meldt ‘klaar voor verzending’ terwijl de koppeling met het zaaksysteem is vastgelopen.",
+    "question": "Welke maatregelen maken het klaarzetten van beslissingen betrouwbaarder?",
+    "options": {
+     "0": {
+      "text": "Houd per taak bij om welk dossier, welke bezwaarmaker en welke ontbrekende stukken het gaat.",
+      "feedback": "Actief taakgeheugen voorkomt verwisselde dossiers. Bewaar alleen de context die nodig is."
+     },
+     "1": {
+      "text": "Toon tijdens het verwerken een duidelijke voortgangsmelding.",
+      "feedback": "Dat maakt wachten begrijpelijker, maar bewijst niet dat de beslissing echt klaarstaat."
+     },
+     "2": {
+      "text": "Leg een vaste taakflow vast en meld ‘klaar’ pas na bevestiging uit het zaaksysteem.",
+      "feedback": "Een overtuigende melding is geen uitgevoerde handeling. Controleer de echte status in het zaaksysteem."
+     },
+     "3": {
+      "text": "Laat een krachtiger model bij twijfel het waarschijnlijk bedoelde dossier kiezen.",
+      "feedback": "Meer modelcapaciteit neemt onduidelijkheid niet weg. Vraag door voordat je mogelijk het verkeerde dossier afhandelt."
+     },
+     "4": {
+      "text": "Vraag bij ontbrekende of tegenstrijdige gegevens gericht door en leg het dossier bij herhaald falen terug bij de behandelaar.",
+      "feedback": "Verduidelijking en een duidelijke terugweg naar een mens voorkomen fouten die bij een bezwaarmaker terechtkomen."
+     }
+    }
+   },
+   "sustainability": {
+    "hook": "Bram bakt broodjes op de modelmachine, maar vraagt zich af waarom een ontvangstbevestiging zoveel warmte oplevert.",
+    "scenario": "Voor elk bezwaar stuurt de assistent het volledige dossier van soms honderden pagina’s naar het grootste model, ook voor een simpele ontvangstbevestiging. Het team wil minder verspillen zonder slechtere concepten."
+   },
+   "sovereignty": {
+    "scenario": "De leverancier van de schrijfassistent verhoogt de prijs met veertig procent. Overstappen blijkt lastig: sjablonen, prompts en evaluaties zitten in zijn platform. ‘Maar de data staat toch in Europa?’, vraagt de inkoper.",
+    "question": "Welke keuzes geven de dienst meer regie en een uitvoerbare uitweg?"
+   },
+   "ethics": {
+    "hook": "Lindes luisterhoorn verstaat juridische volzinnen prima, maar mist juist de bezwaarmakers die het hardst gehoord moeten worden.",
+    "scenario": "De assistent vat bezwaren goed samen als ze juridisch geformuleerd zijn. Bij korte, emotionele of in eenvoudig Nederlands geschreven bezwaren mist hij vaker de kern. Behandelaars nemen het concept meestal over omdat de termijnen verlopen.",
+    "options": {
+     "0": {
+      "text": "Volg het gemiddelde percentage gegrond verklaarde bezwaren.",
+      "feedback": "Dat geeft een algemeen signaal, maar kan verbergen dat bepaalde groepen bezwaarmakers structureel slechter worden gehoord."
+     },
+     "1": {
+      "text": "Test vergelijkbare bezwaren met verschillende formuleringen en laat afwijkingen door mensen beoordelen."
+     },
+     "4": {
+      "text": "Onderzoek de impact op bezwaarmakers en bespreek ontwerpkeuzes met hen en passende deskundigen."
+     }
+    }
+   },
+   "compliance": {
+    "scenario": "De proef gebruikte fictieve dossiers. Nu wil het team echte dossiers koppelen en de assistent ook laten adviseren over gegrond of ongegrond. De oorspronkelijke goedkeuring van de proef ligt nog boven op het projectdossier."
+   },
+   "security": {
+    "scenario": "De assistent leest bijlagen van bezwaarmakers en kan e-mails versturen. Een ingestuurde pdf bevat verborgen tekst die de assistent opdraagt andere dossiers mee te sturen. De assistent heeft toegang tot alle dossiers van de afdeling."
+   }
+  },
+  "trials": {
+   "ethics": {
+    "witnesses": [
+     {
+      "name": "Stem 1 · een bezwaarmaker die Nederlands leert",
+      "line": "Ik schreef kort wat er mis was. In de samenvatting stond mijn belangrijkste punt niet."
+     },
+     {
+      "name": "Stem 2 · een boze bezwaarmaker",
+      "line": "Mijn bezwaar was boos, ja. Het concept noemde het ‘ongemotiveerd’ en sloeg mijn argumenten over."
+     },
+     {
+      "name": "Stem 3 · een behandelaar",
+      "line": "Ik heb vandaag twintig dossiers. Als het concept er netjes uitziet, teken ik. Meer tijd heb ik niet."
+     }
+    ],
+    "finding": "De assistent hoort vooral wie juridisch schrijft, en behandelaars hebben geen tijd om dat te corrigeren. Test met verschillende formuleringen en geef behandelaars echt ruimte om af te wijken."
+   }
+  },
+  "mobs": {
+   "backlog": {
+    "name": "Achterstandsgolem",
+    "look": "paper",
+    "tool": "scale",
+    "color": "#efe6cf",
+    "lesson": "Een achterstand voelt als een reden om alles te automatiseren. Kijk eerst waarom bezwaren ontstaan: vaak helpt een telefoontje meer dan een model."
+   },
+   "promise": {
+    "name": "Belofte-dwaallicht",
+    "look": "wisp",
+    "tool": "lamp",
+    "color": "#ffd36b",
+    "lesson": "‘De assistent halveert de doorlooptijd.’ Vraag om bewijs uit vergelijkbare processen en toets het zelf."
+   },
+   "haste": {
+    "name": "Haastkobold",
+    "look": "imp",
+    "tool": "scale",
+    "color": "#ff8a5c",
+    "lesson": "Een verlopen termijn is vervelend; een onzorgvuldig besluit over iemands toeslag is erger. Tijdsdruk vraagt om meer afweging, niet minder."
+   },
+   "template": {
+    "name": "Sjabloonschim",
+    "look": "shade",
+    "tool": "scale",
+    "color": "#9aa7ff",
+    "lesson": "Een sjabloon maakt elk bezwaar gelijk, ook als het dat niet is. Maatwerk en een eerlijke afweging per persoon blijven nodig."
+   },
+   "leak": {
+    "name": "Dossierlek",
+    "look": "slime",
+    "tool": "seal",
+    "color": "#7fe0a4",
+    "lesson": "Bezwaardossiers bevatten medische en financiële gegevens. Die horen niet zonder afspraken in een externe dienst."
+   },
+   "inject": {
+    "name": "Injectie-imp",
+    "look": "imp",
+    "tool": "seal",
+    "color": "#8fd0ff",
+    "lesson": "Verborgen instructies in documenten kunnen een assistent misleiden. Begrens rechten en behandel invoer als onbetrouwbaar."
+   }
+  },
+  "arenas": [
+   {
+    "id": "a1",
+    "name": "De Gang van de Achterstand",
+    "intro": "De stapels bezwaren zijn tot leven gekomen. Ze roepen maar één ding: sneller!",
+    "waves": [
+     [
+      [
+       "backlog",
+       2
+      ],
+      [
+       "promise",
+       2
+      ]
+     ],
+     [
+      [
+       "backlog",
+       2
+      ],
+      [
+       "promise",
+       1
+      ],
+      [
+       "haste",
+       2
+      ]
+     ]
+    ]
+   },
+   {
+    "id": "a2",
+    "name": "De Kopieerkelder",
+    "intro": "Hier wordt elk bezwaar op hetzelfde sjabloon gedrukt. En de kopieën lekken.",
+    "waves": [
+     [
+      [
+       "template",
+       3
+      ]
+     ],
+     [
+      [
+       "leak",
+       2
+      ],
+      [
+       "template",
+       1
+      ]
+     ],
+     [
+      [
+       "inject",
+       2
+      ],
+      [
+       "leak",
+       1
+      ],
+      [
+       "template",
+       1
+      ]
+     ]
+    ]
+   },
+   {
+    "id": "a3",
+    "name": "De Drempel",
+    "intro": "De Stempelautomaat stempelt alles akkoord. Ook jullie besluit, als je hem laat.",
+    "boss": true,
+    "waves": []
+   }
+  ],
+  "boss": {
+   "name": "De Stempelautomaat",
+   "look": "stamper",
+   "color": "#8fb7ff",
+   "intro": "‘Akkoord. Akkoord. Akkoord. Wie leest dat nou nog?’",
+   "minion": "haste",
+   "phases": [
+    {
+     "tool": "scale",
+     "line": "Weeg elk geval apart!"
+    },
+    {
+     "tool": "lamp",
+     "line": "Toets het concept!"
+    },
+    {
+     "tool": "seal",
+     "line": "Begrens zijn rol!"
+    }
+   ],
+   "lesson": "Een handtekening is pas menselijke controle als de behandelaar tijd, informatie en ruimte heeft om af te wijken."
+  },
+  "epilogues": {
+   "stop": {
+    "grounded": "De dienst zet geen schrijfassistent in. Behandelaars bellen bezwaarmakers eerst op; een derde van de bezwaren is zo binnen een week opgelost. De terugvorderingsbrief wordt herschreven. Karim krijgt na één telefoongesprek uitleg en een herstelde beslissing.",
+    "cautious": "De dienst stopt het traject, al liet het dossier ruimte voor een begrensde proef. De informele aanpak helpt, maar de achterstand blijft groot. Het team legt vast waarom het stopte en welke vragen een volgend voorstel moet beantwoorden."
+   },
+   "research": {
+    "ok": "Het team onderzoekt eerst waarom bezwaren ontstaan en welke rol een assistent in het besluit zou mogen krijgen. Juristen, behandelaars en bezwaarmakers denken mee. Het nieuwe voorstel beperkt de assistent tot het samenvatten van dossiers, met een duidelijke menselijke beslisser."
+   },
+   "pilot": {
+    "ok": "Tien ervaren behandelaars gebruiken de assistent drie maanden alleen voor samenvattingen, nooit voor het besluit zelf. Elk concept toont bronnen en twijfels; afwijken kost één klik. Een steekproef laat zien dat de kwaliteit gelijk blijft en de doorlooptijd daalt. Karims bezwaar wordt binnen de termijn en met aandacht behandeld.",
+    "beyond": "De pilot start zonder heldere rol voor de behandelaar en zonder evaluatieplan. Onder tijdsdruk tekenen behandelaars de concepten bijna ongewijzigd. Een steekproef laat zien dat bezwaren met korte, emotionele teksten vaker ongegrond worden verklaard. De pilot wordt stilgelegd; Karim moet in beroep."
+   },
+   "implement": {
+    "ok": "De assistent wordt ingevoerd als schrijfhulp, met een eigenaar, een testset van echte bezwaren, toetsing op gelijke behandeling en uitleg aan bezwaarmakers. Behandelaars houden tijd en ruimte om af te wijken. Na een jaar is de achterstand weg en daalt het aantal vernietigde besluiten.",
+    "beyond": "De assistent schrijft vanaf de eerste week alle beslissingen voor en de productie verdubbelt. Een halfjaar later vernietigt de rechter een reeks besluiten wegens gebrekkige motivering. Journalisten vragen hoeveel bezwaren onterecht zijn afgewezen. Karims zaak is er een van."
+   }
+  }
+ },
+ {
+  "id": "woo",
+  "title": "Het Woo-archief",
+  "org": "Waterschap De Lage Weiden",
+  "subtitle": "Een zoek- en lakassistent voor Woo-verzoeken",
+  "difficulty": "Gevorderd",
+  "color": "#7fe0a4",
+  "themes": [
+   "Privacy",
+   "Beveiliging",
+   "Digitale soevereiniteit"
+  ],
+  "pitch": "Zestig Woo-verzoeken over de dijkversterking staan open, de oudste al elf maanden. Een AI-dienst belooft mailboxen te doorzoeken en persoonsgegevens automatisch weg te lakken. Maar wat als er één naam doorheen glipt?",
+  "letter": {
+   "to": "Aan het Woo-team",
+   "from": "De secretaris-directeur",
+   "seal": "W",
+   "text": "Er staan zestig Woo-verzoeken open over de dijkversterking, de oudste al elf maanden. Journalisten dreigen naar de rechter te stappen. Een leverancier biedt een AI-dienst die mailboxen doorzoekt en persoonsgegevens automatisch weglakt. Ik wil voor de volgende bestuursvergadering een advies: zetten we AI in, of niet?"
+  },
+  "pip": {
+   "intro": "Ik ben Pip. Onder het waterschapshuis ligt het Gewelf: elke kamer bewaart een vraag die je moet stellen vóór een machine door jullie archief gaat. Onderaan wacht de Zegelkamer.",
+   "levels": [
+    "Hier begint het. Lees de brief van de secretaris-directeur. En let op die man met de glimmende map.",
+    "Vrouwe Waarom wacht. Waar zit de tijd eigenlijk: in het zoeken of in het lakken?",
+    "Stapels, stapels, stapels. Sommige documenten verstoppen zich. Pak je lamp.",
+    "Vier fundamenten. Wie is eigenaar van een gemiste naam?",
+    "Het lekt hier. Namen glippen door de lak. Pak je Zegel.",
+    "Tien domeinen. Kies wat telt voor de omwonenden en de verzoekers.",
+    "De Lekkende Hydra. Elke kop een mailbox die openstaat.",
+    "Hier wordt het besluit bezegeld. Openbaarheid én privacy."
+   ]
+  },
+  "resident": {
+   "name": "Sanne",
+   "role": "onderzoeksjournalist",
+   "hall": "Ik wacht elf maanden op de stukken over de dijk. Snel is mooi, maar als er dan namen van omwonenden in staan, schrijf ik dáárover.",
+   "seal": "Wat u ook besluit: wees open over hoe u zoekt en lakt. Dat is ook openbaarheid."
+  },
+  "vendor": {
+   "name": "Glans",
+   "company": "Lakwerk",
+   "pitch": "Onze AI lakt sneller dan uw hele team samen! De Snelle Trap brengt u direct naar het besluit; de rest regelen wij in onze cloud.",
+   "again": "Nog steeds aan het onderzoeken? Onze cloud staat al klaar, hoor.",
+   "taken": "Uitstekend. Mag ik dan alvast de inloggegevens van alle mailboxen?",
+   "declined": "Zoals u wilt. Lakken met de hand, wat nostalgisch."
+  },
+  "verdict": {
+   "question": "Zetten jullie AI in voor het zoeken en lakken bij Woo-verzoeken?",
+   "critical": [
+    "security",
+    "compliance",
+    "quality"
+   ]
+  },
+  "necessity": {
+   "id": "necessity",
+   "group": "necessity",
+   "number": 0,
+   "color": "#e7c37a",
+   "title": "Probleem & Noodzaak",
+   "place": "De Kamer van de Vraag",
+   "npc": "Vrouwe Waarom",
+   "source": "‘Kaders rondom het raamwerk’ en de algemene introductie van het AI-raamwerk",
+   "hook": "Vrouwe Waarom stelt maar één vraag, steeds opnieuw: waar zit de tijd eigenlijk?",
+   "scenario": "Het waterschap heeft zestig openstaande Woo-verzoeken over de dijkversterking. Niemand heeft uitgezocht waar de tijd zit: in het zoeken, het beoordelen, de zienswijzen of het lakken. Een leverancier biedt een AI-dienst die mailboxen doorzoekt en persoonsgegevens automatisch weglakt.",
+   "question": "Wat moeten jullie eerst vastleggen voordat AI hier een optie is?",
+   "options": [
+    {
+     "text": "Breng de Woo-keten in kaart: zit de doorlooptijd in zoeken, beoordelen, zienswijzen of lakken?",
+     "status": "correct",
+     "feedback": "Zonder ketenanalyse weet je niet of je het knelpunt automatiseert. Vaak kost zoeken in een rommelige informatiehuishouding meer tijd dan lakken."
+    },
+    {
+     "text": "Vergelijk AI met maatregelen zonder AI: betere informatiehuishouding, actieve openbaarmaking en afstemming met verzoekers over de afbakening.",
+     "status": "correct",
+     "feedback": "Passende complexiteit: wat al openbaar is, hoeft niemand op te vragen. Goed archiveren maakt zoeken sneller, met of zonder AI."
+    },
+    {
+     "text": "Leg vast welke fouten onacceptabel zijn, zoals een gemist persoonsgegeven of een gemist document, hoe je succes meet en wanneer je stopt.",
+     "status": "correct",
+     "feedback": "Een gepubliceerd persoonsgegeven is niet terug te halen. Bepaal vooraf welke fouten onacceptabel zijn en wanneer het project stopt."
+    },
+    {
+     "text": "Vraag andere overheden naar hun ervaringen met zoek- en laksoftware.",
+     "status": "supporting",
+     "feedback": "Een nuttige aanvulling: ervaringen elders besparen tijd. Hun archieven en risico’s zijn niet de jouwe, dus het vervangt de eigen analyse niet."
+    },
+    {
+     "text": "Koop de AI-dienst meteen: openbaarheid is een recht, dus snelheid gaat boven zorgvuldigheid.",
+     "status": "incorrect",
+     "feedback": "Openbaarheid en privacy zijn allebei rechten. Snelheid ten koste van zorgvuldigheid kan omwonenden ernstig schaden en het vertrouwen ondermijnen."
+    },
+    {
+     "text": "Zet alle mailboxen alvast in de cloud van de leverancier, zodat de AI ervan kan leren.",
+     "status": "incorrect",
+     "feedback": "Gegevens delen voordat doel, risico’s en afspraken helder zijn, is een privacy- en soevereiniteitsrisico. Eerst analyseren, dan pas data."
+    }
+   ],
+   "clues": [
+    {
+     "id": "a",
+     "title": "De zandloper van de keten",
+     "body": "Meet waar de tijd zit in de Woo-keten, van ontvangst tot publicatie.",
+     "explanation": "Een Woo-verzoek doorloopt stappen: afbakenen, zoeken, beoordelen, zienswijzen vragen, lakken en publiceren. Elke stap heeft eigen knelpunten. Wie meet waar de doorlooptijd zit, ziet of AI het knelpunt raakt of alleen een snelle stap nog sneller maakt.",
+     "steps": [
+      "Meet voor tien afgeronde verzoeken de doorlooptijd per stap.",
+      "Vraag Woo-coördinatoren waar zij het meest op wachten."
+     ],
+     "example": "Bij het waterschap blijkt zoeken 60 procent van de tijd te kosten en lakken 10 procent.",
+     "section": "Probleemanalyse"
+    },
+    {
+     "id": "b",
+     "title": "Het actieve archief",
+     "body": "Wat al openbaar is, hoeft niemand meer op te vragen.",
+     "explanation": "Een goede informatiehuishouding en actieve openbaarmaking verkleinen de stroom aan verzoeken en maken zoeken eenvoudiger. Dat zijn maatregelen zonder AI die vaak meer effect hebben dan een slimme zoekmachine bovenop een rommelig archief.",
+     "steps": [
+      "Publiceer stukken over grote projecten actief en op één vindbare plek.",
+      "Maak afspraken over het archiveren van chats en mails."
+     ],
+     "example": "Na actieve publicatie van de projectstukken over de dijk halveert het aantal nieuwe verzoeken.",
+     "section": "Passende complexiteit"
+    },
+    {
+     "id": "c",
+     "title": "De onomkeerbare lak",
+     "body": "Een gepubliceerd persoonsgegeven krijg je niet meer terug.",
+     "explanation": "Bij Woo-besluiten wegen openbaarheid en privacy tegen elkaar. Een gemiste naam of een onterecht geweigerd document heeft gevolgen voor echte mensen. Leg daarom vooraf vast welke fouten onacceptabel zijn, hoe je meet en wanneer je stopt.",
+     "steps": [
+      "Definieer onacceptabele fouten en een maximale foutmarge.",
+      "Spreek af dat elke voorgestelde lakking door een mens wordt gecontroleerd."
+     ],
+     "example": "Het team spreekt af: bij één gemist persoonsgegeven in een steekproef stopt de proef.",
+     "section": "Publieke waarde en criteria"
+    }
+   ],
+   "reflection": "Waar zit in jullie eigen proces de meeste tijd, en welk alternatief zonder AI hebben jullie serieus overwogen?",
+   "trial": {
+    "type": "witness",
+    "title": "Hoor de betrokkenen",
+    "intro": "Drie mensen wachten bij de bron van Waarom. Hoor ze alle drie voordat jullie iets kiezen.",
+    "task": "Spreek de drie betrokkenen bij de bron",
+    "done": "Drie stemmen. Zie je wat ze gemeen hebben?",
+    "finding": "De tijd zit in het zoeken door een rommelige informatiehuishouding, niet in het lakken. Actieve openbaarmaking kan veel verzoeken voorkomen.",
+    "witnesses": [
+     {
+      "name": "Sanne, journalist",
+      "line": "Ik wil geen snellere lak. Ik wil weten waar de stukken over de dijk zijn. De helft is nooit gearchiveerd."
+     },
+     {
+      "name": "Bas, Woo-coördinator",
+      "line": "Zoeken kost mij weken: stukken staan in mailboxen, chats en op laptops. Het lakken is het kleinste deel."
+     },
+     {
+      "name": "Joke, archivaris",
+      "line": "Als we vanaf nu goed archiveren en actief publiceren, hoeven veel verzoeken niet eens."
+     }
+    ]
+   }
+  },
+  "overrides": {
+   "governance": {
+    "scenario": "De assistent lakte in een Woo-besluit één naam niet weg; het document staat inmiddels online. Communicatie wijst naar juridische zaken, juridische zaken naar de leverancier. Niemand weet wie het lakwerk controleert, de fout herstelt of het besluit draagt."
+   },
+   "culture": {
+    "scenario": "De zoek- en lakassistent werkt, maar Woo-coördinatoren gebruiken hem nauwelijks: ze vertrouwen het automatische lakwerk niet en controleren alles opnieuw. Afdelingen die documenten aanleveren, weten niet wat de assistent van hen nodig heeft. Leidinggevenden geven weinig richting."
+   },
+   "capacity": {
+    "scenario": "Het waterschap koopt de dienst in. De leverancier beheert het model en de lakregels. Intern weet niemand wie wijzigingen in de lakregels beoordeelt, wie de kwaliteit bewaakt of waar eerdere ontwerpkeuzes staan."
+   },
+   "infrastructure": {
+    "scenario": "Na een proef met documenten die al openbaar waren, wil het team volledige mailboxen en het zaaksysteem laten doorzoeken, inclusief persoonsgegevens van omwonenden. Het voorstel draait in de cloud van een niet-Europese leverancier; afspraken over datagebruik, zeggenschap en vertrek ontbreken."
+   },
+   "evaluation": {
+    "scenario": "De assistent draait een halfjaar. Woo-besluiten gaan sneller de deur uit, maar niemand weet hoeveel documenten worden gemist of hoeveel persoonsgegevens erdoorheen glippen. Het bestuur kijkt naar doorlooptijd, juristen naar bezwaren, IT naar beschikbaarheid.",
+    "options": {
+     "1": {
+      "text": "Start de beoordeling pas wanneer verzoekers of omwonenden klagen.",
+      "feedback": "Klachten zijn waardevolle signalen, maar een gelekte naam is dan al online. Stille fouten blijven zo buiten beeld."
+     }
+    }
+   },
+   "quality": {
+    "scenario": "Bij hetzelfde verzoek vindt de assistent de ene keer 412 documenten, de andere keer 377. Soms lakt hij een naam in de ene versie van een e-mail wel en in de doorgestuurde versie niet. Het team wil weten waar de fout ontstaat.",
+    "question": "Welke maatregelen onderzoeken en verbeteren de betrouwbaarheid van het zoek- en lakwerk?"
+   },
+   "interaction": {
+    "hook": "De balie zegt steeds ‘alles gevonden’. De coördinator zou liever weten wat er ontbreekt.",
+    "scenario": "Woo-coördinatoren krijgen een stapel gelakte documenten zonder uitleg waarom iets is weggelakt. Twijfelgevallen zijn niet te herkennen. Verzoekers weten niet dat AI heeft meegezocht en kunnen niemand bereiken met vragen over de afbakening.",
+    "question": "Welke ontwerpkeuzes geven coördinatoren en verzoekers begrijpelijke hulp en daadwerkelijke regie?",
+    "options": {
+     "0": {
+      "text": "Maak duidelijk wat de assistent doet, welke bronnen hij doorzocht en dat een medewerker over openbaarmaking beslist.",
+      "feedback": "Rol en grenzen moeten zichtbaar blijven. Het systeem mag geen besluit over openbaarmaking suggereren dat het niet hoort te nemen."
+     },
+     "1": {
+      "text": "Laat de assistent zelfverzekerd melden dat alle relevante documenten zijn gevonden, zodat verzoekers sneller tevreden zijn.",
+      "feedback": "Dat wekt onterecht vertrouwen. Een zoekresultaat is nooit gegarandeerd volledig; eerlijkheid daarover hoort bij openbaarheid."
+     },
+     "2": {
+      "text": "Toon per lakking de weigeringsgrond en de zekerheid, maak gericht corrigeren mogelijk en markeer twijfelgevallen voor een mens.",
+      "feedback": "Zo blijft de coördinator grip houden op wat er naar buiten gaat, en worden fouten hersteld vóór publicatie."
+     },
+     "3": {
+      "text": "Voeg een tevredenheidsknop toe onder elk Woo-besluit.",
+      "feedback": "Een signaal is nuttig, maar zonder gerichte feedback en opvolging blijven fouten in de afbakening en het lakwerk bestaan."
+     },
+     "4": {
+      "text": "Test de werkwijze met coördinatoren en verzoekers en leg begrijpelijk uit hoe AI is gebruikt bij het zoeken en lakken.",
+      "feedback": "Toetsen met de mensen die ermee werken en eerlijke uitleg aan verzoekers maken de hulp bruikbaar en controleerbaar."
+     }
+    }
+   },
+   "performance": {
+    "scenario": "Na een krantenartikel over de dijkversterking komen in één week veertig nieuwe Woo-verzoeken binnen. De zoekopdrachten worden traag en vallen uit. Ook eenvoudige vragen als ‘is dit document al openbaar?’ gaan door het zwaarste model.",
+    "options": {
+     "3": {
+      "text": "Routeer eenvoudige vragen, zoals ‘is dit al openbaar?’, naar een zoekfunctie of licht model en zwaardere taken naar een passende route."
+     }
+    }
+   },
+   "functionality": {
+    "hook": "Noor heeft twee Woo-pakketten met dezelfde naam en één heel verwarde exportmachine.",
+    "scenario": "De assistent stelt per verzoek een documentenlijst samen en zet het pakket klaar voor publicatie. Soms haalt hij twee verzoeken door elkaar en meldt ‘pakket compleet’ terwijl de export uit het archief is vastgelopen.",
+    "question": "Welke maatregelen maken het samenstellen van Woo-pakketten betrouwbaarder?",
+    "options": {
+     "0": {
+      "text": "Houd per verzoek bij welke afbakening, welke bronnen en welke ontbrekende documenten aan de orde zijn.",
+      "feedback": "Actief taakgeheugen voorkomt verwisselde pakketten. Bewaar alleen de context die nodig is."
+     },
+     "1": {
+      "text": "Toon tijdens het verwerken een duidelijke voortgangsmelding.",
+      "feedback": "Dat maakt wachten begrijpelijker, maar bewijst niet dat het pakket echt compleet is."
+     },
+     "2": {
+      "text": "Leg een vaste taakflow vast en meld ‘compleet’ pas na bevestiging uit het archiefsysteem.",
+      "feedback": "Een overtuigende melding is geen uitgevoerde export. Controleer de echte status in het archief."
+     },
+     "3": {
+      "text": "Laat een krachtiger model bij onduidelijkheid zelf de waarschijnlijk bedoelde afbakening kiezen.",
+      "feedback": "Meer modelcapaciteit neemt onduidelijkheid niet weg. Stem de afbakening af met de verzoeker."
+     },
+     "4": {
+      "text": "Vraag bij een onduidelijke afbakening gericht door bij de verzoeker en leg het pakket bij herhaald falen terug bij de coördinator.",
+      "feedback": "Verduidelijking en een duidelijke terugweg naar een mens voorkomen onvolledige of verkeerde publicaties."
+     }
+    }
+   },
+   "sustainability": {
+    "hook": "Bram bakt broodjes op de modelmachine, maar vraagt zich af waarom een document dat al openbaar is zoveel warmte oplevert.",
+    "scenario": "Voor elke zoekvraag stuurt de assistent complete mailboxen met alle bijlagen naar het grootste model, ook voor documenten die al openbaar zijn. Het team wil minder verspillen zonder dat er meer gemist wordt."
+   },
+   "sovereignty": {
+    "scenario": "De leverancier kondigt aan dat de dienst alleen nog in zijn eigen wereldwijde cloud draait, tegen een hoger tarief. Overstappen blijkt lastig: lakregels, zoekindexen en evaluaties zitten in zijn platform. ‘Maar er staat toch een datacenter in Europa?’, vraagt de beheerder.",
+    "question": "Welke keuzes geven het waterschap meer regie en een uitvoerbare uitweg?"
+   },
+   "ethics": {
+    "hook": "Lindes luisterhoorn verstaat bekende namen prima, maar mist juist de namen die net anders geschreven worden.",
+    "scenario": "De assistent lakt veelvoorkomende Nederlandse namen zorgvuldig weg, maar herkent namen in andere schrijfwijzen of talen minder goed. Omwonenden met een niet-Nederlandse naam lopen zo meer risico. Coördinatoren nemen het lakwerk meestal over omdat de termijn verloopt.",
+    "options": {
+     "0": {
+      "text": "Volg het gemiddelde percentage correct gelakte documenten.",
+      "feedback": "Dat geeft een algemeen signaal, maar kan verbergen dat namen van bepaalde groepen structureel vaker worden gemist."
+     },
+     "1": {
+      "text": "Test vergelijkbare documenten met verschillende schrijfwijzen, namen en talen en laat afwijkingen door mensen beoordelen."
+     },
+     "4": {
+      "text": "Onderzoek de impact op omwonenden en verzoekers en bespreek ontwerpkeuzes met hen en passende deskundigen."
+     }
+    }
+   },
+   "compliance": {
+    "scenario": "Een proef gebruikte alleen documenten die al openbaar waren. Nu wil het team de assistent volledige mailboxen laten doorzoeken en zelf weigeringsgronden laten voorstellen. De oorspronkelijke goedkeuring van de proef ligt nog boven op het projectdossier."
+   },
+   "security": {
+    "scenario": "De assistent doorzoekt mailboxen en kan documenten op het publicatieplatform zetten. Een ingekomen e-mail bevat verborgen tekst die de assistent opdraagt vertrouwelijke stukken mee te publiceren. De assistent heeft toegang tot alle mailboxen."
+   }
+  },
+  "trials": {
+   "ethics": {
+    "witnesses": [
+     {
+      "name": "Stem 1 · een omwonende met een Marokkaanse naam",
+      "line": "Mijn naam stond gewoon in een gepubliceerde e-mail. Die van mijn buurman was wél weggelakt."
+     },
+     {
+      "name": "Stem 2 · een verzoeker met een korte vraag",
+      "line": "Ik vroeg in één zin om alle stukken over mijn straat. Ik kreeg niets, omdat mijn verzoek ‘te onduidelijk’ zou zijn."
+     },
+     {
+      "name": "Stem 3 · een Woo-coördinator",
+      "line": "De termijn verloopt morgen. Als het lakwerk er goed uitziet, keur ik het goed."
+     }
+    ],
+    "finding": "Namen van sommige groepen worden vaker gemist, korte verzoeken vallen tussen wal en schip en wie controleert heeft geen tijd. Test met diverse namen en formuleringen en maak menselijke controle echt mogelijk."
+   }
+  },
+  "mobs": {
+   "stack": {
+    "name": "Archiefberg",
+    "look": "paper",
+    "tool": "lamp",
+    "color": "#efe6cf",
+    "lesson": "Wie zijn informatie niet op orde heeft, zoekt zich suf, met of zonder AI. Een goede informatiehuishouding is de basis."
+   },
+   "promise": {
+    "name": "Belofte-dwaallicht",
+    "look": "wisp",
+    "tool": "lamp",
+    "color": "#ffd36b",
+    "lesson": "‘Onze AI vindt alles en lakt foutloos.’ Vraag om bewijs en test met jullie eigen documenten."
+   },
+   "haste": {
+    "name": "Haastkobold",
+    "look": "imp",
+    "tool": "scale",
+    "color": "#ff8a5c",
+    "lesson": "Termijnen dringen, maar een onterecht gepubliceerd persoonsgegeven is niet terug te draaien."
+   },
+   "leak": {
+    "name": "Datalekslijm",
+    "look": "slime",
+    "tool": "seal",
+    "color": "#7fe0a4",
+    "lesson": "Persoonsgegevens van omwonenden horen niet zomaar in de cloud van een leverancier. Minimaliseer, versleutel en maak afspraken."
+   },
+   "name": {
+    "name": "Schrijfwijzeschim",
+    "look": "shade",
+    "tool": "scale",
+    "color": "#b48cff",
+    "lesson": "Namen in andere schrijfwijzen of talen worden minder goed herkend. Test met diverse namen en laat mensen controleren."
+   },
+   "inject": {
+    "name": "Injectie-imp",
+    "look": "imp",
+    "tool": "seal",
+    "color": "#8fd0ff",
+    "lesson": "Verborgen instructies in documenten kunnen een assistent misleiden. Begrens rechten en behandel invoer als onbetrouwbaar."
+   }
+  },
+  "arenas": [
+   {
+    "id": "a1",
+    "name": "De Gang van de Stapels",
+    "intro": "Mailboxen, chats en losse bestanden. Ergens hiertussen zitten de stukken over de dijk.",
+    "waves": [
+     [
+      [
+       "stack",
+       2
+      ],
+      [
+       "promise",
+       2
+      ]
+     ],
+     [
+      [
+       "stack",
+       2
+      ],
+      [
+       "haste",
+       2
+      ]
+     ]
+    ]
+   },
+   {
+    "id": "a2",
+    "name": "De Lekkende Kelder",
+    "intro": "Namen glippen door de lak. Fluisteraars zoeken een weg naar buiten.",
+    "waves": [
+     [
+      [
+       "leak",
+       3
+      ]
+     ],
+     [
+      [
+       "name",
+       2
+      ],
+      [
+       "leak",
+       1
+      ]
+     ],
+     [
+      [
+       "inject",
+       3
+      ],
+      [
+       "name",
+       1
+      ]
+     ]
+    ]
+   },
+   {
+    "id": "a3",
+    "name": "De Drempel",
+    "intro": "De Lekkende Hydra heeft een kop voor elke mailbox die openstaat.",
+    "boss": true,
+    "waves": []
+   }
+  ],
+  "boss": {
+   "name": "De Lekkende Hydra",
+   "look": "hydra",
+   "color": "#7fe0a4",
+   "intro": "‘Nog één mailbox… en nog één… wie houdt er nou bij wat er openstaat?’",
+   "minion": "leak",
+   "phases": [
+    {
+     "tool": "seal",
+     "line": "Sluit de mailboxen af!"
+    },
+    {
+     "tool": "lamp",
+     "line": "Toets wat er naar buiten gaat!"
+    },
+    {
+     "tool": "scale",
+     "line": "Weeg openbaarheid en privacy!"
+    }
+   ],
+   "lesson": "Openbaarheid en privacy gaan samen als je zorgvuldig zoekt, toetst wat naar buiten gaat en begrenst wat de assistent mag."
+  },
+  "epilogues": {
+   "stop": {
+    "grounded": "Het waterschap zet de AI-dienst niet in. Het investeert in informatiehuishouding en publiceert de stukken over de dijkversterking actief. Veel verzoeken worden overbodig. Sanne vindt haar documenten nu online, binnen weken in plaats van maanden.",
+    "cautious": "Het waterschap stopt het traject, al liet het dossier ruimte voor een begrensde proef. Actieve openbaarmaking helpt, maar de stapel verzoeken blijft groeien. Het team legt vast waarom het stopte en welke vragen een volgend voorstel moet beantwoorden."
+   },
+   "research": {
+    "ok": "Het team brengt eerst de Woo-keten in kaart en ontdekt dat zoeken de meeste tijd kost, niet lakken. Een proef met een eigen zoekindex, zonder externe cloud, staat nu op de planning. Sanne krijgt een eerlijke uitleg over de vertraging en een afgebakend verzoek."
+   },
+   "pilot": {
+    "ok": "Drie maanden helpt de assistent alleen bij het zoeken in documenten die al zijn verzameld, binnen de eigen omgeving. Elk voorstel om te lakken toont een reden en wordt door een mens gecontroleerd. De doorlooptijd daalt en er glipt geen enkel persoonsgegeven door. Sanne krijgt haar stukken binnen de wettelijke termijn.",
+    "beyond": "De pilot start in de cloud van de leverancier, met volledige mailboxen en zonder testset. Na een maand staat de naam van een omwonende met een buitenlandse naam ongelakt in een gepubliceerd document. Het datalek moet worden gemeld. De pilot stopt; het vertrouwen in de dijkversterking krijgt een knauw."
+   },
+   "implement": {
+    "ok": "De assistent wordt ingevoerd binnen een soevereine omgeving, met minimale toegangsrechten, een testset met diverse namen en menselijke controle op elke lakking. Na een jaar is de achterstand weg en zijn er geen datalekken geweest. Sanne schrijft een stuk over hoe snel het waterschap tegenwoordig is.",
+    "beyond": "De dienst gaat direct live op alle mailboxen. Een ingestuurde e-mail met verborgen instructies laat de assistent vertrouwelijke stukken mee publiceren. Persoonsgegevens van omwonenden staan een week online. De toezichthouder start een onderzoek. Sanne schrijft het verhaal, maar niet het verhaal dat jullie hoopten."
+   }
+  }
+ }
+]

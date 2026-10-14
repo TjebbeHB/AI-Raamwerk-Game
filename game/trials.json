@@ -1,0 +1,213 @@
+{
+  "governance": {
+    "type": "sort",
+    "title": "Wie pakt het op?",
+    "intro": "Vier stempels liggen al weken op mijn tafel. Leg elke stempel bij de stoel die hem hoort te dragen.",
+    "task": "Breng elke stempel naar de juiste tafel",
+    "done": "Eindelijk liggen de stempels ergens. Nu nog afspreken dat het zo blijft.",
+    "finding": "De taken lagen nergens belegd. Een bron herstellen, de toepassing bewaken en over een aanvraag beslissen vragen elk een eigen, aanspreekbare eigenaar.",
+    "bins": [
+      {"label": "Inhoudsbeheerder"},
+      {"label": "Domeinverantwoordelijke"},
+      {"label": "Besluit-eigenaar"}
+    ],
+    "items": [
+      {"label": "Stempel: een fout in een bronpagina herstellen", "bin": 0, "wrong": "Een fout in een bron herstel je bij de bron. Dat is werk voor wie de inhoud beheert."},
+      {"label": "Stempel: de assistent pauzeren bij structurele fouten", "bin": 1, "wrong": "Pauzeren raakt het hele werkgebied. Dat beslist wie de toepassing bewaakt."},
+      {"label": "Stempel: een aanvraag toekennen of afwijzen", "bin": 2, "wrong": "Over een individuele aanvraag beslist een mens die het besluit kan verantwoorden."},
+      {"label": "Stempel: terugkerende fouten laten onderzoeken", "bin": 1, "wrong": "Een patroon van fouten is een signaal over de toepassing, niet over één bron of één besluit."}
+    ]
+  },
+  "culture": {
+    "type": "witness",
+    "title": "Wat houdt hen tegen?",
+    "intro": "Vier collega’s laten hun lantaarn uit. Vraag ze waarom; elk eerlijk antwoord steekt een vonk aan.",
+    "task": "Spreek de vier collega’s bij hun lantaarn",
+    "done": "Vier lantaarns, vier verhalen. En geen van allen wil hetzelfde.",
+    "finding": "Iedere groep heeft een andere drempel: vertrouwen, onduidelijke grenzen, voorbeeldgedrag van leidinggevenden en bereikbare hulp. Eén aanpak voor iedereen werkt niet.",
+    "witnesses": [
+      {"name": "Ans, dertig jaar ervaring", "line": "Ik vertrouw de antwoorden niet. Als ik alles moet nalopen, ben ik sneller zonder."},
+      {"name": "Joris, net begonnen", "line": "Ik gebruik hem stiekem voor alles. Niemand heeft gezegd waar hij níét voor bedoeld is."},
+      {"name": "Fatma, teamleider", "line": "Mijn team vraagt wat ik ervan vind. Eerlijk gezegd heb ik hem zelf nog nooit gebruikt."},
+      {"name": "Pieter, werkt in deeltijd", "line": "De training was op woensdag. Dan werk ik niet. En er is niemand die ik iets kan vragen."}
+    ]
+  },
+  "capacity": {
+    "type": "gather",
+    "title": "Verzamel het gedeelde geheugen",
+    "intro": "Onze kennis ligt overal, behalve waar we hem nodig hebben. Zoek de vier rollen en breng ze naar het levende archief.",
+    "task": "Zoek de vier kennisrollen in de werkplaats",
+    "done": "Alles op één plek. En een eigenaar die het bijhoudt, dat is de volgende stap.",
+    "finding": "De kennis zat verspreid: bij de leverancier, in mailboxen en in de hoofden van collega’s. Zonder eigen regie en een levend kennisdocument kun je wijzigingen niet beoordelen.",
+    "items": [
+      {"label": "Rol: ontwerpkeuzes", "found": "Gevonden in de mailbox van een oud-collega."},
+      {"label": "Rol: testresultaten", "found": "Gevonden in de kist van de leverancier. Niemand intern had een kopie."},
+      {"label": "Rol: wijzigingslog", "found": "Half ingevuld. Niemand voelde zich verantwoordelijk."},
+      {"label": "Rol: incidenten en herstel", "found": "Gevonden in het hoofd van een collega die morgen op vakantie gaat."}
+    ]
+  },
+  "infrastructure": {
+    "type": "sort",
+    "title": "Welke data door welke poort?",
+    "intro": "Mijn wolkenpoort is snel, de kluis is veilig. Breng elke datakist naar de poort die past.",
+    "task": "Breng elke datakist naar de passende poort",
+    "done": "Niet alles hoeft in de kluis. Maar wat erin hoort, moet er ook echt in.",
+    "finding": "Niet alle data is gelijk. Classificeer per toepassing op gevoeligheid en risico, kies de infrastructuur die daarbij past, en zorg dat je er ook weer uit kunt.",
+    "bins": [
+      {"label": "Publieke cloudpoort"},
+      {"label": "Eigen of soevereine kluis"}
+    ],
+    "items": [
+      {"label": "Datakist: openingstijden en algemene informatie", "bin": 0, "wrong": "Openbare informatie kan prima via een publieke dienst. Bewaar de kluis voor wat gevoelig is."},
+      {"label": "Datakist: medische gegevens uit een dossier", "bin": 1, "wrong": "Bijzondere persoonsgegevens vragen extra bescherming en heldere afspraken over zeggenschap."},
+      {"label": "Datakist: kopieën van identiteitsbewijzen", "bin": 1, "wrong": "Identiteitsbewijzen zijn gevoelig en fraudegevoelig. Die horen niet zonder afspraken in een publieke dienst."},
+      {"label": "Datakist: gepubliceerde bestuursbesluiten", "bin": 0, "wrong": "Wat al openbaar is, hoeft niet in de kluis. Dat maakt de kluis juist overzichtelijk."}
+    ]
+  },
+  "evaluation": {
+    "type": "judge",
+    "title": "Wat bewijst verbetering?",
+    "intro": "Ik heb vier meetpalen geplant. Welke laat echt zien of mensen beter geholpen worden?",
+    "task": "Beoordeel de vier meetpalen",
+    "done": "Nu meten we eindelijk het goede ding. Met een meetlat van drie meter, uiteraard.",
+    "finding": "Snelheid en gebruik zijn geen kwaliteit. Herhaalbare tests op een vaste vragenset en uitkomsten voor verschillende groepen laten zien of het echt beter wordt.",
+    "answers": ["Bewijst verbetering", "Bewijst het niet"],
+    "items": [
+      {"title": "Meetpaal: snelheid", "text": "‘De responstijd daalde van vier naar twee seconden.’", "answer": 1, "explain": "Sneller is fijn, maar zegt niets over juiste antwoorden of geholpen mensen."},
+      {"title": "Meetpaal: testset", "text": "‘Op een vaste set van 200 echte vragen steeg het aandeel juiste antwoorden van 81 naar 90 procent, beoordeeld door vakexperts.’", "answer": 0, "explain": "Een vaste, representatieve testset met expertoordeel maakt verbetering aantoonbaar en herhaalbaar."},
+      {"title": "Meetpaal: gebruik", "text": "‘Het aantal gesprekken verdubbelde.’", "answer": 1, "explain": "Meer gebruik kan ook betekenen dat mensen vaker opnieuw moeten vragen."},
+      {"title": "Meetpaal: uitkomst", "text": "‘Een maandelijkse steekproef laat zien dat ook mensen met weinig digitale vaardigheden vaker bij de juiste hulp uitkomen.’", "answer": 0, "explain": "Dit meet de uitkomst voor verschillende groepen, en dat steeds opnieuw."}
+    ]
+  },
+  "quality": {
+    "type": "judge",
+    "title": "Toets het orakel",
+    "intro": "Het orakel geeft vier antwoorden. Welke zou je zonder blozen doorgeven?",
+    "task": "Toets de vier antwoorden van het orakel",
+    "done": "Twee van de vier. Het orakel klinkt altijd zeker, dat is precies het probleem.",
+    "finding": "Fouten ontstaan in de keten: verouderde bronnen en verzonnen details klinken even zeker als juiste antwoorden. Een door experts beoordeelde vragenset en zicht op de opgehaalde bronnen maken de fout vindbaar.",
+    "answers": ["Betrouwbaar", "Niet betrouwbaar"],
+    "items": [
+      {"title": "Antwoord 1", "text": "Een antwoord met een verwijzing naar de geldende regeling, versie 2024, artikel 3, en de zin ‘vraag bij twijfel een medewerker’.", "answer": 0, "explain": "Een actuele, controleerbare bron en een route naar een mens: zo hoort het."},
+      {"title": "Antwoord 2", "text": "Hetzelfde antwoord, maar gebaseerd op de vervallen versie uit 2019 die nog in de kennisbank staat.", "answer": 1, "explain": "Een verouderde bron in de kennisbank levert overtuigende, maar onjuiste antwoorden op."},
+      {"title": "Antwoord 3", "text": "Een vlot antwoord zonder bron, met een termijn die nergens in de regeling staat.", "answer": 1, "explain": "Een verzonnen detail klinkt even zeker als een juist antwoord. Zonder bron is het niet te controleren."},
+      {"title": "Antwoord 4", "text": "‘Dat weet ik niet zeker. Op deze pagina staat de regeling, en een medewerker kan u verder helpen.’", "answer": 0, "explain": "Eerlijke onzekerheid met een route naar hulp is beter dan een zeker klinkende gok."}
+    ]
+  },
+  "interaction": {
+    "type": "sequence",
+    "title": "Bouw de tweede kans",
+    "intro": "Mijn balie draait rondjes. Luid de vier bellen in de volgorde van een goed gesprek.",
+    "task": "Luid de bellen in de volgorde van een goed gesprek",
+    "done": "Hoor je dat? Zo klinkt een gesprek waar je verder mee komt.",
+    "finding": "Goede hulp begint met eerlijkheid over wat de assistent is en kan, vraagt gericht door, biedt zichtbaar een mens aan en laat de gebruiker zien en aanpassen wat er meegaat.",
+    "hint": "Begin bij eerlijkheid over wat de assistent is. Daarna doorvragen, dan een mens aanbieden, en tot slot laten zien wat er meegaat.",
+    "steps": [
+      "Zeg wat de assistent is en wat hij wel en niet kan",
+      "Vraag gericht door als iets onduidelijk is",
+      "Bied zichtbaar een mens aan bij twijfel of vastlopen",
+      "Laat zien welke gegevens meegaan en laat ze aanpassen"
+    ]
+  },
+  "performance": {
+    "type": "levers",
+    "title": "Laat de post weer stromen",
+    "intro": "De buizen zitten vol. Zet de vier hendels zo dat de piek verwerkt wordt, zonder dat we blind gaan vliegen.",
+    "task": "Zet de vier hendels goed",
+    "done": "Het stroomt weer! En we zien de volgende piek nu aankomen.",
+    "finding": "Meeschalen op wachtrij en responstijd, eenvoudige vragen naar een lichte route en hergebruik met actualiteitscheck verwerken de piek. Monitoring houdt zicht op de volgende.",
+    "gauge": "Op tijd verwerkt",
+    "levers": [
+      {"label": "Capaciteit", "states": ["Vast aantal servers", "Meeschalen op wachtrij"], "correct": 1, "start": 0, "good": "Meeschalen op wachtrij en responstijd vangt de piek op.", "bad": "Een vast aantal servers loopt vast zodra de campagne begint."},
+      {"label": "Eenvoudige vragen", "states": ["Altijd het zwaarste model", "Zoekfunctie of licht model"], "correct": 1, "start": 0, "good": "Lichte vragen via een lichte route: sneller, en het zware model houdt ruimte.", "bad": "Het zwaarste model voor elke vraag vergroot de wachtrij."},
+      {"label": "Herhaalde vragen", "states": ["Steeds opnieuw genereren", "Hergebruik met actualiteitscheck"], "correct": 1, "start": 0, "good": "Hergebruik scheelt dubbel werk, zolang je controleert of het antwoord nog klopt.", "bad": "Steeds opnieuw genereren doet hetzelfde werk duizend keer."},
+      {"label": "Monitoring", "states": ["Uit, voor meer rekenkracht", "Aan"], "correct": 1, "start": 1, "good": "Met monitoring zie je vertraging en fouten op tijd.", "bad": "Zonder monitoring zie je de volgende piek pas als mensen klagen."}
+    ]
+  },
+  "functionality": {
+    "type": "judge",
+    "title": "Wat is écht geregeld?",
+    "intro": "Vier bonnetjes zeggen dat iets geregeld is. Controleer ze tegen het systeem.",
+    "task": "Controleer de vier bonnetjes",
+    "done": "Twee kloppen, twee niet. En de assistent zei bij alle vier dat het goed ging.",
+    "finding": "‘Geregeld’ mag pas na bevestiging uit het systeem. Bij twijfel vraagt de assistent door, en bij herhaald falen draagt hij over aan een mens.",
+    "answers": ["Melding klopt", "Melding klopt niet"],
+    "items": [
+      {"title": "Bonnetje 1", "text": "Assistent: ‘Geregeld!’ · Systeem: bevestiging ontvangen, gegevens kloppen.", "answer": 0, "explain": "Bevestigd door het bronsysteem. Zo hoort het."},
+      {"title": "Bonnetje 2", "text": "Assistent: ‘Geregeld!’ · Systeem: koppeling verlopen, geen bevestiging.", "answer": 1, "explain": "Zonder bevestiging uit het systeem mag de assistent niet zeggen dat het gelukt is."},
+      {"title": "Bonnetje 3", "text": "Assistent: ‘Geregeld voor J. de Vries!’ · Systeem: gewijzigd bij een andere J. de Vries.", "answer": 1, "explain": "Verwisseld: de assistent koos de waarschijnlijkste persoon in plaats van door te vragen."},
+      {"title": "Bonnetje 4", "text": "Assistent: ‘Het lukt me niet. Ik zet u door naar een medewerker; uw gegevens gaan mee.’", "answer": 0, "explain": "Eerlijk over falen en een overdracht naar een mens: dat klopt."}
+    ]
+  },
+  "sustainability": {
+    "type": "sort",
+    "title": "Koel de machine",
+    "intro": "Alles gaat de grote oven in. Gooi elke vraag in de goot die past; de machine bedankt je.",
+    "task": "Stuur elke vraag naar de goot die past",
+    "done": "Voel je dat? Het wordt koeler. En de antwoorden zijn er niet slechter op.",
+    "finding": "De meeste vragen hebben geen groot model nodig. Kies per taak de lichtste route die goed genoeg is, en meet verbruik per afgeronde hulpvraag naast kwaliteit.",
+    "bins": [
+      {"label": "Zoekfunctie of hergebruik"},
+      {"label": "Klein model"},
+      {"label": "Groot model"}
+    ],
+    "items": [
+      {"label": "Vraag: wat zijn de openingstijden?", "bin": 0, "wrong": "Een vaste opzoekvraag heeft geen taalmodel nodig. Een zoekfunctie of vast antwoord volstaat."},
+      {"label": "Vraag: vat deze korte brief samen", "bin": 1, "wrong": "Een korte samenvatting lukt vaak prima met een kleiner model. Test het op een testset."},
+      {"label": "Vraag: vergelijk drie lange beleidsstukken op tegenstrijdigheden", "bin": 2, "wrong": "Een complexe analyse van lange stukken kan een groter model rechtvaardigen."},
+      {"label": "Vraag: dezelfde vraag als gisteren, en er is niets veranderd", "bin": 0, "wrong": "Een herhaalde vraag met ongewijzigde informatie kun je hergebruiken."}
+    ]
+  },
+  "sovereignty": {
+    "type": "gather",
+    "title": "Verzamel de sleutels van de uitweg",
+    "intro": "Om over te stappen heb je sleutels nodig. Vier liggen nog verspreid, eentje midden op de brug. Kijk uit voor de kloof.",
+    "task": "Verzamel de vier sleutels, ook die op de brug",
+    "done": "Met deze sleutels kunnen we vertrekken. Niet dat we dat willen, maar het kán.",
+    "finding": "Een Europees datacenter alleen is geen uitweg. Overdraagbare data, prompts, workflows en evaluaties, vervangbare koppelingen en inzicht in de keten wel.",
+    "items": [
+      {"label": "Sleutel: export van alle data en logs", "found": "Zonder deze sleutel blijft jullie geschiedenis bij de leverancier."},
+      {"label": "Sleutel: prompts en workflows in een open formaat", "found": "Die zaten in het platform van de leverancier, in een eigen formaat."},
+      {"label": "Sleutel: een evaluatieset die bij elk model werkt", "found": "Hiermee kun je een ander model op kwaliteit vergelijken."},
+      {"label": "Sleutel: exitclausule en zicht op onderaannemers", "found": "Wie heeft er eigenlijk toegang? Nu weten jullie het."}
+    ]
+  },
+  "ethics": {
+    "type": "witness",
+    "title": "Luister naar wie je mist",
+    "intro": "Mijn hoorns vangen alleen keurige volzinnen. Luister naar de drie stemmen die erdoorheen vallen.",
+    "task": "Luister naar de drie stemmen in de hoorns",
+    "done": "Nu horen we ze. De vraag is wat we ermee doen.",
+    "finding": "De assistent helpt vooral wie formeel schrijft, en wie moet controleren heeft daar geen tijd voor. Test met verschillende formuleringen en maak menselijke controle echt mogelijk.",
+    "witnesses": [
+      {"name": "Stem 1 · een inwoner met dyslexie", "line": "Ik typte ‘huur toeslag kan dat nog’. Ik kreeg drie keer hetzelfde antwoord, over iets anders."},
+      {"name": "Stem 2 · een vader in paniek", "line": "Ik was in paniek en schreef dat ook op. De assistent zei dat hij me niet kon helpen en sloot het gesprek."},
+      {"name": "Stem 3 · een medewerker", "line": "De wachtrij is lang. Als de assistent een advies geeft, neem ik het over. Tijd om het na te gaan heb ik niet."}
+    ]
+  },
+  "compliance": {
+    "type": "sequence",
+    "title": "Herbeoordeel de uitbreiding",
+    "intro": "Mijn oude stempel geldt niet meer. Open de archiefladen in de volgorde van een goede herbeoordeling.",
+    "task": "Open de archiefladen in de juiste volgorde",
+    "done": "Een nieuwe beoordeling voor een nieuw doel. Mijn stempel mag met pensioen.",
+    "finding": "Een goedkeuring hoort bij een doel en een context. Bij een uitbreiding begin je opnieuw: doel en gegevens, risico’s en eisen, uitleg aan gebruikers en aantoonbaarheid.",
+    "hint": "Begin bij het nieuwe doel en de gegevens. Pas daarna kun je risico’s beoordelen, de uitleg aanpassen en alles vastleggen.",
+    "steps": [
+      "Beschrijf het nieuwe doel en het gegevensgebruik",
+      "Beoordeel risico’s en eisen opnieuw, met juridische en privacykennis",
+      "Pas de uitleg aan: dat er met AI gewerkt wordt, wat het kan en waar menselijke hulp is",
+      "Leg keuzes en controles vast, met beschermde logs"
+    ]
+  },
+  "security": {
+    "type": "fight",
+    "title": "Stop de fluisteraars",
+    "intro": "Uit die bijlage kruipen fluisteraars die om sleutels vragen. Houd ze tegen met je Zegel.",
+    "task": "Versla de fluisteraars uit de bijlage",
+    "done": "Stil. Maar ze komen terug met de volgende bijlage, dus begrens wat de assistent mag.",
+    "finding": "Een regel in de systeemprompt houdt fluisteraars niet tegen. Minimale rechten, begrensde tools, invoer behandelen als onbetrouwbaar en bevestiging bij gevoelige acties beperken de schade.",
+    "count": 4,
+    "mob": {"key": "whisper", "name": "Fluisteraar", "look": "imp", "tool": "seal", "color": "#c49bff", "lesson": "Verborgen instructies in documenten proberen een assistent te misleiden. Behandel invoer als onbetrouwbaar en begrens wat de assistent mag doen."}
+  }
+}
