@@ -3,7 +3,8 @@
 // close-ups, every hair style and top, gestures). Bundles its own small page from the real model code.
 //   node orakel/test/e2e/gallery.mjs                -> orakel/test/e2e/shots/gallery-*.png
 //   node orakel/test/e2e/gallery.mjs faces joop     -> only scenes whose name contains one of the words
-// Env: SHOTS (dir), PLAYWRIGHT. Needs no game build.
+//   LOOK='{"hair":"afro","top":"hivis"}' node orakel/test/e2e/gallery.mjs custom   -> any look: front, three-quarter, face
+// Env: SHOTS (dir), PLAYWRIGHT, LOOK. Needs no game build.
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath, pathToFileURL} from 'node:url';
@@ -64,7 +65,7 @@ function shoot(scene, cam, models = []) {
 function lineup(list, {yaw = 0, gap = 1.0, h = 1.05, names = true} = {}) {
   clearLabels();
   const scene = studio(), ms = [];
-  list.forEach(([name, spec], i) => { ms.push([name, place(scene, spec, (i - (list.length - 1) / 2) * gap, 0, yaw)]); });
+  list.forEach(([name, spec, turn], i) => { ms.push([name, place(scene, spec, (i - (list.length - 1) / 2) * gap, 0, turn ?? yaw)]); });
   const width = list.length * gap, cam = new THREE.PerspectiveCamera(28, innerWidth / innerHeight, 0.1, 100);
   const hf = 2 * Math.atan(Math.tan(14 * Math.PI / 180) * cam.aspect), d = Math.max(4.2, (width / 2 + 0.3) / Math.tan(hf / 2));
   cam.position.set(0, h + 0.35, d); cam.lookAt(0, h * 0.85, 0);
@@ -149,10 +150,12 @@ SCENES['face-ilse-angry'] = () => face(CAST_DEFS.ilse.model, {st: {mood: 'angry'
 for (const [id, g, tA] of [['joop', 'jingle', 1.2], ['joop', 'whistle', 1.5], ['joop', 'tipcap', 0.9], ['glans', 'fingerguns', 1.0], ['glans', 'tie', 1.0], ['ilse', 'headset', 1.0], ['ilse', 'sip', 1.3], ['bep', 'shush', 1.1], ['bakker', 'lean', 1.4], ['burger3', 'tug', 0.6], ['wouter', 'beard', 1.2], ['kees', 'watch', 1.4], ['henk', 'stretch', 1.3], ['linde', 'listen', 1.4], ['wethouder', 'pen', 1.2], ['sien', 'sip', 1.3], ['mallow', 'tools', 1.0], ['griffel', 'write', 1.5]]) {
   SCENES['gesture-' + id + '-' + g] = () => portrait(CAST_DEFS[id].model, {gesture: g, tAfter: tA});
 }
+const CUSTOM = __LOOK__;
+if (CUSTOM) { SCENES.custom = () => lineup([['voor', CUSTOM, 0], ['driekwart', CUSTOM, 0.7], ['zij', CUSTOM, Math.PI / 2], ['achter', CUSTOM, Math.PI]]); SCENES['face-custom'] = () => face(CUSTOM); }
 window.GAL = {ready: true, scenes: Object.keys(SCENES), show: name => SCENES[name]()};
 `;
 
-const result = await build({stdin: {contents: ENTRY, resolveDir: here, sourcefile: 'gallery-entry.js', loader: 'js'}, bundle: true, write: false, format: 'iife', target: ['es2022'], logLevel: 'warning', define: {__DEV__: 'true'}});
+const result = await build({stdin: {contents: ENTRY.replace('__LOOK__', process.env.LOOK || 'null'), resolveDir: here, sourcefile: 'gallery-entry.js', loader: 'js'}, bundle: true, write: false, format: 'iife', target: ['es2022'], logLevel: 'warning', define: {__DEV__: 'true'}});
 const html = `<!doctype html><meta charset="utf-8"><title>Galerij</title><body style="background:#111"><script>${result.outputFiles[0].text.replace(/<\/script/gi, '<\\/script')}</script>`;
 const page = SHOTS + 'gallery.html';
 fs.writeFileSync(page, html);
