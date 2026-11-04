@@ -80,6 +80,8 @@ npm run orakel:test     # inhoud, kaarten, dossierregels en de berichtenlaag van
 3. Kies de branch (nu `claude/quirky-brahmagupta-cmjs4l`, na het samenvoegen `main`) en de map **/docs**, en klik op **Save**.
 4. Na een minuut staat het spel op **https://tjebbehb.github.io/AI-Raamwerk-Game/**.
 
+Koos je bij stap 3 de hoofdmap (**/ (root)**)? Dan stuurt `index.html` in de hoofdmap bezoekers door naar `docs/`, zodat de link ook dan werkt.
+
 Na een wijziging: `npm run orakel:build`, en commit `docs/index.html` mee. Het bestand `docs/.nojekyll` zorgt dat GitHub de pagina ongewijzigd serveert.
 
 ## Een eigen server voor de adviesraad
