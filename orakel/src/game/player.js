@@ -3,7 +3,8 @@
 import * as THREE from 'three';
 import {P, UI, SFX} from './bus.js';
 import {DLG} from './dialogue.js';
-import {Input, down, hit} from '../core/input.js';
+import {Input} from '../core/input.js';
+import {actionDown, actionHit, keyLabel} from '../core/keys.js';
 import {W, collide, surfaceAt, isChasm, ceilAt, solidTile, markExplored, saveExplored, inBounds, tileType} from './world.js';
 import {G, SETTINGS} from './state.js';
 import {R} from '../engine/render.js';
@@ -11,7 +12,7 @@ import {makeHuman, makeModel, glowSprite, disposeModel, viewArmGeometry, Kit} fr
 import {heroLook} from './hero.js';
 import {FX} from '../engine/particles.js';
 import {Crate, dropCarry} from './entities.js';
-import {TILE, clamp, damp, dampAngle, tileOf, lerp} from '../core/util.js';
+import {TILE, clamp, damp, dampAngle, tileOf, lerp, IS_TOUCH} from '../core/util.js';
 import {mod} from './mods.js';
 import {T} from '../engine/level.js';
 
@@ -109,6 +110,9 @@ export function initPlayer() {
   PL.pip = makeModel({kind: 'pip'}); R.scene.add(PL.pip.root); PL.pip.root.visible = false;
   PL.camMode = SETTINGS.cam; PL.camDist = PL.camCur = SETTINGS.camDist ?? 4.2;
   PL.camBlend = PL.camMode === 'third' ? 1 : 0;
+  // the eye button in the HUD and the camera option in the menu
+  UI.toggleCam = () => setCamMode(PL.camMode === 'first' ? 'third' : 'first');
+  UI.setCam = mode => { if (mode !== PL.camMode) setCamMode(mode); };
 }
 
 export function placePlayer(x, z, yaw = 0) {
@@ -120,15 +124,15 @@ export function placePlayer(x, z, yaw = 0) {
 
 export function setCamMode(mode) {
   PL.camMode = mode; SETTINGS.cam = mode;
-  UI.toast('Camera', mode === 'first' ? 'Eerste persoon' : 'Derde persoon · scrollwiel zoomt');
+  UI.toast('Camera', mode === 'first' ? 'Eerste persoon' : IS_TOUCH ? 'Derde persoon' : 'Derde persoon · scrollwiel zoomt');
 }
 
 function moveInput() {
   let f = 0, s = 0;
-  if (down('KeyW') || down('ArrowUp')) f += 1;
-  if (down('KeyS') || down('ArrowDown')) f -= 1;
-  if (down('KeyA')) s -= 1;
-  if (down('KeyD')) s += 1;
+  if (actionDown('forward')) f += 1;
+  if (actionDown('back')) f -= 1;
+  if (actionDown('left')) s -= 1;
+  if (actionDown('right')) s += 1;
   if (Input.move.x || Input.move.y) { s += Input.move.x; f -= Input.move.y; }
   const l = Math.hypot(f, s);
   if (l > 1) { f /= l; s /= l; }
@@ -143,8 +147,8 @@ export function updatePlayer(dt, active) {
     const sens = 0.0022 * (SETTINGS.sens ?? 1);
     P.yaw -= (Input.mdx + Input.lookTouch.dx) * sens;
     P.pitch -= (Input.mdy + Input.lookTouch.dy) * sens * (SETTINGS.invert ? -1 : 1);
-    if (down('ArrowLeft')) P.yaw += dt * 2.4;
-    if (down('ArrowRight')) P.yaw -= dt * 2.4;
+    if (actionDown('turnLeft')) P.yaw += dt * 2.4;
+    if (actionDown('turnRight')) P.yaw -= dt * 2.4;
     const third = PL.camMode === 'third';
     P.pitch = clamp(P.pitch, third ? -1.25 : -1.45, third ? 0.55 : 1.45);
     if (Input.wheel && third) { PL.camDist = clamp(PL.camDist + Input.wheel * 0.6, 1.6, 9); SETTINGS.camDist = PL.camDist; }
@@ -161,11 +165,14 @@ export function updatePlayer(dt, active) {
   const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw), rx = Math.cos(P.yaw), rz = -Math.sin(P.yaw);
   let wx = fx * f + rx * s, wz = fz * f + rz * s;
   const inWater = tileType(tileOf(P.x), tileOf(P.z)) === T.WATER;
-  const running = down('ShiftLeft') || down('ShiftRight') || Math.hypot(Input.move.x, Input.move.y) > 0.92;
+  // running: hold the run key, or (Opties, Toegankelijkheid) tap it to switch running on and off
+  if (SETTINGS.runToggle) { if (active && actionHit('run')) { PL.runOn = !PL.runOn; SFX.play('switch'); } }
+  else PL.runOn = false;
+  const running = (SETTINGS.runToggle ? PL.runOn : actionDown('run')) || Math.hypot(Input.move.x, Input.move.y) > 0.92;
   P.inverted = Math.max(0, (P.inverted || 0) - dt); P.slowT = Math.max(0, (P.slowT || 0) - dt);
   let speed = (running ? RUN : WALK) * mod('speed') * (inWater ? 0.6 : 1) * (P.carry ? 0.9 : 1) * (P.slowT > 0 ? 0.5 : 1);
   PL.dashCd -= dt;
-  if (active && hit('Space') && PL.dashCd <= 0 && !P.falling && !P.frozen) {
+  if (active && actionHit('dash') && PL.dashCd <= 0 && !P.falling && !P.frozen) {
     let dx = wx, dz = wz;
     if (Math.hypot(dx, dz) < 0.1) { dx = fx; dz = fz; }
     const l = Math.hypot(dx, dz); P.dashDir = {x: dx / l, z: dz / l};
@@ -248,10 +255,11 @@ function respawnFromFall() {
   P.x = P.safe.x; P.z = P.safe.z; P.y = surfaceAt(P.x, P.z);
   PL.camPos.set(P.x, P.y + EYE, P.z);
   UI.flash(0.5);
-  UI.pip(fallLines[Math.floor(Math.random() * fallLines.length)]);
+  const line = fallLines[Math.floor(Math.random() * fallLines.length)];
+  UI.pip(typeof line === 'function' ? line() : line);
   hurtPlayer(12, null, null, true);
 }
-const fallLines = ['Hup, terug naar boven. Die kloof is dieper dan het dossier.', 'Pip trekt je aan je kraag terug. ‘Niet naar beneden kijken!’', 'Gelukkig had ik een touwtje aan je badge geknoopt.', 'Wegduiken (Spatie) helpt over smalle kloven. Over brede niet.'];
+const fallLines = ['Hup, terug naar boven. Die kloof is dieper dan het dossier.', 'Pip trekt je aan je kraag terug. ‘Niet naar beneden kijken!’', 'Gelukkig had ik een touwtje aan je badge geknoopt.', () => `Wegduiken (${IS_TOUCH ? 'de knop »' : keyLabel('dash')}) helpt over smalle kloven. Over brede niet.`];
 
 // ---- damage ----
 export function hurtPlayer(amount, fx, fz, ignoreInv = false) {
@@ -269,7 +277,7 @@ export function hurtPlayer(amount, fx, fz, ignoreInv = false) {
     const dx = P.x - fx, dz = P.z - fz, d = Math.hypot(dx, dz) || 1;
     P.knock = {x: dx / d * 7, z: dz / d * 7};
   }
-  PL.shake = Math.max(PL.shake, SETTINGS.shake ? 0.35 : 0);
+  PL.shake = Math.max(PL.shake, SETTINGS.shake && !calmView() ? 0.35 : 0);
   UI.hurt(amount);
   SFX.play('hurt');
   if (G.hp <= 0) PL.onDie?.();
@@ -318,8 +326,9 @@ function updateCamera(dt, active) {
   const cam = R.camera, third = PL.camMode === 'third';
   PL.camBlend = damp(PL.camBlend, third ? 1 : 0, 7, dt);
   const fwdX = -Math.sin(P.yaw) * Math.cos(P.pitch), fwdY = Math.sin(P.pitch), fwdZ = -Math.cos(P.yaw) * Math.cos(P.pitch);
-  // first-person eye with a gentle walking bob
-  PL.bobAmt = damp(PL.bobAmt, P.speed > 1 && !P.falling ? 1 : 0, 8, dt);
+  // first-person eye with a gentle walking bob (none with reduced motion)
+  const calm = calmView();
+  PL.bobAmt = damp(PL.bobAmt, P.speed > 1 && !P.falling && !calm ? 1 : 0, 8, dt);
   PL.bob += dt * P.speed * 1.6;
   const bobY = Math.sin(PL.bob * 2) * 0.035 * PL.bobAmt, bobX = Math.cos(PL.bob) * 0.025 * PL.bobAmt;
   const eyeX = P.x + Math.cos(P.yaw) * bobX, eyeY = P.y + EYE + bobY, eyeZ = P.z - Math.sin(P.yaw) * bobX;
@@ -341,14 +350,15 @@ function updateCamera(dt, active) {
   const tpX = pivX - fwdX * PL.camCur, tpY = pivY - fwdY * PL.camCur, tpZ = pivZ - fwdZ * PL.camCur;
   const b = PL.camBlend;
   tmpV.set(lerp(eyeX, tpX, b), lerp(eyeY, tpY, b), lerp(eyeZ, tpZ, b));
-  // screen shake
+  // screen shake (story scenes set PL.shake directly; reduced motion and 'Schudden uit' ignore it)
+  if (calm || SETTINGS.shake === false) PL.shake = 0;
   PL.shake = Math.max(0, PL.shake - dt * 1.6);
   if (PL.shake > 0) { const s = PL.shake * PL.shake * 0.4; tmpV.x += (Math.random() - 0.5) * s; tmpV.y += (Math.random() - 0.5) * s; tmpV.z += (Math.random() - 0.5) * s; }
   if (P.falling) tmpV.y = Math.max(tmpV.y, P.y + 1.2);
   cam.position.copy(tmpV);
-  PL.kick = damp(PL.kick, 0, 10, dt);
+  PL.kick = calm ? 0 : damp(PL.kick, 0, 10, dt);
   cam.rotation.set(P.pitch + PL.kick * 0.04, P.yaw, 0);
-  cam.fov = damp(cam.fov, (SETTINGS.fov ?? 72) + (P.dashT > 0 ? 6 : 0), 8, dt);
+  cam.fov = damp(cam.fov, (SETTINGS.fov ?? 72) + (P.dashT > 0 && !calm ? 6 : 0), 8, dt);
   cam.updateProjectionMatrix();
   // which body to show
   const showBody = b > 0.5 && PL.camCur > 0.9;
@@ -373,6 +383,9 @@ function updateCamera(dt, active) {
   R.lantern.distance = lit ? 14 : 8;
   for (const L of [PL.lantern3, PL.lanternV]) { L.halo.material.opacity = 0.55 + flick * 0.2; L.core.scale.setScalar(flick); }
 }
+
+// reduced motion (Opties, Toegankelijkheid): no head bob, camera shake, recoil or dash zoom
+export const calmView = () => SETTINGS.motion === 'reduced';
 
 export function savePosition() { G.pos = {x: P.x, z: P.z, yaw: P.yaw}; saveExplored(); }
 export {dropCarry};

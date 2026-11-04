@@ -1,5 +1,6 @@
 // Title screen, pause menu and options, journal, map, reader.
-import {$, el, esc, TILE, fmtTime, IS_TOUCH} from '../core/util.js';
+import {$, el, esc, TILE, fmtTime, IS_TOUCH, addStyles} from '../core/util.js';
+import {ACTIONS, codesFor, codeLabel, keyLabel} from '../core/keys.js';
 import {UI, SFX, ON, P, ITEMS, CAST} from '../game/bus.js';
 import {G, SETTINGS, saveSettings, saveGame, hasSave, saveCode, readSaveCode, applySave, clearSave, storageAvailable} from '../game/state.js';
 import {W, FLOORS} from '../game/world.js';
@@ -7,7 +8,7 @@ import {GAME, newGame, continueGame, travel, enterFloor} from '../game/game.js';
 import {Input, lock} from '../core/input.js';
 import {unlockForUi} from '../game/dialogue.js';
 import {journal, QUESTS} from '../game/quests.js';
-import {drawTiles, drawMarkers} from './hud.js';
+import {drawTiles, drawMarkers, applySettings} from './hud.js';
 import {tracked} from '../game/quests.js';
 import {placePlayer, rebuildHeroModel} from '../game/player.js';
 import {invalidateMods} from '../game/mods.js';
@@ -216,50 +217,165 @@ async function mapClick(e) {
 function renderMenu() {
   const body = $('menuBody');
   body.innerHTML = '';
+  const go = el('button', {class: 'go', onclick: () => closeModal()}, 'Verder');
   body.append(el('div', {class: 'tbtns', style: 'margin-bottom:14px'},
-    el('button', {class: 'go', onclick: () => closeModal()}, 'Verder'),
+    go,
     el('button', {class: 'btn', onclick: () => openModal('journal')}, 'Dossier'),
     el('button', {class: 'btn', onclick: () => openModal('map')}, 'Kaart'),
+    // the controls card and the practice round come from the tutorial; without it, no buttons
+    UI.controlsCard ? el('button', {class: 'btn', onclick: () => UI.controlsCard?.()}, 'Besturing') : null,
+    ON.tutorialStart ? el('button', {class: 'btn', onclick: () => { closeModal(true); ON.tutorialStart?.({replay: true}); }}, 'Oefenen') : null,
     el('button', {class: 'btn', onclick: () => openSaveCode()}, 'Spelcode'),
     el('button', {class: 'btn', onclick: () => UI.councilHost?.()}, 'Adviesraad'),
     el('button', {class: 'btn', onclick: () => { saveGame(); closeModal(true); location.reload(); }}, 'Opslaan en naar het titelscherm')));
   body.append(optionsGrid());
+  focusFirst(body, go);
 }
 function openOptionsOnly() {
   $('menu').hidden = false;
   const body = $('menuBody'); body.innerHTML = '';
   body.append(optionsGrid());
   GAME.modal = 'options';
+  focusFirst(body);
 }
+// keyboard users start on the first button of a sheet that just opened
+function focusFirst(body, first) {
+  requestAnimationFrame(() => { const b = first || body.querySelector('button,input'); if (b && !body.closest('[hidden]')) b.focus({preventScroll: true}); });
+}
+// a row of choices: the arrow keys move between them, Enter or Space picks
 function seg(label, key, options, onChange, help) {
-  const wrap = el('div', {class: 'opt'}, el('span', {class: 'label', text: label}));
+  const wrap = el('div', {class: 'opt', role: 'group', 'aria-label': label}, el('span', {class: 'label', text: label}));
   const row = el('div', {class: 'seg'});
-  for (const [v, t] of options) row.append(el('button', {class: 'btn', 'aria-pressed': String(SETTINGS[key] === v), onclick: () => { SETTINGS[key] = v; saveSettings(); onChange?.(v); row.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.textContent === t))); }}, t));
+  for (const [v, t] of options) row.append(el('button', {class: 'btn', 'aria-pressed': String(SETTINGS[key] === v), onclick: () => {
+    SETTINGS[key] = v; saveSettings(); onChange?.(v);
+    row.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.textContent === t)));
+  }}, t));
+  row.addEventListener('keydown', e => {
+    const bs = [...row.querySelectorAll('button')], i = bs.indexOf(document.activeElement);
+    const d = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+    if (!d || i < 0) return;
+    e.preventDefault(); e.stopPropagation();
+    bs[(i + d + bs.length) % bs.length].focus();
+  });
   wrap.append(row);
   if (help) wrap.append(el('p', {text: help}));
   return wrap;
 }
-function slider(label, key, min, max, stepv, onChange, fmt = v => v) {
+function slider(label, key, min, max, stepv, onChange, fmt = v => v, help) {
   const out = el('span', {text: fmt(SETTINGS[key])});
-  const input = el('input', {type: 'range', min, max, step: stepv, value: SETTINGS[key]});
-  input.oninput = () => { SETTINGS[key] = +input.value; out.textContent = fmt(SETTINGS[key]); saveSettings(); onChange?.(SETTINGS[key]); };
-  return el('label', {class: 'opt'}, el('span', {class: 'label'}, label, ' · ', out), input);
+  const input = el('input', {type: 'range', min, max, step: stepv, value: SETTINGS[key], 'aria-label': label});
+  // apply live, but only re-layout the interface size when you let go (so the slider stays under your mouse)
+  input.oninput = () => { SETTINGS[key] = +input.value; out.textContent = fmt(SETTINGS[key]); saveSettings(); if (!onChange?.late) onChange?.(SETTINGS[key]); };
+  input.onchange = () => { if (onChange?.late) onChange(SETTINGS[key]); };
+  return el('label', {class: 'opt'}, el('span', {class: 'label'}, label, ' · ', out), input, help ? el('p', {text: help}) : null);
 }
+const late = fn => Object.assign(fn, {late: true});
+const pct = v => `${Math.round(v * 100)}%`;
 function optionsGrid() {
-  return el('div', {class: 'menugrid'},
-    seg('Camera', 'cam', [['first', 'Eerste persoon'], ['third', 'Derde persoon']], v => UI.setCam?.(v), 'Wisselen kan altijd met V. In derde persoon zoom je met het scrollwiel.'),
+  const wrap = el('div', {class: 'optwrap'});
+  const section = (title, ...items) => wrap.append(el('h3', {class: 'optsec', text: title}), el('div', {class: 'menugrid'}, ...items));
+  const apply = () => applySettings();
+  section('Spelen',
+    seg('Camera', 'cam', [['first', 'Eerste persoon'], ['third', 'Derde persoon']], v => UI.setCam?.(v), `Wisselen kan altijd met ${keyLabel('camera')}. In derde persoon zoom je met het scrollwiel.`),
     seg('Moeilijkheid', 'difficulty', [['calm', 'Rustig'], ['story', 'Verhaal'], ['normal', 'Normaal'], ['hard', 'Pittig']], null, 'Rustig: monsters vallen niet aan (fijn voor een workshop). Verhaal: minder schade, sneller winnen.'),
+    seg('Tekstsnelheid', 'textSpeed', [[0.6, 'Rustig'], [1, 'Normaal'], [1.8, 'Snel'], [3, 'Direct']]),
+    seg('Gesprekken', 'autoAdvance', [[false, 'Zelf doorklikken'], [true, 'Vanzelf verder']], null, 'Vanzelf verder: na een korte pauze komt de volgende zin. Keuzes wachten altijd op jou.'),
+    seg('Richthulp', 'autoAim', [[true, 'Aan'], [false, 'Uit']], null, 'Je lichtschot zoekt het monster dat het dichtst bij je vizier is.'));
+  section('Toegankelijkheid',
+    slider('Tekst en interface', 'uiScale', 0.9, 1.4, 0.05, late(apply), pct, 'Maakt de teksten, het dossier, de menu’s en de afwegingen groter.'),
+    seg('Contrast', 'contrast', [['normal', 'Normaal'], ['high', 'Hoog contrast']], apply, 'Effen panelen, lichtere tekst en een dikke witte focusrand.'),
+    seg('Lettertype', 'font', [['default', 'Sierlijk'], ['readable', 'Extra leesbaar']], apply, 'Extra leesbaar: Atkinson Hyperlegible, gemaakt om letters makkelijk uit elkaar te houden.'),
+    seg('Beweging', 'motion', [['full', 'Volledig'], ['reduced', 'Rustig beeld']], apply, 'Rustig beeld: geen deinend hoofd, schuddende camera, flitsen of gloedpulsen.'),
+    seg('Rennen', 'runToggle', [[false, `${keyLabel('run')} vasthouden`], [true, `${keyLabel('run')} zet aan en uit`]], null, 'Handig als lang een toets inhouden lastig is.'),
+    seg('Scherm', 'compactHud', [['auto', 'Automatisch'], ['on', 'Compact'], ['off', 'Volledig']], apply, 'Compact: een kleine vertrouwensring in de hoek; tik of klik erop voor alles. Automatisch is compact op een telefoon of tablet.'));
+  section('Beeld en geluid',
+    seg('Graphics', 'quality', [['high', 'Mooi (gloed)'], ['low', 'Snel']], v => setQuality(v), 'Op een trage laptop: kies Snel.'),
+    slider('Helderheid', 'bright', 0.7, 1.8, 0.05, v => setBrightness(v), pct),
+    slider('Blikveld', 'fov', 55, 100, 1, null, v => `${v}°`),
+    seg('Schudden van het beeld', 'shake', [[true, 'Aan'], [false, 'Uit']]),
+    slider('Muziek', 'music', 0, 1, 0.05, () => SFX.volume?.(), pct),
+    slider('Geluid', 'sfx', 0, 1, 0.05, () => SFX.volume?.(), pct),
+    seg('Stemgeluidjes', 'voice', [[true, 'Aan'], [false, 'Uit']], v => { if (v) SFX.speak?.('pip', 'Hallo! Zo klink ik!', 'happy'); }, 'Iedereen praat in eigen klankjes terwijl de tekst verschijnt.'));
+  section('Besturing',
     slider('Muisgevoeligheid', 'sens', 0.3, 2.5, 0.05, null, v => v.toFixed(2)),
     seg('Muis omkeren', 'invert', [[false, 'Normaal'], [true, 'Omgekeerd']]),
-    slider('Blikveld', 'fov', 55, 100, 1, null, v => `${v}°`),
-    slider('Helderheid', 'bright', 0.7, 1.8, 0.05, v => setBrightness(v), v => `${Math.round(v * 100)}%`),
-    slider('Muziek', 'music', 0, 1, 0.05, v => SFX.volume?.(), v => `${Math.round(v * 100)}%`),
-    slider('Geluid', 'sfx', 0, 1, 0.05, v => SFX.volume?.(), v => `${Math.round(v * 100)}%`),
-    seg('Tekstsnelheid', 'textSpeed', [[0.6, 'Rustig'], [1, 'Normaal'], [1.8, 'Snel'], [3, 'Direct']]),
-    seg('Graphics', 'quality', [['high', 'Mooi (gloed)'], ['low', 'Snel']], v => setQuality(v), 'Op een trage laptop: kies Snel.'),
-    seg('Schudden van het beeld', 'shake', [[true, 'Aan'], [false, 'Uit']]),
-    seg('Richthulp', 'autoAim', [[true, 'Aan'], [false, 'Uit']], null, 'Je lichtschot zoekt het monster dat het dichtst bij je vizier is.'));
+    el('div', {class: 'opt'}, el('span', {class: 'label', text: 'Toetsen'}),
+      el('p', {text: `Lopen ${['forward', 'left', 'back', 'right'].map(keyLabel).join(' ')} · praten ${keyLabel('interact')} · wegduiken ${keyLabel('dash')} · vaardigheid ${keyLabel('ability')}`}),
+      el('div', {class: 'seg'}, el('button', {class: 'btn', onclick: e => openRemap(e.target.closest('.body') || $('menuBody'))}, 'Toetsen aanpassen'))));
+  return wrap;
 }
+
+// ---------------------------------------------------------------- key remapping
+// Every action from core/keys.js, its keys, and 'Wijzig': press the new key, Esc cancels.
+// A key that another action uses as its main key swaps with it; one it uses as a spare key is refused.
+const FIXED = new Set(['menu']);                       // Esc always opens the menu, so the browser and the game agree
+const NO_KEYS = new Set(['Escape', 'MetaLeft', 'MetaRight', 'ContextMenu', 'F5', 'F11', 'F12', 'PrintScreen', 'OSLeft', 'OSRight']);
+function setKey(action, code) {
+  const map = {...(SETTINGS.keymap || {})};
+  if (code === ACTIONS[action].codes[0]) delete map[action]; else map[action] = code;
+  SETTINGS.keymap = map;
+}
+function openRemap(body) {
+  let capture = null;
+  const note = el('p', {class: 'remapnote', role: 'status', 'aria-live': 'polite'});
+  const stop = () => { if (capture) { removeEventListener('keydown', capture, true); capture = null; } };
+  const back = () => { stop(); body.innerHTML = ''; if (GAME.modal === 'options') body.append(optionsGrid()); else renderMenu(); focusFirst(body); };
+  const render = focusId => {
+    body.innerHTML = '';
+    body.append(el('div', {class: 'tbtns', style: 'margin-bottom:10px'},
+      el('button', {class: 'btn', onclick: back}, '← Terug naar de opties'),
+      el('button', {class: 'btn', onclick: () => { stop(); SETTINGS.keymap = {}; saveSettings(); UI.refreshKeys?.(); note.textContent = 'Alle toetsen staan weer op de standaard.'; render(); }}, 'Standaard herstellen')),
+      el('h3', {class: 'optsec', text: 'Toetsen aanpassen'}), note);
+    const list = el('div', {class: 'remap', role: 'list'});
+    for (const [id, a] of Object.entries(ACTIONS)) {
+      const custom = !!SETTINGS.keymap?.[id];
+      const keys = el('span', {class: 'rk'}, codesFor(id).map((c, i) => el('kbd', {class: i ? 'alt' : '', text: codeLabel(c)})));
+      const btn = FIXED.has(id) ? el('span', {class: 'label', text: 'vast'}) : el('button', {class: 'btn', id: `rm-${id}`, 'aria-label': `${a.label}: wijzig de toets`, onclick: () => listen(id, row, btn)}, 'Wijzig');
+      const row = el('div', {class: `rm ${custom ? 'custom' : ''}`, role: 'listitem'}, el('span', {class: 'rl', text: a.label}), keys, btn);
+      list.append(row);
+    }
+    body.append(list, el('p', {class: 'label', style: 'margin-top:12px;text-transform:none;letter-spacing:0', text: 'Gereedschap gebruiken: linkermuisknop. Onthullen kan ook met de rechtermuisknop. In een gesprek kies je met de cijfertoetsen.'}));
+    focusFirst(body, focusId ? $(focusId) : null);
+  };
+  const listen = (id, row, btn) => {
+    stop();
+    body.querySelectorAll('.rm.wait').forEach(r => r.classList.remove('wait'));
+    row.classList.add('wait'); btn.textContent = 'Druk op een toets…';
+    note.textContent = `Druk op de nieuwe toets voor ‘${ACTIONS[id].label.toLowerCase()}’. Esc annuleert.`;
+    capture = e => {
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (e.repeat) return;
+      if (e.code === 'Escape') { stop(); note.textContent = 'Niets veranderd.'; render(`rm-${id}`); return; }
+      if (NO_KEYS.has(e.code) || !e.code) { note.textContent = 'Die toets is van de browser. Kies een andere.'; return; }
+      const mine = codesFor(id)[0];
+      if (e.code === mine) { stop(); note.textContent = `${ACTIONS[id].label} blijft op ${codeLabel(mine)}.`; render(`rm-${id}`); return; }
+      const clash = Object.keys(ACTIONS).find(o => o !== id && codesFor(o).includes(e.code));
+      if (clash && (FIXED.has(clash) || codesFor(clash)[0] !== e.code)) { note.textContent = `${codeLabel(e.code)} is al in gebruik voor ‘${ACTIONS[clash].label.toLowerCase()}’. Kies een andere toets.`; return; }
+      if (clash) { setKey(clash, mine); note.textContent = `Geruild: ${ACTIONS[id].label.toLowerCase()} staat nu op ${codeLabel(e.code)}, ${ACTIONS[clash].label.toLowerCase()} op ${codeLabel(mine)}.`; }
+      else note.textContent = `${ACTIONS[id].label} staat nu op ${codeLabel(e.code)}.`;
+      setKey(id, e.code);
+      stop(); saveSettings(); UI.refreshKeys?.(); SFX.play('switch');
+      render(`rm-${id}`);
+    };
+    addEventListener('keydown', capture, true);
+  };
+  render();
+}
+addStyles('options', `
+.optsec{font-family:var(--f-display);font-size:15px;font-weight:600;color:var(--gold-hi);margin:18px 0 8px;letter-spacing:.04em}
+.optwrap>.optsec:first-child{margin-top:4px}
+.remap{display:grid;gap:6px}
+.rm{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:rgba(0,0,0,.2)}
+.rm .rl{font-size:14px}
+.rm .rk{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.rm .rk kbd{font-size:12px;padding:2px 7px}
+.rm .rk kbd.alt{opacity:.6}
+.rm.custom .rk kbd:first-child{border-color:var(--gold);color:var(--gold-hi)}
+.rm.wait{border-color:var(--gold);background:rgba(232,194,122,.12)}
+.rm.wait .btn{border-color:var(--gold);color:var(--gold-hi)}
+.remapnote{min-height:20px;margin:0 0 8px;font-size:14px;color:var(--gold-hi)}
+@media (max-width:560px){.rm{grid-template-columns:1fr auto}.rm .rk{grid-column:1/3;justify-content:flex-start;order:3}}
+`);
 
 // ---------------------------------------------------------------- save code
 function openSaveCode() {

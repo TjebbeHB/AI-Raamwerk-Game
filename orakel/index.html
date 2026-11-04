@@ -9,13 +9,14 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect x='4' y='4' width='32' height='32' rx='7' fill='%231b140e'/%3E%3Cpath d='M20 8c4 5 7 8 7 13a7 7 0 0 1-14 0c0-5 3-8 7-13z' fill='%23e8c27a'/%3E%3Ccircle cx='20' cy='22' r='3' fill='%231b140e'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
 <style>
 :root{
  --ink:#100c08;--panel:rgba(22,17,12,.86);--panel-solid:#1d1710;--line:rgba(242,226,196,.16);--line-strong:rgba(242,226,196,.3);
  --parch:#f2e6cc;--dim:#b9aa8c;--gold:#e8c27a;--gold-hi:#ffe2a6;--ember:#f0a541;--danger:#ff7c68;--good:#8fe0a0;--open:#f2c46b;--blind:#9a8f86;
  --lamp:#ffd36b;--scale:#b9a2ff;--seal:#7fe0a4;
  --f-display:'Cinzel',Georgia,serif;--f-body:'Crimson Pro',Georgia,'Times New Roman',serif;--f-ui:'DM Sans',system-ui,-apple-system,'Segoe UI',sans-serif;
+ --ui:1;--uiz:1;--uit:1;
  color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -23,7 +24,8 @@
 html,body{height:100%;margin:0}
 body{background:#0b0805;color:var(--parch);font-family:var(--f-ui);overflow:hidden;-webkit-font-smoothing:antialiased;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
 button{font:inherit;color:inherit}
-button:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.btn:focus-visible,.go:focus-visible,.tool:focus-visible,.optb:focus-visible{box-shadow:0 0 0 5px rgba(232,194,122,.3)}
 kbd{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;padding:1px 5px;border-radius:4px;border:1px solid rgba(242,226,196,.32);border-bottom-width:2px;background:rgba(0,0,0,.35);color:var(--parch);white-space:nowrap}
 #stage{position:fixed;inset:0;touch-action:none}
 #stage canvas{display:block;width:100%;height:100%;outline:none}
@@ -59,7 +61,7 @@ kbd{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;padding:1px
 .place small{display:block;font-family:var(--f-ui);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold)}
 .tracker{pointer-events:auto;cursor:pointer;text-align:left;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:9px;padding:8px 10px;display:grid;gap:2px}
 .tracker .tq{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold)}
-.tracker .tt{font-family:var(--f-body);font-size:16px;line-height:1.25;color:var(--parch)}
+.tracker .tt{font-family:var(--f-body);font-size:calc(16px * var(--uit));line-height:1.25;color:var(--parch)}
 .tracker .td{font-size:12px;color:var(--dim)}
 .tr{position:absolute;top:max(14px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));display:flex;gap:8px;align-items:flex-start}
 .mapcard{pointer-events:auto;width:178px;height:178px;padding:5px;cursor:pointer;overflow:hidden}
@@ -68,7 +70,7 @@ kbd{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;padding:1px
 .council-badge{pointer-events:auto;position:absolute;top:200px;right:max(16px,env(safe-area-inset-right));padding:7px 11px;font-size:13px;display:flex;gap:8px;align-items:center;cursor:pointer}
 .council-badge .dot{width:8px;height:8px;border-radius:50%;background:var(--good);box-shadow:0 0 8px var(--good)}
 .council-badge.off .dot{background:var(--danger);box-shadow:none}
-#banner{position:absolute;top:16%;left:50%;transform:translateX(-50%);text-align:center;opacity:0;transition:opacity .9s;width:min(90vw,760px)}
+#banner{position:absolute;top:16%;left:50%;transform:translateX(-50%);text-align:center;opacity:0;transition:opacity .9s;width:min(90%,760px)}
 #banner.on{opacity:1}
 #banner .bs{font-size:12px;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
 #banner .bn{font-family:var(--f-display);font-weight:600;font-size:clamp(26px,4.2vw,44px);text-shadow:0 2px 20px rgba(0,0,0,.8)}
@@ -76,12 +78,12 @@ kbd{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;padding:1px
 #toasts{position:absolute;right:max(16px,env(safe-area-inset-right));top:250px;display:grid;gap:8px;width:300px}
 .toast{padding:10px 13px;border-left:3px solid var(--gold);animation:tin .35s ease-out;display:grid;gap:2px}
 .toast b{font-family:var(--f-display);font-size:14px;color:var(--gold-hi)}
-.toast span{font-family:var(--f-body);font-size:15px;line-height:1.3;color:var(--parch)}
+.toast span{font-family:var(--f-body);font-size:calc(15px * var(--uit));line-height:1.3;color:var(--parch)}
 .toast.quest{border-left-color:var(--ember)}.toast.bron{border-left-color:#9fc3ff}.toast.warn{border-left-color:var(--danger)}.toast.good{border-left-color:var(--good)}
 @keyframes tin{from{opacity:0;transform:translateX(16px)}to{opacity:1;transform:none}}
-#bossbar{position:absolute;top:max(18px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:clamp(240px,calc(100vw - 700px),560px);text-align:center}
-@media (max-width:860px){#bossbar{width:clamp(180px,calc(100vw - 530px),560px)}}
-@media (max-width:700px) and (min-height:501px){#bossbar{top:auto;bottom:224px;width:calc(100vw - 40px)}}
+#bossbar{position:absolute;top:max(18px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);width:clamp(240px,calc(100% - 700px),560px);text-align:center}
+@media (max-width:860px){#bossbar{width:clamp(180px,calc(100% - 530px),560px)}}
+@media (max-width:700px) and (min-height:501px){#bossbar{top:auto;bottom:224px;width:calc(100% - 40px)}}
 #bossbar .bn{font-family:var(--f-display);font-size:18px;letter-spacing:.06em;text-shadow:0 2px 10px #000}
 #bossbar .bp{font-size:12px;color:var(--gold);margin-top:3px;min-height:15px;text-shadow:0 1px 3px #000,0 0 8px #000}
 #bossbar .bar{height:12px;margin-top:6px}
@@ -96,7 +98,7 @@ kbd{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;padding:1px
 #target{position:absolute;left:50%;top:calc(50% + 34px);transform:translateX(-50%);text-align:center;font-size:13px;text-shadow:0 1px 4px #000;white-space:nowrap}
 #target b{font-family:var(--f-display);font-size:15px}
 #target .w{display:inline-flex;gap:5px;align-items:center;margin-left:6px;padding:1px 7px;border-radius:10px;background:rgba(0,0,0,.45);border:1px solid var(--line)}
-#pip{position:absolute;left:max(16px,env(safe-area-inset-left));bottom:120px;max-width:min(430px,70vw);padding:10px 13px 10px 46px;font-family:var(--f-body);font-size:17px;line-height:1.35;opacity:0;transform:translateY(8px);transition:opacity .3s,transform .3s}
+#pip{position:absolute;left:max(16px,env(safe-area-inset-left));bottom:120px;max-width:min(430px,70%);padding:10px 13px 10px 46px;font-family:var(--f-body);font-size:calc(17px * var(--uit));line-height:1.35;opacity:0;transform:translateY(8px);transition:opacity .3s,transform .3s}
 #pip.on{opacity:1;transform:none}
 #pip::before{content:'';position:absolute;left:12px;top:11px;width:24px;height:24px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:radial-gradient(circle at 45% 40%,#fff6d0,#ffc85a 45%,#e8862a 75%);box-shadow:0 0 14px #ffb84a}
 #pip b{font-family:var(--f-display);font-size:13px;color:var(--gold);display:block;margin-bottom:1px}
@@ -110,22 +112,25 @@ body.talking .tools{opacity:0;pointer-events:none}
 .tool.on{border-color:var(--c);box-shadow:0 0 0 1px var(--c),0 0 18px color-mix(in srgb,var(--c) 45%,transparent);transform:translateY(-4px)}
 .tool.locked{opacity:.32;filter:grayscale(1)}
 .tool.small{width:50px;height:50px}.tool.small .ic{font-size:20px}
-#dialog{position:absolute;left:50%;bottom:max(22px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(820px,94vw);padding:16px 20px 14px;pointer-events:auto}
+#dialog{position:absolute;left:50%;bottom:max(22px,env(safe-area-inset-bottom));transform:translateX(-50%);width:min(820px,94%);padding:16px 20px 14px;pointer-events:auto}
 #dialog .head{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
 #dialog .nm{font-family:var(--f-display);font-weight:700;font-size:18px;color:var(--gold-hi)}
 #dialog.you .nm{color:#9fd0ff}#dialog.nar .nm{color:var(--dim)}#dialog.pip .nm{color:#ffd27a}
-#dialog .tx{font-family:var(--f-body);font-size:21px;line-height:1.42;margin:0;min-height:58px;color:var(--parch)}
+#dialog .tx{font-family:var(--f-body);font-size:calc(21px * var(--uit));line-height:1.42;margin:0;min-height:58px;color:var(--parch)}
 #dialog.nar .tx{font-style:italic;color:#e8dcc2}
 #dialog ol{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:6px}
-#dialog li button{width:100%;text-align:left;background:rgba(242,226,196,.05);border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-family:var(--f-body);font-size:19px;line-height:1.3;cursor:pointer;display:flex;gap:10px}
+#dialog li button{width:100%;text-align:left;background:rgba(242,226,196,.05);border:1px solid var(--line);border-radius:9px;padding:9px 12px;font-family:var(--f-body);font-size:calc(19px * var(--uit));line-height:1.3;cursor:pointer;display:flex;gap:10px}
 #dialog li button:hover,#dialog li button.sel{background:rgba(232,194,122,.16);border-color:rgba(232,194,122,.6)}
 #dialog li button kbd{margin-top:3px}
 #dialog .more{display:flex;justify-content:flex-end;font-size:12px;color:var(--dim);margin-top:6px;gap:6px;align-items:center}
+#dialog .dlg-face{position:absolute;left:16px;top:16px;width:100px;height:100px;border-radius:6px;box-shadow:0 4px 14px rgba(0,0,0,.5);background:rgba(0,0,0,.3)}
+#dialog.has-face{padding-left:134px;min-height:132px}
+@media (max-height:500px),(max-width:560px){#dialog .dlg-face{left:10px;top:10px;width:64px;height:64px}#dialog.has-face{padding-left:86px;min-height:86px}}
 .portrait{width:44px;height:44px;border-radius:10px;flex:none;align-self:center;display:grid;place-items:center;font-size:22px;border:1px solid var(--line);background:rgba(0,0,0,.3)}
 
 /* ---------- modals ---------- */
 .modal{position:fixed;inset:0;display:grid;place-items:center;background:rgba(6,4,2,.6);padding:16px;z-index:20}
-.sheet{width:min(980px,100%);max-height:min(88vh,900px);display:flex;flex-direction:column;overflow:hidden}
+.sheet{width:min(980px,100%);max-height:min(calc(88vh / var(--uiz)),900px);display:flex;flex-direction:column;overflow:hidden}
 .sheet>header{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line)}
 .sheet>header h2{font-family:var(--f-display);font-weight:600;font-size:22px;margin:0;flex:1}
 .sheet .body{overflow:auto;padding:16px 18px 20px}
@@ -151,13 +156,13 @@ body.talking .tools{opacity:0;pointer-events:none}
 .bron b{font-family:var(--f-display);font-size:14px;color:#cfe0ff}
 .bron p{margin:3px 0 0;font-family:var(--f-body);font-size:16px;line-height:1.35}
 .bron.locked{cursor:default;opacity:.45}
-.prose{font-family:var(--f-body);font-size:19px;line-height:1.5}
+.prose{font-family:var(--f-body);font-size:calc(19px * var(--uit));line-height:1.5}
 .prose h3{font-family:var(--f-display);font-size:18px;margin:16px 0 6px;color:var(--gold-hi)}
 .prose p{margin:0 0 10px}
 .prose ul{margin:0 0 10px;padding-left:22px}
 .prose .ex{border-left:3px solid var(--gold);padding:6px 12px;background:rgba(232,194,122,.07);border-radius:0 8px 8px 0;font-style:italic}
 .prose small{font-family:var(--f-ui);font-size:12px;color:var(--dim)}
-#bigmap{width:100%;height:auto;max-height:70vh;aspect-ratio:1;border-radius:10px;background:#0c0906;display:block;margin:0 auto;cursor:crosshair}
+#bigmap{width:100%;height:auto;max-height:calc(70vh / var(--uiz));aspect-ratio:1;border-radius:10px;background:#0c0906;display:block;margin:0 auto;cursor:crosshair}
 .maplegend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--dim);margin-top:10px;justify-content:center}
 .maplegend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
 .menugrid{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
@@ -166,6 +171,7 @@ body.talking .tools{opacity:0;pointer-events:none}
 .seg{display:flex;gap:6px;flex-wrap:wrap}
 .opt input[type=range]{width:100%;accent-color:var(--gold)}
 .opt p{margin:0;font-size:13px;color:var(--dim);line-height:1.4}
+.seg .btn[aria-pressed="true"]::before{content:'✓ ';font-weight:700}
 /* decision */
 .dec{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}
 .dec .case{font-family:var(--f-body);font-size:18px;line-height:1.45}
@@ -211,15 +217,39 @@ body.talking .tools{opacity:0;pointer-events:none}
 .end .stat{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:rgba(0,0,0,.25)}
 .end .stat b{display:block;font-family:var(--f-display);font-size:22px;color:var(--gold-hi)}
 .end .stat span{font-size:12px;color:var(--dim)}
-/* touch */
-#touch{position:fixed;inset:0;pointer-events:none;z-index:5}
+/* touch: a floating joystick on the left, a thumb arc of round buttons on the right (see core/input.js) */
+#touch{position:fixed;inset:0;pointer-events:none;z-index:5;--sl:env(safe-area-inset-left,0px);--sr:env(safe-area-inset-right,0px);--sb:env(safe-area-inset-bottom,0px)}
 body.talking #touch{display:none}
-.joy{position:absolute;left:max(24px,env(safe-area-inset-left));bottom:max(30px,env(safe-area-inset-bottom));width:132px;height:132px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);pointer-events:auto}
+.joy{position:absolute;left:calc(22px + var(--sl));bottom:calc(30px + var(--sb));width:132px;height:132px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.18);pointer-events:auto;transition:opacity .2s}
+.joy.float{opacity:.85}
 .joy i{position:absolute;left:50%;top:50%;width:56px;height:56px;margin:-28px 0 0 -28px;border-radius:50%;background:rgba(232,194,122,.35);border:1px solid rgba(232,194,122,.7)}
-.tbtn{position:absolute;pointer-events:auto;width:64px;height:64px;border-radius:50%;background:rgba(20,16,12,.6);border:1px solid rgba(232,194,122,.5);font-size:22px;display:grid;place-items:center}
+.tbtn{position:absolute;pointer-events:auto;right:calc(var(--r,24px) + var(--sr));bottom:calc(var(--b,40px) + var(--sb));width:var(--s,60px);height:var(--s,60px);padding:0;border-radius:50%;background:rgba(20,16,12,.62);border:1px solid rgba(232,194,122,.5);font-size:22px;line-height:1;display:grid;place-items:center;color:var(--parch);touch-action:none;-webkit-user-select:none;user-select:none}
+.tbtn.down{background:rgba(232,194,122,.32);transform:scale(.93)}
+#tAttack{--s:76px;--r:22px;--b:100px;font-size:30px;border:2px solid var(--c,var(--gold));box-shadow:0 0 18px color-mix(in srgb,var(--c,#e8c27a) 35%,transparent)}
+#tAbility{--s:64px;--r:28px;--b:198px;font-size:26px;border:2px solid #ffd27a;background:radial-gradient(circle at 50% 35%,rgba(255,210,122,.32),rgba(20,16,12,.7) 70%)}
+#tAbility.cd,#tAbility:disabled{opacity:.55}
+#tReveal{--s:54px;--r:98px;--b:176px;font-size:20px}
+#tTool{--s:56px;--r:124px;--b:110px;border-color:var(--c,var(--line-strong));grid-template-rows:auto auto;align-content:center;gap:2px}
+#tTool .ic{font-size:21px}
+#tTool small{font-size:8.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);max-width:52px;overflow:hidden;white-space:nowrap}
+#tDash{--s:58px;--r:100px;--b:42px;font-size:24px}
+.tbtn small,.tbtn .ic{pointer-events:none}
+/* the E button: only there when something is in reach, and it says what it does */
+#tAct{--r:22px;--b:282px;width:auto;height:52px;max-width:min(380px,calc(100vw - 44px));border-radius:26px;padding:0 18px 0 7px;display:flex;align-items:center;gap:10px;font-family:var(--f-ui);font-size:15px;font-weight:500;border:2px solid var(--gold);background:rgba(20,16,12,.84);box-shadow:0 6px 18px rgba(0,0,0,.4);animation:tin .25s ease-out}
+#tAct .ic{flex:none;width:38px;height:38px;border-radius:50%;background:var(--gold);color:#24180c;display:grid;place-items:center;font-size:18px}
+#tAct span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-height:500px){
+ .joy{width:116px;height:116px;bottom:calc(18px + var(--sb))}
+ #tAttack{--s:68px;--r:26px;--b:50px}
+ #tAbility{--s:56px;--r:32px;--b:136px}
+ #tReveal{--s:48px;--r:89px;--b:121px;font-size:18px}
+ #tTool{--s:52px;--r:113px;--b:72px}
+ #tDash{--s:52px;--r:103px;--b:18px}
+ #tAct{--r:190px;--b:22px;max-width:calc(100vw - 420px)}
+}
 /* council */
 .council{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:start}
-.council canvas{width:min(240px,42vh)!important;height:auto!important;aspect-ratio:1;border-radius:12px;background:#fff;padding:8px}
+.council canvas{width:min(240px,calc(42vh / var(--uiz)))!important;height:auto!important;aspect-ratio:1;border-radius:12px;background:#fff;padding:8px}
 .code{font-family:ui-monospace,Menlo,monospace;font-size:34px;letter-spacing:.2em;color:var(--gold-hi)}
 .members{display:flex;gap:6px;flex-wrap:wrap}
 .member{padding:3px 9px;border-radius:12px;border:1px solid var(--line);font-size:13px}
@@ -230,20 +260,106 @@ body.talking #touch{display:none}
 .adv input[type=text]{width:100%;padding:12px;border-radius:10px;border:1px solid var(--line-strong);background:rgba(0,0,0,.35);color:var(--parch);font-size:17px}
 .adv .cheer{font-size:18px;padding:14px;width:100%}
 @media (max-width:860px){.ti{grid-template-columns:1fr}.keys{display:none}.dec{grid-template-columns:1fr}.status{width:240px}.mapcard{width:120px;height:120px}#toasts{width:240px;top:170px}}
-@media (max-width:560px){.status{width:200px;padding:9px 10px}.tracker .tt{font-size:14px}.mapcard{width:96px;height:96px}#toasts{top:214px;width:200px}#banner{top:38%}#prompt{bottom:118px;font-size:13px}#dialog .tx{font-size:18px}.council{grid-template-columns:1fr}}
+@media (max-width:560px){.status{width:200px;padding:9px 10px}.tracker .tt{font-size:calc(14px * var(--uit))}.mapcard{width:96px;height:96px}#toasts{top:214px;width:200px}#banner{top:38%}#prompt{bottom:118px;font-size:13px}#dialog .tx{font-size:calc(18px * var(--uit))}.council{grid-template-columns:1fr}}
 /* narrow touch screens: the joystick and buttons fill the bottom, so the tools, prompt and boss bar stack above them */
-@media (max-width:640px) and (min-height:501px) and (hover:none) and (pointer:coarse){.tools{bottom:262px;gap:6px}.tool{width:54px;height:54px}.tool .ic{font-size:22px}#prompt{bottom:218px}#bossbar{top:auto;bottom:350px;width:calc(100vw - 40px)}#toasts{width:calc(50vw - 24px)}#pip{top:214px;bottom:auto;max-width:calc(50vw - 24px);font-size:14px;padding:8px 10px 8px 40px}.tracker .tt{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}.tool .nm{display:none}#toasts .toast:nth-last-child(n+3){display:none}#hud:has(#bossbar:not([hidden])) #toasts{display:none}}
+@media (max-width:640px) and (min-height:501px) and (hover:none) and (pointer:coarse){.tools{bottom:262px;gap:6px}.tool{width:54px;height:54px}.tool .ic{font-size:22px}#prompt{bottom:218px}#bossbar{top:auto;bottom:350px;width:calc(100% - 40px)}#toasts{width:calc(50% - 24px)}#pip{top:214px;bottom:auto;max-width:calc(50% - 24px);font-size:calc(14px * var(--uit));padding:8px 10px 8px 40px}.tracker .tt{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}.tool .nm{display:none}#toasts .toast:nth-last-child(n+3){display:none}#hud:has(#bossbar:not([hidden])) #toasts{display:none}}
 /* short screens (a phone held sideways): a compact HUD that leaves room for the joystick and buttons */
-@media (max-height:500px){.status{width:220px;padding:8px 10px;gap:5px}.place{font-size:13px}.tracker{padding:5px 8px}.tracker .tt{font-size:13px;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}.mapcard{width:84px;height:84px}.corner{grid-template-columns:repeat(2,auto);gap:4px}#toasts{top:calc(max(14px,env(safe-area-inset-top)) + 92px);width:250px}.toast span{font-size:13px}#toasts .toast:nth-last-child(n+3){display:none}#pip{top:calc(max(14px,env(safe-area-inset-top)) + 170px);bottom:auto;max-width:240px;font-size:14px;padding:8px 10px 8px 40px}#banner{top:22%}#dialog{padding:10px 14px 8px}#dialog .tx{font-size:16px}#bossbar{top:max(14px,env(safe-area-inset-top));bottom:auto;width:clamp(160px,calc(100vw - 560px),560px)}#bossbar .bn{font-size:14px}#bossbar .bar{height:8px;margin-top:4px}#bossbar .bp{font-size:11px}}
+@media (max-height:500px){.status{width:220px;padding:8px 10px;gap:5px}.place{font-size:13px}.tracker{padding:5px 8px}.tracker .tt{font-size:calc(13px * var(--uit));display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}.mapcard{width:84px;height:84px}.corner{grid-template-columns:repeat(2,auto);gap:4px}#toasts{top:calc(max(14px,env(safe-area-inset-top)) + 92px);width:250px}.toast span{font-size:calc(13px * var(--uit))}#toasts .toast:nth-last-child(n+3){display:none}#pip{top:calc(max(14px,env(safe-area-inset-top)) + 170px);bottom:auto;max-width:240px;font-size:calc(14px * var(--uit));padding:8px 10px 8px 40px}#banner{top:22%}#dialog{padding:10px 14px 8px}#dialog .tx{font-size:calc(16px * var(--uit))}#bossbar{top:max(14px,env(safe-area-inset-top));bottom:auto;width:clamp(160px,calc(100% - 560px),560px)}#bossbar .bn{font-size:14px}#bossbar .bar{height:8px;margin-top:4px}#bossbar .bp{font-size:11px}}
 @media (max-height:500px) and (hover:none) and (pointer:coarse){#toasts{top:max(14px,env(safe-area-inset-top));right:calc(max(16px,env(safe-area-inset-right)) + 176px);width:230px}#hud:has(#bossbar:not([hidden])) #toasts{top:calc(max(14px,env(safe-area-inset-top)) + 92px)}#toasts .toast:nth-last-child(n+2){display:none}.tool .nm{display:none}.tools{gap:6px}.tool{width:54px;height:54px}.tool .ic{font-size:22px}}
 @media (max-height:500px) and (max-width:600px){.status{width:180px}}
+
+/* ---------- accessibility (ui/hud.js applySettings sets the classes on <body> and the size variables) */
+/* text and interface size: --uiz zooms the HUD, the menus and the decision panel; on a small screen the zoom is capped and --uit grows the reading text instead */
+#hud,.modal,#title,#ending{zoom:var(--uiz)}
+/* high contrast: solid panels, brighter text and lines, a thick white focus ring */
+body.hc{--panel:rgba(6,5,3,.97);--panel-solid:#070504;--line:rgba(255,244,222,.6);--line-strong:rgba(255,244,222,.9);--parch:#fffaf0;--dim:#eee4d0;--gold:#ffd88a;--gold-hi:#fff0c8}
+body.hc .card,body.hc .sheet{backdrop-filter:none;-webkit-backdrop-filter:none;border-width:2px}
+body.hc .btn,body.hc .tool,body.hc .optb,body.hc #dialog li button{border-width:2px;background:rgba(0,0,0,.72)}
+body.hc .btn[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:#120c06;font-weight:700}
+body.hc #vignette{opacity:.45}
+body.hc #target,body.hc .tool .nm,body.hc #crosshair{filter:drop-shadow(0 0 1px #000) drop-shadow(0 0 2px #000)}
+body.hc #target .w{background:rgba(0,0,0,.85);border-color:var(--line-strong)}
+body.hc :focus-visible{outline:3px solid #fff!important;outline-offset:3px!important;box-shadow:0 0 0 6px #000!important}
+body.hc .label,body.hc .opt p,body.hc .tracker .td{color:#f4ead6}
+/* a very readable typeface everywhere */
+body.readable{--f-display:'Atkinson Hyperlegible',Verdana,system-ui,sans-serif;--f-body:'Atkinson Hyperlegible',Verdana,system-ui,sans-serif;--f-ui:'Atkinson Hyperlegible',Verdana,system-ui,sans-serif}
+body.readable #dialog .tx,body.readable .prose{line-height:1.55;letter-spacing:.01em}
+body.readable #dialog.nar .tx,body.readable .prose .ex{font-style:normal}
+body.readable .label,body.readable .eyebrow,body.readable #banner .bs{letter-spacing:.05em}
+/* reduced motion: nothing slides, bounces or flashes (the camera side lives in player.js and render.js) */
+body.reduced *,body.reduced *::before,body.reduced *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}
+body.reduced #flash{display:none}
+body.reduced #pip,body.reduced .tool.on,body.reduced .tbtn.down{transform:none}
+body.reduced #pip{transition:opacity .3s}
+@media (prefers-reduced-motion:reduce){.toast,#tAct{animation:none}}
+
+/* tools: the one in your hand gets a tick and a bold name, locked ones a padlock: never colour alone */
+.tool::after{position:absolute;top:-7px;right:-7px;width:19px;height:19px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;line-height:1;pointer-events:none}
+.tool.on::after{content:'✓';background:var(--c);color:#1a1208;box-shadow:0 0 0 2px #1a1208}
+.tool.locked::after{content:'🔒';font-size:9px;background:rgba(0,0,0,.7)}
+.tool.on .nm{color:var(--parch);font-weight:700}
+#target .w .wi{font-size:14px}
+#target .w b{font-family:var(--f-ui);font-size:11px;font-weight:700;letter-spacing:.04em;padding:0 5px;border-radius:7px;margin-left:3px}
+#target .w b.ok{background:var(--c,var(--good));color:#1a1208}
+#target .w b.sw{border:1px dashed var(--line-strong);color:var(--parch)}
+#target .w.shield{color:#fff1b8}
+#runChip{position:absolute;left:50%;bottom:calc(max(16px,env(safe-area-inset-bottom)) + 92px);transform:translateX(-50%);padding:4px 11px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold-hi)}
+
+/* the trust ring of the compact HUD */
+.ring{display:none;position:relative;flex:none;width:46px;height:46px;place-items:center}
+.ring svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);overflow:visible}
+.ring circle{fill:none;stroke-width:4.5}
+.ring .rb{stroke:rgba(0,0,0,.55)}
+.ring .rf{stroke:var(--gold);stroke-linecap:round;transition:stroke-dasharray .25s}
+.ring b{position:relative;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;font-weight:700;color:var(--parch)}
+.ring.low .rf{stroke:var(--danger)}
+.ring.low b::after{content:'!';color:var(--danger);margin-left:1px}
+#btnMini{display:none}
+
+/* compact HUD (default on touch screens; Opties, Toegankelijkheid): a small trust ring with the depth, tap for the whole card */
+body.compact .status{width:auto;max-width:calc(100% - 200px);padding:5px 13px 5px 5px;display:flex;align-items:center;gap:9px;pointer-events:auto;cursor:pointer;border-radius:999px}
+body.compact .status>.trust,body.compact .status>.tracker{display:none}
+body.compact .status>.ring{display:grid}
+body.compact .status .place{font-size:13px;min-width:0}
+body.compact .status .place small{font-size:10px;letter-spacing:.1em}
+body.compact .status .place span{display:block;max-width:118px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.compact .status.open{width:min(270px,calc(100% - 180px));max-width:none;display:grid;gap:7px;padding:10px 12px;border-radius:12px}
+body.compact .status.open>.trust,body.compact .status.open>.tracker{display:grid}
+body.compact .status.open>.ring{display:none}
+body.compact .status.open .place span{max-width:none;white-space:normal}
+body.compact .tr{gap:6px}
+body.compact .corner{grid-template-columns:none;gap:5px}
+body.compact .corner .btn.icon{width:34px;height:34px;font-size:15px}
+body.compact #btnMini{display:grid}
+body.compact .mapcard{width:96px;height:96px;padding:3px}
+body.compact.nomini .mapcard{display:none}
+body.compact #toasts{top:calc(max(14px,env(safe-area-inset-top)) + 106px);right:calc(max(16px,env(safe-area-inset-right)) + 40px);width:min(250px,calc(100% - 90px))}
+body.compact.nomini #toasts{top:calc(max(14px,env(safe-area-inset-top)) + 62px)}
+body.compact #toasts .toast:nth-last-child(n+3){display:none}
+body.compact #pip{top:calc(max(14px,env(safe-area-inset-top)) + 64px);bottom:auto;max-width:min(330px,calc(100% - 300px));font-size:calc(15px * var(--uit))}
+/* touch screens: the E button replaces the prompt, one tool button replaces the tool bar */
+body.touch #prompt,body.touch .tools{display:none!important}
+body.touch.compact #pip{top:auto;bottom:calc(max(16px,env(safe-area-inset-bottom)) + 178px);max-width:calc(52% - 18px);font-size:calc(14px * var(--uit));padding:8px 10px 8px 40px}
+body.touch.compact #bossbar{top:auto;bottom:calc(350px + env(safe-area-inset-bottom,0px));width:calc(100% - 40px)}
+@media (min-height:501px){body.compact .tr{flex-direction:row}body.compact .corner{grid-auto-flow:row;order:2}body.compact #hud:has(.status.open) #toasts{top:calc(max(14px,env(safe-area-inset-top)) + 214px)}body.compact #hud:has(.status.open) #toasts .toast:nth-last-child(n+2){display:none}}
+@media (max-height:500px){
+ body.compact .tr{flex-direction:column;align-items:flex-end}
+ body.compact .corner{grid-auto-flow:column}
+ body.compact .mapcard{width:80px;height:80px}
+ body.compact #toasts,body.compact.nomini #toasts{top:max(14px,env(safe-area-inset-top));right:calc(max(16px,env(safe-area-inset-right)) + 200px);width:min(240px,calc(100% - 470px))}
+ body.compact #hud:has(#bossbar:not([hidden])) #toasts{top:calc(max(14px,env(safe-area-inset-top)) + 70px)}
+ body.compact #pip,body.touch.compact #pip{top:calc(max(14px,env(safe-area-inset-top)) + 60px);bottom:auto;max-width:250px}
+ body.touch.compact #bossbar{top:max(14px,env(safe-area-inset-top));bottom:auto;width:clamp(150px,calc(100% - 480px),420px)}
+ body.compact #runChip{display:none}
+}
 </style>
 </head>
 <body>
 <div id="stage" aria-label="Het Orakel van Dalwijk, 3D-spelwereld"></div>
 <div class="fx" id="vignette"></div><div class="fx" id="lowtrust"></div><div class="fx" id="hurt"></div><div class="fx" id="flash"></div>
 <div id="hud" hidden>
- <div class="card status">
+ <div class="card status" id="status">
+  <div class="ring" id="trustRing" role="img" aria-label="Vertrouwen"><svg viewBox="0 0 46 46" aria-hidden="true"><circle class="rb" cx="23" cy="23" r="19.5"/><circle class="rf" id="ringFill" cx="23" cy="23" r="19.5" pathLength="100" stroke-dasharray="100 100"/></svg><b id="ringText">100</b></div>
   <div class="trust"><span class="ico" aria-hidden="true">❤</span><div class="bar" id="trustBar"><i class="ghost" id="trustGhost"></i><i id="trustFill"></i></div><b id="trustText">100/100</b></div>
   <div class="place" id="place"><small id="placeDepth">Dalwijk</small><span id="placeName">Het stadhuis</span></div>
   <button class="tracker" id="tracker" title="Opdrachten (J)"><span class="tq" id="trackTitle"></span><span class="tt" id="trackText"></span><span class="td" id="trackDist"></span></button>
@@ -252,6 +368,7 @@ body.talking #touch{display:none}
   <div class="corner">
    <button class="btn icon" id="btnJournal" title="Dossier en opdrachten (J)" aria-label="Dossier">❦</button>
    <button class="btn icon" id="btnMap" title="Kaart (M)" aria-label="Kaart">◈</button>
+   <button class="btn icon" id="btnMini" title="Minikaart tonen of verbergen" aria-label="Minikaart tonen of verbergen" aria-pressed="true">▣</button>
    <button class="btn icon" id="btnCam" title="Camera wisselen (V)" aria-label="Camera wisselen">👁</button>
    <button class="btn icon" id="btnMenu" title="Menu (Esc)" aria-label="Menu">☰</button>
   </div>
@@ -265,20 +382,23 @@ body.talking #touch{display:none}
  <div id="target" hidden></div>
  <div class="card" id="prompt" hidden><kbd id="promptKey">E</kbd><span id="promptText"></span></div>
  <div class="card" id="pip"><b>Pip</b><span id="pipText"></span></div>
+ <div class="card" id="runChip" hidden>🏃 rennen staat aan</div>
  <div class="tools" id="tools"></div>
  <div class="card" id="dialog" hidden role="dialog" aria-live="polite">
+  <canvas class="dlg-face pt-face" id="dlgFace" width="96" height="96" hidden aria-hidden="true"></canvas>
   <div class="head"><span class="nm" id="dlgName"></span><span class="label" id="dlgTitle"></span></div>
   <p class="tx" id="dlgText"></p>
   <ol id="dlgChoices" hidden></ol>
-  <div class="more" id="dlgMore"><kbd>E</kbd><span>verder</span></div>
+  <div class="more" id="dlgMore"><kbd id="dlgMoreKey">E</kbd><span id="dlgMoreText">verder</span></div>
  </div>
 </div>
 <div id="touch" hidden>
  <div class="joy" id="joy"><i></i></div>
- <button class="tbtn" id="tAttack" style="right:28px;bottom:120px" aria-label="Gebruik gereedschap">✦</button>
- <button class="tbtn" id="tAct" style="right:104px;bottom:58px" aria-label="Praten of gebruiken">E</button>
- <button class="tbtn" id="tDash" style="right:28px;bottom:36px" aria-label="Wegduiken">»</button>
- <button class="tbtn" id="tReveal" style="right:110px;bottom:146px" aria-label="Onthullen">☀</button>
+ <button class="tbtn" id="tAct" hidden aria-label="Praten of gebruiken"><span class="ic" id="tActIcon">✋</span><span id="tActText">Gebruik</span></button>
+ <button class="tbtn" id="tAttack" hidden aria-label="Gebruik je gereedschap">✦</button>
+ <button class="tbtn" id="tTool" hidden aria-label="Wissel van gereedschap"><span class="ic" id="tToolIcon">🔦</span><small id="tToolName">Lamp</small></button>
+ <button class="tbtn" id="tReveal" hidden aria-label="Onthullen wat niet echt is">☀</button>
+ <button class="tbtn" id="tDash" aria-label="Wegduiken">»</button>
 </div>
 <div class="modal" id="journal" hidden role="dialog" aria-label="Dossier"><div class="card sheet">
  <header><h2>Het dossier</h2><div class="tabs" id="jTabs"></div><button class="btn icon" data-close aria-label="Sluiten">✕</button></header>
@@ -311,15 +431,16 @@ body.talking #touch{display:none}
   </div>
   <div class="card keys">
    <h3>Zo speel je</h3>
-   <span class="k"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span class="v">lopen · <kbd>Shift</kbd> rennen</span>
+   <span class="k"><kbd data-key="forward">W</kbd><kbd data-key="left">A</kbd><kbd data-key="back">S</kbd><kbd data-key="right">D</kbd></span><span class="v">lopen · <kbd data-key="run">Shift</kbd> rennen</span>
    <span class="k"><kbd>muis</kbd></span><span class="v">rondkijken (klik in de wereld)</span>
-   <span class="k"><kbd>E</kbd></span><span class="v">praten, lezen, pakken, gebruiken</span>
+   <span class="k"><kbd data-key="interact">E</kbd></span><span class="v">praten, lezen, pakken, gebruiken</span>
    <span class="k"><kbd>klik</kbd></span><span class="v">gereedschap gebruiken</span>
-   <span class="k"><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd></span><span class="v">Toetslamp · Weegschaal · Zegel</span>
-   <span class="k"><kbd>R</kbd></span><span class="v">onthullen wat niet echt is</span>
-   <span class="k"><kbd>Spatie</kbd></span><span class="v">wegduiken (ook over smalle kloven)</span>
-   <span class="k"><kbd>V</kbd></span><span class="v">eerste of derde persoon · wiel zoomt</span>
-   <span class="k"><kbd>J</kbd><kbd>M</kbd><kbd>H</kbd></span><span class="v">dossier · kaart · hint van Pip</span>
+   <span class="k"><kbd data-key="tool1">1</kbd><kbd data-key="tool2">2</kbd><kbd data-key="tool3">3</kbd></span><span class="v">Toetslamp · Weegschaal · Zegel</span>
+   <span class="k"><kbd data-key="reveal">R</kbd></span><span class="v">onthullen wat niet echt is</span>
+   <span class="k"><kbd data-key="ability">F</kbd></span><span class="v">je speciale vaardigheid</span>
+   <span class="k"><kbd data-key="dash">Spatie</kbd></span><span class="v">wegduiken (ook over smalle kloven)</span>
+   <span class="k"><kbd data-key="camera">V</kbd></span><span class="v">eerste of derde persoon · wiel zoomt</span>
+   <span class="k"><kbd data-key="journal">J</kbd><kbd data-key="map">M</kbd><kbd data-key="hint">H</kbd></span><span class="v">dossier · kaart · hint van Pip</span>
    <div class="foot">Ongeveer een uur spelen. Je voortgang wordt in deze browser bewaard. Het spel maakt geen gebruik van een AI-model en is geen juridisch advies. <span id="buildInfo"></span></div>
   </div>
  </div>
