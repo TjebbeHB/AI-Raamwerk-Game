@@ -193,20 +193,27 @@ export let travel = () => {};
 export function setTravel(fn) { travel = fn; }
 
 // ---------------------------------------------------------------- people
+// How people say hello when you first walk up (cast greet), and the little sounds of their habits.
+const GREETS = {wave: 'wave', nod: 'nod', tipcap: 'tipcap', fingerguns: 'fingerguns'};
+const HABIT_SFX = {jingle: 'locked', tipcap: 'pick', whistle: 'pip'};
 export class Npc extends Ent {
   constructor(def) {
     super(def);
     const c = CAST[def.id] || {name: def.id, model: {}};
     this.cast = c;
-    this.model = makeModel({...c.model, probe: this.probe});
+    this.model = makeModel({npc: true, ...c.model, probe: this.probe});
     this.group.add(this.model.root);
     this.yaw = def.dir ? FACING[def.dir] : 0; this.baseYaw = this.yaw;
     this.model.root.rotation.y = this.yaw;
-    this.st = {t: Math.random() * 10, walk: 0, talk: false};
+    // st.mood is a mood id (see engine/models.js) that the conversation may set while someone speaks
+    this.st = {t: Math.random() * 10, walk: 0, talk: false, look: null, mood: null};
     this.col = addCollider({x: this.x, z: this.z, r: c.r ?? 0.42, npc: true});
     this.path = null;
     this.setVisible(cond(def.if));
     this.bubbleT = 0;
+    this.greeted = false;
+    // a jingle of keys or a whistle, only when you are close enough to hear it
+    this.model.onGesture = name => { const s = HABIT_SFX[name]; if (s && this.visible && this.dist() < 6) SFX.play(s); };
   }
   get interactable() { return this.visible && !this.path && this.dist() < (this.cast.reach ?? 2.8) && !this.def.mute; }
   label() { return this.def.label || `Praat met ${this.cast.name}`; }
@@ -226,11 +233,19 @@ export class Npc extends Ent {
       moveCollider(this.col, this.x, this.z);
       W.probeAt(this.x, this.z, this.probe.value);
     } else {
-      const d = this.dist();
+      const d = this.dist(), toYou = Math.atan2(P.x - this.x, P.z - this.z);
       let want = this.baseYaw;
       if (this.faceAt) want = Math.atan2(this.faceAt.x - this.x, this.faceAt.z - this.z);
-      else if (d < 5 && !this.def.still) want = Math.atan2(P.x - this.x, P.z - this.z);
+      else if (d < 5 && !this.def.still) want = toYou;
       this.yaw = dampAngle(this.yaw, want, 4, dt);
+      // the head turns to you before the body does (and for people who stay where they are)
+      const rel = Math.atan2(Math.sin(toYou - this.yaw), Math.cos(toYou - this.yaw));
+      this.st.look = d < 6.5 && Math.abs(rel) < 2.2 && !this.faceAt ? Math.max(-0.95, Math.min(0.95, rel)) : null;
+      // say hello once, the first time you walk up
+      if (!this.greeted && d < 3.6 && !this.talking && this.model.gesture) {
+        this.greeted = true;
+        this.model.gesture(GREETS[this.cast.greet] || 'wave');
+      }
     }
     this.model.root.rotation.y = this.yaw;
     this.model.animate(dt, this.st);
