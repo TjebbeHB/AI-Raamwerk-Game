@@ -30,7 +30,7 @@ export function aim() {
   const max = raycast(camPos.x, camPos.y, camPos.z, ray.x, ray.y, ray.z, 40, 0.2);
   let best = null, bestScore = 0.15;
   if (SETTINGS.autoAim !== false) for (const e of C.enemies) {
-    if (!e.alive || e.hidden) continue;
+    if (!e.alive || e.hidden || e.def.ghostShots) continue;
     const ex = e.x - camPos.x, ey = e.y + e.def.aimY - camPos.y, ez = e.z - camPos.z, d = Math.hypot(ex, ey, ez);
     if (d > Math.min(max + 1, 32)) continue;
     const dot = (ex * ray.x + ey * ray.y + ez * ray.z) / d;
@@ -137,7 +137,7 @@ function updateShots(dt) {
       if (solidTile(tx, tz) || p.y < surfaceAt(p.x, p.z) - 0.1 && !isChasm(tx, tz) || p.y > W.L.ceilY[tz * W.L.W + tx]) { dead = true; break; }
       if (p.owner === 'player') {
         for (const e of C.enemies) {
-          if (!e.alive || e.hidden) continue;
+          if (!e.alive || e.hidden || e.def.ghostShots) continue;   // ghostShots: shots fly through (the Hydra's body, to reach its heads)
           const dy = p.y - (e.y + e.def.aimY);
           if (Math.hypot(p.x - e.x, p.z - e.z) < (e.def.r ?? 0.5) + p.r && Math.abs(dy) < (e.def.h ?? 1.6) * 0.7) { damage(e, p.dmg, p.tool, {kx: p.vx * 0.15, kz: p.vz * 0.15}); dead = true; break; }
         }
@@ -324,11 +324,17 @@ function updateEnemy(e, dt) {
     speed *= 0.3;
     if (e.t > (def.recover ?? 0.6)) { e.state = 'chase'; e.atkT = (def.rate ?? 1.4) * (0.7 + Math.random() * 0.6); }
   }
-  // separation: monsters keep a little distance from each other
-  for (const o of C.enemies) {
-    if (o === e || !o.alive) continue;
+  // separation: monsters keep a little distance from each other. Stationary monsters (the Hydra
+  // and its heads) stay put, heavy ones are not shoved around by small fry, and whoever gives
+  // way to an immovable neighbour takes the whole step.
+  if ((def.speed ?? 1) > 0) for (const o of C.enemies) {
+    if (o === e || !o.alive || o.hydra === e || e.hydra === o) continue;
+    if (def.heavy && !o.def.heavy) continue;
     const ox = e.x - o.x, oz = e.z - o.z, od = Math.hypot(ox, oz), m = (def.r ?? 0.5) + (o.def.r ?? 0.5);
-    if (od < m && od > 0.001) { e.x += ox / od * (m - od) * 0.5; e.z += oz / od * (m - od) * 0.5; }
+    if (od < m && od > 0.001) {
+      const share = (o.def.speed ?? 1) > 0 && !(o.def.heavy && !def.heavy) ? 0.5 : 1;
+      e.x += ox / od * (m - od) * share; e.z += oz / od * (m - od) * share;
+    }
   }
   // integrate
   if (!skipMove) {

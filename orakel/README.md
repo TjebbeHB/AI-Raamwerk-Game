@@ -34,7 +34,7 @@ Elke kamer van het raamwerk (probleem en noodzaak plus de veertien raamwerk­kam
 | <kbd>V</kbd> · scrollwiel | eerste of derde persoon · zoomen |
 | <kbd>J</kbd> / <kbd>Tab</kbd> · <kbd>M</kbd> · <kbd>H</kbd> | dossier en dagboek · kaart · een hint van Pip |
 
-Op een tablet of telefoon verschijnen aanraakknoppen. Je voortgang wordt in de browser bewaard; met **Spelcode** in het menu neem je hem mee naar een andere browser.
+Op een tablet of telefoon verschijnen aanraakknoppen: links een stick om te lopen, rechts slepen om rond te kijken (houd een telefoon het liefst liggend). Je voortgang wordt in de browser bewaard; met **Spelcode** in het menu neem je hem mee naar een andere browser.
 
 **Gereedschap.** De **Toetslamp** schiet licht (toetsen en meten), de **Weegschaal** geeft een schokgolf (afwegen, de menselijke toets) en het **Zegel** slaat een boog (beschermen en begrenzen). Elk monster is zwak tegen één gereedschap en sterk tegen een ander; kijk naar een monster om te zien welk. Een Datalekslijm splitst zich als je hem niet verzegelt, een Doorschuiver schuift schade door tenzij je hem weegt, een Injectie-imp draait je besturing om.
 

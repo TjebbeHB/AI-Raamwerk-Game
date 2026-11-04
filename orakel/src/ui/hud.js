@@ -138,6 +138,8 @@ export function updateHud(dt, quest) {
   // toasts
   for (let i = H.toasts.length - 1; i >= 0; i--) { const t = H.toasts[i]; t.life -= dt; if (t.life < 0.4) t.t.style.opacity = Math.max(0, t.life / 0.4); if (t.life <= 0) { t.t.remove(); H.toasts.splice(i, 1); } }
   if (H.bannerT > 0) { H.bannerT -= dt; if (H.bannerT <= 0) $('banner').classList.remove('on'); }
+  // on touch screens the joystick and buttons would cover the dialogue box: hide them while talking
+  if (H.talking !== !!DLG.active) { H.talking = !!DLG.active; document.body.classList.toggle('talking', H.talking); }
   if (H.pipT > 0) { H.pipT -= dt; if (H.pipT <= 0) $('pip').classList.remove('on'); }
   if (H.hurtT > 0) { H.hurtT -= dt; if (H.hurtT <= 0) $('hurt').style.opacity = 0; }
   if (H.flashT > 0) { H.flashT = Math.max(0, H.flashT - dt * 1.5); $('flash').style.opacity = H.flashT; }

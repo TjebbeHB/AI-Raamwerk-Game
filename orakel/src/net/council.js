@@ -63,13 +63,17 @@ export function joinLink() {
   return u.toString();
 }
 
+// Room codes are visible to anyone on a public broker, so everything an advisor sends is
+// untrusted: names are shown as plain text only, and the council has a maximum size.
+const MAX_MEMBERS = 30;
 function fromAdvisor(m) {
   if (!m || typeof m !== 'object' || typeof m.id !== 'string' || m.id.length > 40) return;
-  const name = String(m.name || '').slice(0, 24).trim() || 'Adviseur';
+  if (m.t === 'bye') { if (H.members.delete(m.id)) { NET.members = [...H.members.values()].map(x => x.name); push(true); refresh(); } return; }
   const was = H.members.get(m.id);
+  if (!was && H.members.size >= MAX_MEMBERS) return;
+  const name = String(m.name || '').slice(0, 24).trim() || 'Adviseur';
   H.members.set(m.id, {name, seen: Date.now()});
   if (!was) { UI.toast('Adviesraad', `${name} doet mee.`, 'good'); push(true); }
-  if (m.t === 'bye') { H.members.delete(m.id); push(true); }
   if (m.t === 'vote' && H.vote && m.key === H.vote.key && Array.isArray(m.picks)) {
     const n = H.vote.options.length;
     const picks = [...new Set(m.picks.filter(i => Number.isInteger(i) && i >= 0 && i < n))].slice(0, H.vote.multi ? n : 1);
@@ -177,7 +181,7 @@ export function startAdvisor(hash) {
   // state update never swallows a tap or jumps the page while someone is reading.
   let shown = '';
   const update = m => { const key = JSON.stringify({...m, at: 0}); if (key === shown) return; shown = key; A.state = m; view(); };
-  const view = () => { const y = scrollY; render(); scrollTo(0, y); };
+  const view = () => { const y = root.scrollTop; render(); root.scrollTop = y; };   // #advisor is the scroll container
   const render = () => {
     root.innerHTML = '';
     const wrap = el('div', {class: 'adv'});

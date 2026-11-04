@@ -124,7 +124,7 @@ export const BOSS_DEFS = {
     }},
   // ---------------------------------------------------------------- Diepte 3
   hydra: {name: 'De Lekkende Hydra', boss: true, model: {kind: 'hydra'}, color: 0x7fe0a4, hp: 220, speed: 0, weak: 'seal', dmg: 12,
-    attack: 'custom', aimY: 1.0, r: 1.8, h: 3, heavy: true, wake: 16, noDrop: true, immuneText: 'De koppen beschermen het lijf',
+    attack: 'custom', aimY: 1.0, r: 1.8, h: 3, heavy: true, wake: 16, noDrop: true, ghostShots: true, immuneText: 'De koppen beschermen het lijf',
     lesson: 'Een lek dicht je niet door er één keer naar te kijken. Elke route naar buiten moet begrensd worden.',
     init(e) {
       e.heads = [0, 1, 2].map(i => spawnEnemy('hydraHead', e.x, e.z, {aware: true, extra: {hydra: e, idx: i}}));
