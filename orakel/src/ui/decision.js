@@ -1,12 +1,56 @@
 // The decision panel: a guardian lays the case before you and you choose measures.
-import {$, el, esc} from '../core/util.js';
+import {$, el, esc, addStyles} from '../core/util.js';
 import {UI, SFX, NET, CAST, chamberState} from '../game/bus.js';
 import {G, saveGame} from '../game/state.js';
 import {GAME} from '../game/game.js';
 import {unlockForUi, relock} from '../game/dialogue.js';
 import {CHAMBER, recordChoice, STATE_LABEL, CRITICAL} from '../content/framework.js';
+import {roleInfo, roleOrder} from '../content/nabespreking.js';
 
 const STATUS = {correct: 'Past', incorrect: 'Werkt averechts', supporting: 'Goede aanvulling'};
+
+// ---------------------------------------------------------------- the council's votes
+// A copy of the council's tally is kept with every decision (and the verdict), for the
+// debrief and the report: G.council[id] = {counts, ballots, byRole, roles, at}.
+export function storeCouncil(id, t = NET.active && NET.tallies?.id === id ? NET.tallies : null) {
+  if (!t || !Array.isArray(t.counts)) return null;
+  const ballots = Math.max(0, +t.ballots || 0);
+  G.council ||= {};
+  if (!ballots && G.council[id]) return G.council[id];      // a re-vote nobody voted in keeps the earlier votes
+  const byRole = t.byRole && typeof t.byRole === 'object' ? Object.fromEntries(Object.entries(t.byRole).filter(([, r]) => r && typeof r === 'object')
+    .map(([r, x]) => [r, {counts: Array.isArray(x.counts) ? x.counts.map(n => Math.max(0, +n || 0)) : [], ballots: Math.max(0, +x.ballots || 0)}])) : null;
+  const ids = byRole ? Object.keys(byRole) : [];
+  const roles = Array.isArray(NET.roles) ? NET.roles.filter(r => r && ids.includes(r.id)).map(({id: rid, name, icon, color}) => ({id: rid, name, icon, color})) : [];
+  G.council[id] = {counts: t.counts.map(n => Math.max(0, +n || 0)), ballots, byRole, roles, at: Date.now()};
+  return G.council[id];
+}
+// Small chips per role: who picked option i (or, as a legend, how many of each role voted).
+// entry is a live tally or a stored one; role names and icons come from NET.roles when known.
+export function roleChips(entry, i = -1, {legend = false} = {}) {
+  const byRole = entry?.byRole;
+  if (!byRole || typeof byRole !== 'object') return null;
+  const lists = [entry.roles, NET.roles];
+  const said = [];
+  const chips = roleOrder(byRole, ...lists).flatMap(id => {
+    const r = roleInfo(id, ...lists), x = byRole[id] || {}, n = legend ? +x.ballots || 0 : +x.counts?.[i] || 0;
+    if (n <= 0) return [];
+    said.push(`${r.name} ${n}`);
+    return [el('span', {class: 'rchip', style: `--rc:${r.color}`, title: `${r.name}: ${n}`},
+      el('i', {'aria-hidden': 'true', text: r.icon}), legend ? el('span', {class: 'rn', text: r.name}) : el('span', {class: 'sr', text: `${r.name} `}), el('b', {text: String(n)}))];
+  });
+  if (!chips.length) return null;
+  return el('span', {class: `rchips${legend ? ' legend' : ''}`, role: 'group', 'aria-label': `${legend ? 'Stemmen per rol' : 'Per rol'}: ${said.join(', ')}`}, chips);
+}
+addStyles('council-chips', `
+.rchips{grid-column:2/4;display:flex;flex-wrap:wrap;gap:4px;margin-top:1px}
+.rchips.legend{grid-column:auto}
+.rchip{display:inline-flex;align-items:center;gap:4px;padding:1px 8px 1px 6px;border-radius:11px;font-family:var(--f-ui);font-size:12px;line-height:18px;color:var(--parch);white-space:nowrap;
+ background:color-mix(in srgb,var(--rc,#b9aa8c) 20%,rgba(0,0,0,.25));border:1px solid color-mix(in srgb,var(--rc,#b9aa8c) 55%,transparent)}
+.rchip i{font-style:normal;font-size:12px;line-height:1}
+.rchip b{font-weight:700}
+.rchip .rn{color:var(--parch)}
+.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+`);
 
 export function clueHtml(c) {
   return `<p><b>${esc(c.body)}</b></p><p>${esc(c.explanation)}</p>${c.steps?.length ? `<ul>${c.steps.map(s => `<li>${esc(s)}</li>`).join('')}</ul>` : ''}${c.example ? `<p class="ex">${esc(c.example)}</p>` : ''}${c.section ? `<p><small>Uit het raamwerk: ${esc(c.section)}</small></p>` : ''}`;
@@ -48,6 +92,7 @@ export function decide(id, {who, place} = {}) {
     };
     const finish = () => {
       removeEventListener('keydown', keys);
+      if (storeCouncil(id)) saveGame();
       NET.closeVote?.(); NET.onTally = null;
       $('decision').hidden = true; GAME.modal = null;
       relock();
@@ -64,7 +109,8 @@ export function decide(id, {who, place} = {}) {
         const b = el('button', {class: `optb ${res ? o.status : ''}`, 'aria-pressed': String(on), onclick: () => phase === 'choose' && toggle(i)},
           el('span', {class: 'box', text: on ? '✓' : ''}),
           el('span', {}, `${i + 1}. ${o.text}`),
-          el('span', {class: 'votes', text: tally ? `${tally.counts[i] || 0} ▲` : ''}));
+          el('span', {class: 'votes', text: tally ? `${tally.counts[i] || 0} ▲` : ''}),
+          tally ? roleChips(tally, i) : null);
         if (res) b.append(el('span', {class: 'fb', html: `<b>${STATUS[o.status]}</b> · ${esc(o.feedback)}`}));
         opts.append(b);
       });
@@ -88,7 +134,8 @@ export function decide(id, {who, place} = {}) {
           return el('button', {class: 'bron', onclick: () => { openClue = open ? null : k.id; render(); }}, el('b', {text: k.title}), el('p', {html: open ? clueHtml(k) : esc(k.body)}));
         }),
         found.length < c.clues.length ? el('p', {style: 'margin:0;font-size:13px;color:var(--dim)', text: 'Bronnen vind je als rollen in de kamers van deze vleugel. Elke bron maakt de afweging makkelijker.'}) : null,
-        tally ? el('div', {class: 'label', text: `Adviesraad: ${tally.ballots} ${tally.ballots === 1 ? 'stem' : 'stemmen'}`}) : NET.active ? el('div', {class: 'label', text: 'De adviesraad kijkt mee op de telefoon.'}) : null);
+        tally ? el('div', {class: 'label', text: `Adviesraad: ${tally.ballots} ${tally.ballots === 1 ? 'stem' : 'stemmen'}`}) : NET.active ? el('div', {class: 'label', text: 'De adviesraad kijkt mee op de telefoon.'}) : null,
+        tally ? roleChips(tally, -1, {legend: true}) : null);
       body.innerHTML = '';
       body.append(el('div', {class: 'dec'}, kase, side));
       const bar = $('decBar');
