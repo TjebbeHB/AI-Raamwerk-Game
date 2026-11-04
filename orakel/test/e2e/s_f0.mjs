@@ -22,7 +22,8 @@ const checkpoint = n => [
 ];
 
 export default [
-  {name: 'start', shot: false, js: `document.querySelector('#titleBtns .go').click(); 'started'`, wait: 1500},
+  // autoHero skips the character creator (a Verbinder called Sam with the default look)
+  {name: 'start', shot: false, js: `window.__orakel.autoHero = {archetype: 'verbinder', name: 'Sam'}; document.querySelector('#titleBtns .go').click(); 'started'`, wait: 1500},
   {name: 'helpers', shot: false, js: T, wait: 50},
   step('hero', `o.G.hero = {name: 'Sam', pronouns: 'die', address: 'neutraal', archetype: 'verbinder', look: {}}; await o.run(1); return JSON.stringify({dlg: o.DLG.active, stage: o.G.quests.main})`, {shot: false}),
   step('letter', `o.ON.use.letter(); await o.run(0.2); return document.getElementById('readTitle').textContent`),

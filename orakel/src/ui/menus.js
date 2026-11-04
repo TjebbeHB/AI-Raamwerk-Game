@@ -9,7 +9,10 @@ import {unlockForUi} from '../game/dialogue.js';
 import {journal, QUESTS} from '../game/quests.js';
 import {drawTiles, drawMarkers} from './hud.js';
 import {tracked} from '../game/quests.js';
-import {placePlayer} from '../game/player.js';
+import {placePlayer, rebuildHeroModel} from '../game/player.js';
+import {invalidateMods} from '../game/mods.js';
+import {makeHero} from '../content/archetypes.js';
+import {openCreator} from './creator.js';
 import {setQuality, setBrightness, R} from '../engine/render.js';
 import {BEASTS, TOOLS} from '../game/combat.js';
 
@@ -34,16 +37,40 @@ export function initMenus() {
 }
 
 // ---------------------------------------------------------------- title
+// Test hook: window.__orakel.autoHero = {archetype: 'verbinder'} (or ?hero=verbinder) skips the character
+// creator with a default look; {name, look, tutorial} work too. Automated browsers (navigator.webdriver,
+// so the e2e scripts) skip it as well, as the default hero, unless the address has ?creator.
+function autoHero() {
+  const q = new URLSearchParams(location.search);
+  if (window.__orakel?.autoHero) return window.__orakel.autoHero;
+  if (q.has('hero')) return {archetype: q.get('hero')};
+  if (navigator.webdriver && !q.has('creator')) return {};
+  return null;
+}
 export function showTitle() {
   GAME.mode = 'title';
   $('title').hidden = false; $('hud').hidden = true; $('touch').hidden = true;
   const btns = $('titleBtns');
   btns.innerHTML = '';
   const start = async fn => { SFX.unlock?.(); $('title').hidden = true; $('hud').hidden = false; if (IS_TOUCH) $('touch').hidden = false; await fn(); if (!IS_TOUCH) lock(); };
+  // a new game: first who you are (ui/creator.js), then the practice round or straight to the town hall
+  const fresh = async () => {
+    SFX.unlock?.();
+    const auto = autoHero();
+    let res = auto ? {hero: makeHero(auto), tutorial: !!auto.tutorial} : null;
+    if (!res) {
+      const hold = GAME.noRender;
+      GAME.noRender = true;   // the creator covers the world: no need to draw it meanwhile
+      try { res = await openCreator(); } finally { GAME.noRender = hold; }
+    }
+    if (res) await start(() => newGame(res));
+  };
+  // an old save without a hero is the default hero; with one, your body and your passives come back
+  const resume = async () => { await continueGame(); rebuildHeroModel(); invalidateMods(); };
   if (hasSave()) {
-    btns.append(el('button', {class: 'go', onclick: () => start(continueGame)}, 'Verder spelen'));
-    btns.append(el('button', {class: 'btn', onclick: () => { if (confirm('Opnieuw beginnen? Je bewaarde voortgang in deze browser wordt overschreven.')) start(newGame); }}, 'Nieuw spel'));
-  } else btns.append(el('button', {class: 'go', onclick: () => start(newGame)}, 'Begin de afdaling'));
+    btns.append(el('button', {class: 'go', onclick: () => start(resume)}, 'Verder spelen'));
+    btns.append(el('button', {class: 'btn', onclick: () => { if (confirm('Opnieuw beginnen? Je bewaarde voortgang in deze browser wordt overschreven.')) fresh(); }}, 'Nieuw spel'));
+  } else btns.append(el('button', {class: 'go', onclick: fresh}, 'Begin de afdaling'));
   btns.append(el('button', {class: 'btn', onclick: () => UI.councilHost?.()}, 'Adviesraad (multiplayer)'));
   btns.append(el('button', {class: 'btn', onclick: () => openOptionsOnly()}, 'Opties'));
   btns.append(el('button', {class: 'btn', onclick: () => openSaveCode()}, 'Spelcode'));
