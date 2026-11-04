@@ -17,6 +17,9 @@ m.stamp(24, 14, `
 ............Q.N.............
 ............................`, {'<': [{id: 'up_f2', to: 'f2', at: 'from_f3', label: 'De lift terug naar Diepte 2'}], '@': [{id: 'from_f2', dir: 's'}], K: [{id: 'k_bordes', dir: 'w', name: 'Het Liftbordes'}],
   N: [{id: 'glans3', dir: 'w'}, {id: 'wouter', dir: 's'}], I: [{id: 'bron:compliance:b'}, {id: 'bron:security:b'}], Q: [{id: 'brugpaal', kind: 'bridgepost'}]});
+// under the key post, where the first bridge started
+m.ent(35, 21, 'M', {id: 'opa3', kind: 'stone', dir: 'n', title: 'Onder de sleutelpaal', secret: 'opa_d3',
+  text: 'Half onder de sleutelpaal ligt een oude steen. Er is iets in gekrast, met een krul aan de J:\n\n‘J. 1948. Een brug waar je niet af kunt, is een val. Opa.’'});
 m.rect(28, 22, 47, 44, '_');
 for (let z = 22; z <= 44; z++) m.put(37, z, 'H', {id: `brug${z}`, color: 0xffe2a6});
 m.rect(24, 22, 27, 41); m.rect(48, 22, 51, 41);
@@ -90,6 +93,10 @@ y.......E.......y
 k.k.k.k.k.k.k.k.k`, {Q: posts('quality'),
   I: [{id: 'kristal:3'}, {id: 'bron:quality:b'}, {id: 'bron:quality:a'}, {id: 'halluc:3'}], E: [{kind: 'halluc', n: 2, group: 'f3_q'}], N: [{id: 'bep', dir: 'w'}],
   H: [{color: 0xffe2a6}, {color: 0xffe2a6}, {color: 0xffe2a6}, {color: 0xffe2a6}]});
+// the library of Almost True: a dictionary that is right, and a book about who governs Dalwijk
+m.ent(7, 5, 'Q', {id: 'vandale', kind: 'vondst', give: 'trinket:vandale'});
+m.ent(3, 9, 'M', {id: 'burgemeestersboek', kind: 'book', dir: 'e', title: 'Het Grote Boek der Burgemeesters, deel drie', secret: 'burgemeestersboek',
+  text: 'HET GROTE BOEK DER BURGEMEESTERS VAN DALWIJK · deel drie (1979 tot heden)\n\nDe bladzijden zijn leeg. Allemaal, behalve de eerste.\n\nDaarop staat, in inkt die al vijfenveertig jaar niet opdroogt: een pootafdruk. Met zwemvliezen.\n\nIn de kantlijn, in potlood: ‘Zie ook: het portret in de publiekshal.’'});
 m.put(19, 25, 'D');
 m.stamp(2, 19, `
 p...p...p...p...p
@@ -106,6 +113,7 @@ p.......:.......p
 .......E.........
 .................
 p...p...p...p...p`, {Q: posts('evaluation'), I: [{id: 'bron:evaluation:b'}, {id: 'bron:evaluation:a'}], N: [{id: 'mira', dir: 'e'}], E: [{kind: 'demo', n: 2, group: 'f3_eval'}]});
+m.ent(14, 24, 'Q', {id: 'zaadzakje', kind: 'bingo', give: 'bingo:proeftuin', wall: false, dir: 'e'});
 m.put(19, 43, 'D');
 const voices = CHAMBER.ethics.trial.witnesses;
 m.stamp(2, 35, `
@@ -153,6 +161,8 @@ k.k.k.k.k.k.
 ............
 N..........I
 ............`, {I: [{id: 'bron:security:a'}, {id: 'halluc:9'}], E: [{kind: 'hydra', group: 'boss_hydra'}, {kind: 'whisper', n: 2, group: 'f3_whisper'}, {kind: 'whisper', n: 2, group: 'f3_whisper'}], N: [{id: 'slotje', dir: 'e'}]});
+m.ent(42, 3, 'Q', {id: 'wachtwoordbriefje', kind: 'ding', shape: 'postits', color: 0xffe066, title: 'Een geel briefje op een boekenkast',
+  text: 'WACHTWOORD FLUISTERBIBLIOTHEEK: Welkom01\n(Niet verder vertellen!)\n\nDaaronder, in een ander handschrift: ‘Iedereen zijn wachtwoord is Welkom01. Groet, Dirk.’'});
 
 // ---------------------------------------------------------------- east: interaction, functionality, performance, sustainability
 m.put(56, 8, 'D');
@@ -184,6 +194,7 @@ e...e...e...e...e
 ...........E.....
 .I.............I.
 e...e...e...e...e`, {Q: posts('functionality'), N: [{id: 'kees', dir: 'e'}], E: [{kind: 'halluc', n: 2, group: 'f3_func'}], I: [{id: 'bron:functionality:a'}, {id: 'snack:f3c'}]});
+m.ent(70, 20, 'Q', {id: 'postits', kind: 'vondst', give: 'trinket:postits'});
 m.put(56, 35, 'D');
 m.stamp(57, 30, `
 ...e....Q....e...
@@ -197,6 +208,8 @@ m.stamp(57, 30, `
 ..E..........E...
 .I.............I.
 .................`, {Q: [{id: 'wachtrij', kind: 'board', label: 'Wachtrij: 4.096'}, ...leverObjects('performance')], N: [{id: 'bram', dir: 'e'}], E: [{kind: 'worm', group: 'f3_perf'}, {kind: 'haste', group: 'f3_perf'}, {kind: 'haste', group: 'f3_perf'}], I: [{id: 'bron:performance:a'}, {id: 'snack:f3d'}]});
+// every printer in the Gewelf has the same problem
+m.ent(73, 33, 'Q', {id: 'printer3', kind: 'printer', dir: 'w'});
 m.put(56, 49, 'D');
 const duurPieces = sortPieces('sustainability', 'duur', 'card', [0x8fe0a0, 0xffd36b, 0xff8a5c]);
 const duurSlots = sortSlots('sustainability', 'duur', 'chute', [0x8fe0a0, 0xffd36b, 0xff8a5c]);
@@ -216,7 +229,7 @@ m.stamp(57, 43, `
 .................`, {Q: [{id: 'oven', kind: 'oven', label: 'De modelmachine'}, ...duurSlots, duurPieces[0], duurPieces[1], duurPieces[2], duurPieces[3]], N: [{id: 'sien', dir: 'e'}], E: [{kind: 'token', n: 2, group: 'f3_duur'}], I: [{id: 'bron:sustainability:a'}, {id: 'bron:sustainability:b'}]});
 
 export default {
-  id: 'f3', depth: 'Diepte 3', name: 'De Galerij der Domeinen', music: 'f3',
+  id: 'f3', depth: 'Diepte 3', name: 'De Galerij der Domeinen', music: 'f3', strictFinds: true,
   fog: 0x0c0a12, fogDensity: 0.03, sky: 0x9a8ac8, ground: 0x1a1426, hemi: 0.2,
   defaults: {wall: 'marble', floor: 'flag', ceil: 'rough', ceilH: 5, torch: 0xd4b4ff, torchEvery: 4, fill: [0x6a5a8a, 0.08],
     tint: {wall: 0xa89bbd, floor: 0x9c94a9, ceil: 0x564d66, pillar: 0xc0b4d8}},

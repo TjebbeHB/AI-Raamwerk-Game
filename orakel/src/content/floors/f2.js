@@ -27,6 +27,9 @@ QN..................
   M: [{id: 'card7', kind: 'plaque', dir: 'e', title: 'Glans was hier', text: 'Een gouden bordje, met plakband aan de muur: ‘PraatPal Snelle Lift · Nu ook op Diepte 2! · Vraag naar de mogelijkheden.’'}, {id: 'fundamenten', kind: 'stone', dir: 'n', title: 'De vier fundamenten', text: 'Wie bouwt zonder eigenaar, bouwt op niemand.\nWie bouwt zonder mensen, bouwt voor niemand.\nWie bouwt zonder kennis, bouwt op een ander.\nWie bouwt zonder te weten waar zijn data staat, bouwt op drijfzand.\n\nZet de vier stenen terug. Dan zakt de lift.'}],
   N: [{id: 'glans2', dir: 'e'}]});
 m.ent(31, 33, 'E', {kind: 'king', group: 'boss_king', if: 'king_awake'});
+// opa Joop leaned a stone against the north-west pillar
+m.ent(24, 23, 'M', {id: 'opa2', kind: 'stone', dir: 'e', title: 'Een steen tegen de pilaar', secret: 'opa_d2',
+  text: 'Tegen de pilaar staat een steen, keurig recht. Er is iets in gekrast, met een krul aan de J:\n\n‘J. 1948. Wie goed fundeert, hoeft zich niet te haasten. Opa.’'});
 // arrival from Diepte 1, south-west of the hall
 m.stamp(23, 39, `
 ..@..
@@ -46,6 +49,8 @@ y.f..f....f..y
 .I..........I.
 ..f..f..f..f..`, {E: [{kind: 'buck', n: 3, group: 'f2_buck'}], I: [{id: 'halluc:4'}, {id: 'bron:governance:a'}]});
 m.ent(27, 13, 'M', {id: 'doorverwijs', kind: 'board', dir: 's', title: 'De Wachtkamer van Doorverwijzing', text: 'Uw vraag wordt doorverwezen.\n\nUw doorverwijzing wordt doorverwezen naar de afdeling Doorverwijzingen.\n\nDe afdeling Doorverwijzingen is momenteel doorverwezen.'});
+// Kim has been preparing the programme that prepares the project since 2019
+m.ent(34, 13, 'N', {id: 'kim', dir: 's'});
 // side niches with two stamps
 m.rect(22, 14, 24, 15); m.rect(39, 14, 41, 15);
 m.rect(31, 11, 32, 12);
@@ -62,6 +67,10 @@ m.stamp(22, 2, `
 ..o.............o...
 .Q................Q.
 ....................`, {I: [{id: 'bron:governance:b'}, {id: 'card:5'}], N: [{id: 'griffel', dir: 's'}], Q: [govSlots[0], govSlots[1], govSlots[2], govPieces[2], govPieces[3]]});
+// on the chairman's seat, which has been empty for years: an agenda without a single meeting
+m.ent(33, 2, 'Q', {id: 'agenda', kind: 'vondst', give: 'trinket:agenda'});
+m.ent(36, 2, 'M', {id: 'presentielijst', kind: 'board', dir: 's', title: 'Presentielijst',
+  text: 'PRESENTIELIJST · Raad van Niemand\n\nAanwezig: niemand\nAfwezig met kennisgeving: iedereen\nVoorzitter: vacature (sinds 2011)\n\nBesluiten: geen\nActiepunten: zie vorige keer'});
 
 // ---------------------------------------------------------------- east: culture & adoption
 m.rect(42, 29, 45, 30);
@@ -88,6 +97,7 @@ I..............I
 ................`, {N: [{id: 'ans', dir: 's'}, {id: 'joris', dir: 's'}, {id: 'vonk', dir: 's'}, {id: 'fatma', dir: 'n'}, {id: 'pieter', dir: 'n'}],
   F: [{id: 'vuur_ans', lit: false, color: 0x9fb0ff}, {id: 'vuur_joris', lit: false, color: 0x9fffd0}, {id: 'vuur_fatma', lit: false, color: 0xff9fd8}, {id: 'vuur_pieter', lit: false, color: 0xd8ff9f}],
   I: [{id: 'bron:culture:a'}, {id: 'bron:culture:b'}], E: [{kind: 'haste', n: 2, group: 'f2_cult'}, {kind: 'haste', group: 'f2_cult'}]});
+m.ent(49, 24, 'Q', {id: 'draagvlakposter', kind: 'bingo', give: 'bingo:draagvlak', dir: 'e'});
 
 // ---------------------------------------------------------------- west: knowledge & capacity
 m.rect(18, 29, 21, 30);
@@ -105,6 +115,7 @@ d.........
 ..........
 ....d.....`, {N: [{id: 'mallow', dir: 's'}, {id: 'henk', dir: 'e'}], Q: [{id: 'archief_lessenaar', kind: 'post', label: 'Het levende archief'}]});
 m.put(7, 33, 'D', {id: 'vakantiedeur', flag: 'never', label: 'Uitgang · ‘Vakantie’', msg: 'Op de deur hangt een briefje: ‘Henk is vanaf morgen drie weken weg. Vragen? Henk.’'});
+m.ent(8, 34, 'Q', {id: 'henksla', kind: 'drawer', dir: 'e', label: 'Bureau van Henk', secret: 'henks_la'});
 m.rect(5, 33, 6, 33);
 // the mailbox of a former colleague, behind a wall that is not a wall
 m.put(12, 23, 'S'); m.stamp(9, 18, `
@@ -167,9 +178,12 @@ m.stamp(22, 52, `
 .I....E..I.
 .~~~...~~~.
 .~~~...~~~.`, {E: [{kind: 'leak', group: 'f2_leak'}, {kind: 'leak', group: 'f2_leak'}, {kind: 'leak', n: 2, group: 'f2_leak'}], I: [{id: 'blauwdruk', manual: true, label: 'Pak de bouwtekening'}, {id: 'halluc:6'}]});
+// something is floating in the leak water that is not data
+m.ent(30, 57, 'Q', {id: 'badeend', kind: 'ding', shape: 'duck', color: 0xffd84a, stand: false, y: -0.08, on: '~', secret: 'badeend', title: 'Een badeend',
+  text: 'Tussen twee datalekken dobbert een gele badeend. Hij draagt een ambtsketen.\n\nOp zijn buik staat, in watervaste stift: ‘Burgemeester (reserve)’.'});
 
 export default {
-  id: 'f2', depth: 'Diepte 2', name: 'De Hal der Fundamenten', music: 'f2',
+  id: 'f2', depth: 'Diepte 2', name: 'De Hal der Fundamenten', music: 'f2', strictFinds: true,
   fog: 0x0a100c, fogDensity: 0.04, sky: 0x8aa890, ground: 0x1a2418, hemi: 0.2,
   defaults: {wall: 'ashlar', floor: 'flag', ceil: 'rough', ceilH: 4.5, torch: 0xc6e39a, torchEvery: 4, fill: [0x3a5a40, 0.04], moss: 0.5,
     tint: {wall: 0x9aae94, floor: 0x9a9c86, ceil: 0x515d4f, pillar: 0xa8b8a0}},
