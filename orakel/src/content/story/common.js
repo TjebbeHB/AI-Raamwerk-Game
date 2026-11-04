@@ -13,6 +13,7 @@ import {heardCount} from '../puzzles.js';
 import {onItem, onCoffee} from './systems.js';
 import {heroName} from '../../game/hero.js';
 import {el, esc, IS_TOUCH} from '../../core/util.js';
+import {keyLabel} from '../../core/keys.js';
 
 Object.assign(DEPTH_NAMES, {f0: 'het stadhuis', f1: 'Diepte 1', f2: 'Diepte 2', f3: 'Diepte 3', f4: 'Diepte 4'});
 export const foundationsDone = () => FOUNDATIONS.filter(id => G.flags[`steen:${id}`]).length;
@@ -164,7 +165,7 @@ ON.newGame = () => scene(async () => {
   await say('nar', `Je eerste werkdag als adviseur Dienstverlening.${name ? ` Op de deur hangt al een papiertje met ‘${name}’ erop, met plakband.` : ''} Op je bureau ligt een envelop met het gemeentewapen erop.`);
   UI.toast('Zo beweeg je', IS_TOUCH
     ? 'Stick: lopen · rechts slepen: rondkijken · E: praten en gebruiken · ✦: gereedschap'
-    : 'WASD lopen · muis kijken (klik in de wereld) · E gebruiken · V wisselt eerste en derde persoon', 'quest');
+    : `${keyLabel('forward')}${keyLabel('left')}${keyLabel('back')}${keyLabel('right')} lopen · muis kijken (klik in de wereld) · ${keyLabel('interact')} gebruiken · ${keyLabel('camera')} wisselt eerste en derde persoon`, 'quest');
   if (IS_TOUCH && innerHeight > innerWidth) UI.toast('Tip', 'Draai je telefoon een kwartslag: dan zie je meer van het Gewelf.', 'quest');
 });
 void choose; void esc; void ent; void startQuest;
