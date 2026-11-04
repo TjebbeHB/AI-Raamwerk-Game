@@ -49,13 +49,9 @@ export function useAbility() {
 }
 const say = (line, title) => (G.flags.pip ? UI.pip(line) : UI.toast(title, line, 'quest'));
 
-// combat.js weighs every hit against the monster's weakness (x2.5 for the right tool, x0.4 for any
-// other) and then tells you which tool works. An ability is neither: undo the 0.4, skip the hint.
+// Abilities count as neutral damage in combat.js: no weakness bonus or penalty, no tool hint.
 function hit(e, amount, opts = {}) {
-  if (!e.alive) return;
-  const k = `hint:${e.type}`, had = G.flags[k];
-  if (!had) G.flags[k] = 1;
-  try { damage(e, e.def.weak ? amount / 0.4 : amount, 'ability', opts); } finally { if (!had) delete G.flags[k]; }
+  damage(e, amount, 'ability', opts);
 }
 const near = (x, z, r) => C.enemies.filter(e => e.alive && !e.hidden && Math.hypot(e.x - x, e.z - z) < r + (e.def.r ?? 0.5));
 // a monster that was winding up forgets what it was doing

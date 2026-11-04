@@ -1,4 +1,5 @@
 // The whole game state lives in G, so saving is one JSON.stringify. Settings are kept apart.
+import {invalidateMods} from './mods.js';
 export const SAVE_KEY = 'orakel-dalwijk-save-v1';
 const SETTINGS_KEY = 'orakel-dalwijk-settings-v1';
 const CODE_PREFIX = 'ORAKEL-1:';
@@ -31,7 +32,7 @@ export function freshState() {
 }
 
 export const G = freshState();
-export function resetState() { const f = freshState(); for (const k of Object.keys(G)) delete G[k]; Object.assign(G, f); }
+export function resetState() { const f = freshState(); for (const k of Object.keys(G)) delete G[k]; Object.assign(G, f); invalidateMods(); }
 
 export const flag = k => !!G.flags[k];
 export const setFlag = (k, v = true) => { G.flags[k] = v; };
@@ -58,6 +59,7 @@ export function applySave(data) {
   for (const [k, v] of Object.entries(data)) if (k in f) G[k] = v;
   for (const k of ['flags', 'items', 'keys', 'chambers', 'cleared', 'opened', 'explored', 'stats', 'quests', 'tools', 'rel', 'council']) G[k] = {...f[k], ...(G[k] || {})};
   for (const k of ['bronnen', 'hallucs', 'crystals', 'cards', 'coffee', 'choices', 'secrets', 'trinkets', 'bingo', 'achievements']) if (!Array.isArray(G[k])) G[k] = f[k];
+  invalidateMods();      // archetype and trinket modifiers come from the loaded state
   return true;
 }
 export function clearSave() { try { store()?.removeItem(SAVE_KEY); } catch (e) { /* ignore */ } }

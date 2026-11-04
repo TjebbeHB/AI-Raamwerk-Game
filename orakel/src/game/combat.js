@@ -181,7 +181,8 @@ export function damage(e, amount, tool, o = {}) {
   if (e.invuln) { if (!e.invulnT || e.invulnT < performance.now()) { e.invulnT = performance.now() + 600; UI.number(e.x, e.y + (e.def.aimY ?? 1) + 0.8, e.z, e.def.immuneText || 'Onkwetsbaar', '#aaa', false); } FX.burst(e.x, e.y + (e.def.aimY ?? 1), e.z, 6, {color: 0xffffff, speed: 2, life: 0.3, s0: 0.12}); return; }
   const def = e.def;
   let mult = 1;
-  if (def.weak) mult = tool === def.weak ? 2.5 : 0.4;
+  const isTool = tool in TOOLS;      // abilities and story effects are neutral: no weakness bonus or penalty
+  if (def.weak && isTool) mult = tool === def.weak ? 2.5 : 0.4;
   if (def.shielded && !e.exposed) { mult *= 0.1; if (!e.shieldHint) { e.shieldHint = true; UI.pip(def.shieldHint || 'Het glanst te veel. Laat eerst het licht openbarsten (R) om te zien wat er echt zit.'); } }
   if (def.damageFilter) mult = def.damageFilter(e, tool, mult, amount);
   if (SETTINGS.difficulty === 'story') mult *= 1.4;
@@ -195,7 +196,7 @@ export function damage(e, amount, tool, o = {}) {
   UI.number(e.x, e.y + def.aimY + 0.6, e.z, dmg, tool === def.weak ? TOOLS[tool].css : '#bbb', tool === def.weak);
   FX.burst(e.x, e.y + def.aimY, e.z, tool === def.weak ? 18 : 8, {color: [TOOLS[tool]?.color ?? 0xffffff, def.color ?? 0xffffff], speed: 3, life: 0.5, s0: 0.16});
   SFX.play(tool === def.weak ? 'hitWeak' : 'hit');
-  if (tool !== def.weak && def.weak && !G.flags[`hint:${e.type}`] && dmg > 0) {
+  if (isTool && tool !== def.weak && def.weak && !G.flags[`hint:${e.type}`] && dmg > 0) {
     G.flags[`hint:${e.type}`] = 1;
     UI.pip(`${def.name} is ongevoelig voor de ${TOOLS[tool].name}. Probeer de ${TOOLS[def.weak].name} (${TOOL_ORDER.indexOf(def.weak) + 1}).`);
   }
