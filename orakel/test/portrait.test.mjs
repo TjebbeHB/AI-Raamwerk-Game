@@ -87,6 +87,11 @@ test('subjects: aliases follow the cast, the hero follows G.hero, unknowns fall 
   G.hero = null;
   for (const s of ['niemand', {kind: 'draak'}, {kind: 'spark'}, {kind: 'owl'}, {}, null, 'orakel', 'fabulant']) assert.ok(hash(renderPortrait(s)), `fallback for ${JSON.stringify(s)}`);
   assert.equal(hasPortrait('nar'), false); assert.equal(hasPortrait(''), false); assert.equal(hasPortrait('joop'), true); assert.equal(hasPortrait('you'), true); assert.equal(hasPortrait('niemand'), false);
+  // speakers from dialogue.js and cast entries work as subjects too
+  assert.equal(resolveSubject({name: 'Glans', cls: '', id: 'glans3'}).key, resolveSubject('glans').key);
+  assert.equal(resolveSubject({name: 'Jij', title: '', cls: 'you'}).id, 'you');
+  assert.equal(resolveSubject(CAST.joop).id, 'joop');
+  assert.equal(hasPortrait({name: '', title: '', cls: 'nar'}), false); assert.equal(hasPortrait({name: 'Jij', cls: 'you'}), true); assert.equal(hasPortrait({kind: 'owl'}), true);
   assert.equal(typeof UI.portraitURL, 'function');
 });
 

@@ -3,9 +3,16 @@
 // then it gets contact shadows, clean outlines, a rim light and a framed panel tinted with the
 // character's colour. Everything follows the LOOK SCHEMA (game/hero.js), so the 3D model, the
 // creator and the portrait agree on hair, colours, glasses, facial hair and clothes.
-//   drawPortrait(canvas, subject, {mood, mouth, blink, size})   portraitURL(subject, mood)
-//   startTalking(canvas, subject, mood) / stopTalking(canvas) / showPortrait / hidePortrait
-// subject: a cast id ('glans3' follows its alias to 'glans'), 'you' (the hero), a look object or {kind}.
+//
+// subject: a cast id ('glans3' follows its alias to 'glans'), 'you' (the hero, with an archetype
+// badge), a look object (old cast specs work too) or {kind: 'pip' | 'spark' | 'cloud' | 'owl' |
+// 'padlock' | 'gnome' | 'kobold' | 'orakel' | 'fabulant', color}. mood: one of MOODS.
+//   drawPortrait(canvas, subject, {mood, mouth 0..1, blink 0..1, size, frame, flip, badge})
+//   portraitURL(subject, mood, {scale = 2}) -> cached PNG data URL (also UI.portraitURL)
+//   portraitImg(subject, mood, {size}) -> <img class="portrait">
+//   startTalking(canvas, subject, mood) / stopTalking(canvas) / showPortrait / hidePortrait(canvas)
+//   preloadPortraits(subjects, moods), hasPortrait(subject), renderPortrait (pure, no DOM: tests)
+// Show canvases and images with class "portrait" (image-rendering: pixelated) at 96, 192 or 288 px.
 import {UI, CAST} from '../game/bus.js';
 import {SETTINGS} from '../game/state.js';
 import {DEFAULT_LOOK, heroLook, archetype} from '../game/hero.js';
@@ -159,7 +166,7 @@ function text(str, x, y, col, m) {
 }
 
 // ---------------------------------------------------------------- finishing passes
-function passes(rimCol) {
+function passes() {
   // contact shadows: a caster darkens what lies just below it (and a little to the right: light from the upper left)
   for (let y = 1; y < N; y++) for (let x = 0; x < N; x++) {
     const i = y * N + x, p = PART[i];
@@ -188,7 +195,6 @@ function passes(rimCol) {
     const r = i + 1;
     if (FLAG[r] === 2 || !PART[r] || (y > 0 && x > 44 && FLAG[i - N] === 2 && FLAG[r - N] === 2)) FLAG[i] = 4;
   }
-  void rimCol;
 }
 function compose(out, rimCol, transparent) {
   for (let i = 0; i < NN; i++) {
@@ -301,7 +307,7 @@ const SIG = {
   joop: {prop: 'mug', mugText: ['BESTE', 'CONCIËRGE'], twinkle: true, checks: true},
   wethouder: {brooch: true, pen: true},
   ilse: {prop: 'tea', tired: true},
-  bakker: {chain: true, bag: true},
+  bakker: {chain: true, bag: true, determined: true},
   glans: {shadesUp: true, grin: true, shiny: true, prop: 'folder', tan: true},
   burger1: {bread: true, ticket: '388'},
   burger2: {prop: 'form'},
@@ -315,7 +321,6 @@ const SIG = {
   kees: {loupe: true, watch: true},
   sien: {soot: true, messy: true, prop: 'coffee', mitt: true},
   linde: {prop: 'horn'},
-  noor: {gnome: true},
   bram: {postal: true, bag: true, letters: true},
 };
 const PROPS = new Set(['mug', 'tea', 'coffee', 'folder', 'book', 'clipboard', 'ruler', 'horn', 'leash', 'form', 'stamp', 'keys']);
@@ -343,9 +348,18 @@ function fromSpec(m, id, tint) {
   if (CREATURES.has(kind)) return {R: 1, id, kind, spec: m, tint, key: `${id || 'c'}|${kind}|${stable(m)}`};
   return {R: 1, id, kind: 'unknown', spec: m, tint, key: `unknown|${id}|${stable(m)}`};
 }
+// A speaker from dialogue.js ({cls, id}) or a cast entry itself points at a cast id ('' = the narrator).
+function subjectId(s) {
+  if (s.cls === 'you') return 'you';
+  if (s.cls === 'nar') return '';
+  if (typeof s.id === 'string' && CAST[s.id]) return s.id;
+  for (const k of Object.keys(CAST)) if (CAST[k] === s) return k;
+  return null;
+}
 // subject -> {kind, look | spec, id (canonical cast id), tint, key}
 export function resolveSubject(subject) {
   if (subject && subject.R === 1) return subject;
+  if (subject && typeof subject === 'object') { const id = subjectId(subject); if (id !== null) subject = id; }
   if (subject === 'you' || subject === 'hero') { const look = heroLook(), arch = archetype(); return {R: 1, id: 'you', kind: 'human', look: normLook(look), spec: look, tint: null, arch, key: `you|${arch}|${stable(look)}`}; }
   if (typeof subject === 'string' && subject) {
     const id = canon(subject), c = CAST[id], m = c?.model, tint = colorOf(c?.color, null);
@@ -357,7 +371,10 @@ export function resolveSubject(subject) {
   return {R: 1, id: null, kind: 'unknown', spec: {}, tint: null, key: 'unknown|'};
 }
 // the narrator and empty speakers have no face
-export const hasPortrait = s => !!s && s !== 'nar' && (typeof s !== 'string' || s === 'you' || s === 'hero' || !!CAST[s]);
+export function hasPortrait(s) {
+  if (s && typeof s === 'object') { if (s.R === 1) return true; const id = subjectId(s); if (id === null) return true; s = id; }
+  return !!s && s !== 'nar' && (s === 'you' || s === 'hero' || !!CAST[s]);
+}
 
 // ---------------------------------------------------------------- moods
 // eye: template; look: iris offset; brow: [raise, tilt (inner end up), arch] for the near and the far brow
@@ -448,7 +465,7 @@ const HAIR_EDGES = {
 HAIR_EDGES.bun = HAIR_EDGES.ponytail;
 const BANGS = lockEdge({side: 47, temple: 36, tips: [[-0.8, 21.2], [-0.52, 21.8], [-0.24, 21.2], [0.04, 21.8], [0.32, 21.2], [0.6, 21.8], [0.84, 21]], depth: 1.6});
 
-function human(S, mood, mouth, blink, extra) {
+function human(S, mood, mouth, blink) {
   let L = S.look;
   const kind = S.kind, sig = {...(SIG[S.id] || {}), ...(L.sig || {})}, M = MOOD[mood];
   if (kind === 'gnome') L = {...L, nose: 'big', brows: L.brows === 'normal' ? 'bushy' : L.brows, blush: true, facialHair: L.facialHair === 'beard' || L.facialHair === 'none' ? 'full' : L.facialHair};
@@ -484,23 +501,23 @@ function human(S, mood, mouth, blink, extra) {
   features(g, L, P, M, mood, mouth, blink, sig, skinR, hairR, kind);
   P.fhair = part(ramp(fhC, 2), {cast: 2, soft: true});
   facialHair(g, L, P, M, mood, mouth, fhC, skinR);
-  if (L.glasses && L.glasses !== 'none') glasses(g, L, sig, P);
+  if (L.glasses && L.glasses !== 'none') glasses(g, L, sig);
   P.hairF = part(hairR, {cast: 2});
   if (!covered) frontHair(g, L, P, sig, hairR, skinR);
   else headscarf(g, L, P);
-  if (L.hat) hat(g, L, P, sig, hairR);
+  if (L.hat) hat(g, L, P, sig);
   if (sig.shadesUp) shadesUp(g);
-  if (L.headset) headset(g, P);
+  if (L.headset) headset(g);
   if (L.earrings) earrings(g, L, covered);
   if (sig.ticket) { const x = Math.round(g.X(0.3) + 6), y = t + 3; P.tk = part(ramp(0xf6f2e6), {cast: 1}); rect(P.tk, x - 1, y - 2, x + 11, y + 5, LIT); for (let a = x - 1; a <= x + 11; a++) dot(a, y - 2, 0xd0402a, P.tk); text(sig.ticket, x, y, 0x2a2228, P.tk); }
   // ---- hands and the thing they hold
   const prop = sig.prop || (PROPS.has(L.holdR) ? L.holdR : PROPS.has(L.holdL) ? L.holdL : null);
   if (prop) heldProp(g, L, P, sig, prop, skinR, topC, top2C, under);
-  if (sig.glowEyes || extra?.glow) {
+  if (sig.glowEyes) {
     aura(sig.aura ?? 0x9fc8ff, 6, 0.5);
     for (const [x, y] of [[13, 22], [83, 30], [17, 58], [80, 66], [24, 38], [72, 16]]) for (const [a, b, c] of [[0, 0, 0xffffff], [-1, 0, 0xbfe0ff], [1, 0, 0xbfe0ff], [0, -1, 0xbfe0ff], [0, 1, 0xbfe0ff]]) dot(x + a, y + b, c, i => !PART[i]);
   }
-  moodFx(g, L, M, mood, sig, P);
+  moodFx(g, M, mood, sig);
   return g;
 }
 
@@ -598,7 +615,13 @@ function garment(g, L, P, sig, topC, top2C, skinR) {
     poly(lap, [x + nw + 1.6, y - 2.6, x + 2.3, 95, x + 7.5, 87, x + nw + 7.4, y + 9, x + nw + 4.6, y + 6.2, x + nw + 6.2, y + 3.4], SH);
     if (sig.shiny) for (const [a, b] of [[cx - w + 9, y + 5], [cx - w + 13, y + 3], [x - 9, y + 13], [cx + w - 12, y + 6]]) { dot(a, b, topR[HI]); dot(a + 1, b + 1, topR[LIT]); }
     if (sig.brooch) { const bx = Math.round(x - nw - 3.5), by = Math.round(y + 8); dot(bx, by, 0xffe08a); dot(bx + 1, by, 0xd8a83a); dot(bx, by + 1, 0xd8a83a); dot(bx + 1, by + 1, 0x9a6a1a); dot(bx - 1, by, 0xb8862a); dot(bx, by - 1, 0xfff4c0); }
-    if (sig.pen) { const px = Math.round(x + nw + 6.5), py = Math.round(y + 9); for (let k = 0; k < 5; k++) dot(px, py + k, k ? 0x1a1a2a : 0xd8b050); dot(px + 1, py + 1, 0xd8b050); line(px - 3, py + 4, px + 4, py + 4, (a, b) => tone(a, b, SH2, P.top)); }
+    if (sig.pen) {
+      // a lacquered fountain pen with a gold clip, in the breast pocket
+      const px = Math.round(x + nw + 7), py = Math.round(y + 7);
+      for (let k = 0; k < 7; k++) { dot(px, py + k, k === 0 ? 0xffe08a : k < 2 ? 0xd8a840 : 0x8a1a2a); dot(px + 1, py + k, k === 0 ? 0xd8a840 : 0x5a0e1a); }
+      dot(px + 2, py + 1, 0xffe08a); dot(px + 2, py + 2, 0xd8a840); dot(px + 2, py + 3, 0xb8862a);
+      for (let a = px - 3; a <= px + 5; a++) tone(a, py + 6, LIT, P.top);
+    }
   } else if (top === 'cardigan' || top === 'vest' || top === 'hivis') {
     if (top === 'hivis') {
       const band = part(t2R, {soft: true});
@@ -608,17 +631,17 @@ function garment(g, L, P, sig, topC, top2C, skinR) {
     if (top !== 'hivis') collar(col, x, y, nw - 1.4);
     if (top === 'vest' && L.tie !== undefined) tie(g, L.tie, sig);
     if (sig.checks) for (let yy = y; yy < 97; yy++) for (let xx = Math.floor(x - nw - 1); xx <= x + nw + 1; xx++) { if (xx % 4 === 0 || yy % 4 === 0) tone(xx, yy, (xx % 4 === 0 && yy % 4 === 0) ? SH2 : SH, [shirt, col]); }
-    const vp = part(topR, {soft: true, cast: top === 'hivis' ? 0 : 1});
-    const open = top === 'hivis' ? 3 : 2.2, armX = top === 'cardigan' ? w + 2 : w * 0.66;
-    const sh = (a, b) => (a < x - 0.5 ? (a < cx - w * 0.5 && b < y + 12 ? LIT : BASE) : a > cx + w * 0.55 ? SH : BASE);
+    const open = top === 'hivis' ? 3 : 2.2;
     if (top === 'cardigan') {
+      // ribbed bands along the V, two buttons
       const band = part(topR, {soft: true});
       poly(band, [x - nw - 1.8, y - 2, x - nw + 1.2, y - 2, x - open + 0.6, 97, x - open - 3, 97], LIT);
       poly(band, [x + nw + 1.8, y - 2, x + nw - 1.2, y - 2, x + open - 0.6, 97, x + open + 3, 97], BASE);
       for (let yy = y; yy < 97; yy += 2) { tone(Math.round(x - nw + (yy - y) * 0.2), yy, BASE, band); tone(Math.round(x + nw - (yy - y) * 0.2), yy, SH, band); }
-      for (const by of [y + 12, y + 20]) { const bx = Math.round(x - open - 1.2 + ((97 - by) / (97 - y)) * 0.1 - (by - y) * 0.0); dot(bx, by, 0x3a2a1a); dot(bx + 1, by, 0x6a5040); }
-      void vp; void sh; void armX;
+      for (const by of [y + 12, y + 20]) { const bx = Math.round(x - open - 1.2); dot(bx, by, 0x3a2a1a); dot(bx + 1, by, 0x6a5040); }
     } else {
+      const vp = part(topR, {soft: true, cast: top === 'hivis' ? 0 : 1}), armX = w * 0.66;
+      const sh = (a, b) => (a < x - 0.5 ? (a < cx - w * 0.5 && b < y + 12 ? LIT : BASE) : a > cx + w * 0.55 ? SH : BASE);
       poly(vp, [x - nw - 1.2, y - 2.4, x - open, y + (top === 'hivis' ? 11 : 15), x - open, 97, cx - armX, 97, cx - armX + 1, y + 10, x - nw - 6.5, y + 1.6], sh);
       poly(vp, [x + nw + 1.2, y - 2.4, x + open, y + (top === 'hivis' ? 11 : 15), x + open, 97, cx + armX, 97, cx + armX - 1, y + 10, x + nw + 6.5, y + 1.6], sh);
       if (top === 'vest') {
@@ -836,7 +859,8 @@ function features(g, L, P, M, mood, mouth, blink, sig, skinR, hairR, kind) {
     if (sig.tired || (M.fx || []).includes('bags') || old) for (let i = 2; i < w - 1; i++) toneMin(col(i), y0 + 9, (M.fx || []).includes('bags') ? SH2 : SH, P.face);
     if (old) { dot(col(-1), y0 + 4, skinR[SH], P.face); dot(col(-2), y0 + 3, skinR[SH], P.face); dot(col(-2), y0 + 5, skinR[SH], P.face); }
     // brows
-    browDraw(g, L, P, col, far, w, M.brow[far ? 1 : 0], hairR, kind);
+    const [br, bt, ba] = M.brow[far ? 1 : 0];
+    browDraw(g, L, P, col, far, w, [br, bt - (sig.determined ? 1.2 : 0), ba], hairR);
   }
   // nose
   const nx = g.nx, ny = g.noseY, nose = L.nose;
@@ -861,7 +885,7 @@ function features(g, L, P, M, mood, mouth, blink, sig, skinR, hairR, kind) {
   if (old) { quad(nx - 4, ny + 1, nx - 6, ny + 4, g.mx - 6, g.mouthY + 2, (a, b) => toneMin(a, b, SH, P.face)); quad(nx + 3, ny + 1, nx + 5, ny + 4, g.mx + 5, g.mouthY + 2, (a, b) => toneMin(a, b, SH, P.face)); for (let a = -6; a <= 6; a++) toneMin(g.X(0.5) + a, g.eyeY - 7 + (Math.abs(a) > 4 ? 1 : 0), SH, P.face); }
   if (L.facialHair !== 'walrus') mouthDraw(g, P, M, mood, mouth, skinR, sig, kind);
 }
-function browDraw(g, L, P, col, far, w, [raise, tilt, arch], hairR, kind) {
+function browDraw(g, L, P, col, far, w, [raise, tilt, arch], hairR) {
   const style = L.brows || 'normal', n = w + (style === 'bushy' ? 2 : 1);
   const light = luma(hairR[BASE]) > 0.56, c = light ? hairR[SH2] : hairR[LINE], c2 = light ? hairR[SH] : hairR[SH2];
   const base = g.eyeY - 3 - raise;
@@ -872,7 +896,6 @@ function browDraw(g, L, P, col, far, w, [raise, tilt, arch], hairR, kind) {
     const th = style === 'thin' ? 1 : style === 'normal' ? (k < 2 ? 1 : 2) : style === 'thick' ? (k < 1 ? 2 : 3) : (k < 1 ? 2 : 3);
     for (let r = 0; r < th; r++) dot(col(i), y - r, r === th - 1 && th > 1 ? c2 : c, P.face);
     if (style === 'bushy' && k % 2 === 0) dot(col(i), y - th, c2, P.face);
-    void kind;
   }
 }
 // mouths: closed shapes per mood, and open ones while talking (mouth 0..1)
@@ -1075,7 +1098,7 @@ function headscarf(g, L, P) {
     for (const [u, len] of [[-0.6, 5], [-0.3, 7.5], [0, 6], [0.3, 8], [0.6, 5.5]]) { const x = cx + u * (g.fw - 2); poly(P.hairF, [x - 3.4, ty - 0.5, x + 3.4, ty - 0.5, x + 0.8, ty + len], sh); }
   }
 }
-function hat(g, L, P, sig, hairR) {
+function hat(g, L, P, sig) {
   const kind = L.hat, t = g.top, fw = g.fw, def = {cap: 0x5a5a62, beret: 0xc04030, beanie: 0x3a6a9a, tophat: 0x1e1c24, hood: L.topColor, quill: 0x2a2440, hardhat: 0xf2c230}[kind];
   const col = L.hatColor ?? def, R = ramp(col), p = part(R, {cast: 3}), cx = g.X(0.1);
   if (kind === 'cap') {
@@ -1111,7 +1134,6 @@ function hat(g, L, P, sig, hairR) {
     ell(brim, g.X(0.15), t + 13.4, fw + 5.4, 2.4, (x, y) => (y + 0.5 < t + 13 ? LIT : SH));
   }
   // 'hood' is drawn with the headscarf
-  void hairR;
 }
 // a feather along a curved spine, notched barbs on both sides
 function feather(p, x0, y0, qx, qy, x1, y1, wmax) {
@@ -1128,14 +1150,14 @@ function feather(p, x0, y0, qx, qy, x1, y1, wmax) {
   for (let k = 1; k < spine.length; k++) line(spine[k - 1][0], spine[k - 1][1], spine[k][0], spine[k][1], onPart(p, SH));
   for (let k = 3; k < n - 1; k += 3) line(spine[k][0], spine[k][1], A[k * 2], A[k * 2 + 1] + 1, onPart(p, SH));
 }
-function glasses(g, L, sig, P) {
+function glasses(g, L, sig) {
   const kind = L.glasses, fc = L.glassesColor ?? (kind === 'shades' ? 0x18181e : 0x2c2428), fr = ramp(fc), y0 = g.eyeY - 1, y1 = g.eyeY + 7;
   const lenses = [[g.eL - 2, g.eL + 9], [g.eR - 2, g.eR + 8]];
   const hf = kind === 'half' ? 3 : 0;
   for (const [x0, x1] of lenses) {
-    const cut = kind === 'round' ? 2 : 1;
     for (let x = x0; x <= x1; x++) for (let y = y0 + hf; y <= y1; y++) {
-      const cx = Math.min(x - x0, x1 - x), cy = Math.min(y - y0 - hf, y1 - y);
+      // round frames lose their corners, half-moon frames get a flat top and a rounded bottom
+      const cx = Math.min(x - x0, x1 - x), cy = Math.min(y - y0 - hf, y1 - y), cut = kind === 'round' ? 2 : kind === 'half' ? (y1 - y < y - y0 - hf ? 3 : 0) : 1;
       if (cx + cy < cut) continue;
       const edge = x === x0 || x === x1 || y === y0 + hf || y === y1 || cx + cy === cut;
       if (kind === 'shades') dot(x, y, edge ? fr[LINE] : y < y0 + 3 ? 0x2a3048 : y > y1 - 2 ? 0x1a1e30 : 0x222842, -1);
@@ -1156,7 +1178,6 @@ function glasses(g, L, sig, P) {
     dot(Math.round(cx - 2), Math.round(cy - 2), 0xffffff); dot(Math.round(cx - 1), Math.round(cy - 3), 0xdcecff);
   }
   if (sig.chain) for (const [sx, ex] of [[g.cx - g.fw, g.cx - g.fw + 3], [g.cx + g.fw - 1, g.cx + g.fw - 4]]) quad(sx, y0 + hf + 3, sx + (sx < 47 ? -3 : 3), g.mouthY + 4, ex, g.shY - 1, (x, y) => { if ((x + y) % 2) dot(x, y, 0xe0b85a); });
-  void P;
 }
 // sunglasses pushed up onto the hair: golden aviator frames, blue mirrored lenses
 function shadesUp(g) {
@@ -1169,14 +1190,13 @@ function shadesUp(g) {
   for (let x = x1 + 10; x < x2; x++) { dot(x, y - 2, gold); }
   dot(x1 - 1, y - 2, gold); dot(x2 + 10, y - 2, gold); dot(x1 - 2, y - 1, 0xb8902a); dot(x2 + 11, y - 1, 0xb8902a);
 }
-function headset(g, P) {
+function headset(g) {
   const p = part(ramp(0x2c2c34), {cast: 1}), cx = g.X(-0.1), cy = g.scy - 1, rx = g.fw + 3.4, ry = g.sry + 3.6;
   ell(p, cx, cy, rx, ry, (x, y) => (x < cx ? LIT : BASE), (x, y) => { const a = (x + 0.5 - cx) / (rx - 1.8), b = (y + 0.5 - cy) / (ry - 1.8); return a * a + b * b > 1 && y < g.eyeY + 3; });
   const ex = g.cx - g.fw - 0.8, ey = g.eyeY + 5;
   ell(p, ex, ey, 3.4, 4.4, ball(ex - 1, ey - 1, 3.6, 4.6));
   quad(ex + 1, ey + 4, ex + 2, g.mouthY + 2, g.mx - 6, g.mouthY + 1, (x, y) => dot(x, y, 0x3a3a44));
   dot(g.mx - 6, g.mouthY + 1, 0x60e090); dot(g.mx - 7, g.mouthY + 1, 0x2a2a30);
-  void P;
 }
 function earrings(g, L, covered) {
   if (covered && L.hair === 'headscarf') return;
@@ -1252,13 +1272,15 @@ function heldProp(g, L, P, sig, prop, skinR, topC, top2C, under) {
     fist(ex - 7, ey + 11);
   } else if (prop === 'leash') {
     // Meneer De Wit holds the lead of a dog that is not there: an empty collar dangles at the end
-    const lc = 0xc0302a, grip = holdAt(hx, hy - 4);
+    const lc = 0xc0302a, lr = ramp(lc), lead = part(lr, {line: false, cast: 1}), fx = hx, fy = hy - 6, grip = holdAt(fx, fy);
+    const loop = (x, y) => { const i = y * N + x; if (i >= 0 && i < NN) { PART[i] = lead; TONE[i] = x < fx ? LIT : BASE; OVER[i] = -1; } };
+    for (const dx of [0, 1]) { quad(fx - 2 + dx, fy - 2, fx - 5 + dx, fy - 11, fx + 2 + dx, fy - 3, loop); }
+    for (const dx of [0, 1]) quad(fx - 1 + dx, fy + 3, fx - 3 + dx, fy + 9, fx - 9 + dx, fy + 9, loop);
+    const cx0 = fx - 13, cy0 = fy + 9;
+    eachEll(cx0, cy0, 4, 3, (x, y) => { const d = ((x + 0.5 - cx0) / 4) ** 2 + ((y + 0.5 - cy0) / 3) ** 2; if (d > 0.42) loop(x, y); });
+    const tag = part(ramp(0xe0b848, 4), {cast: 0});
+    ell(tag, cx0, cy0 + 4.2, 1.7, 1.7, LIT);
     grip();
-    quad(hx - 2, hy - 7, hx - 9, hy - 9, hx - 4, hy - 2, (x, y) => dot(x, y, lc));
-    quad(hx + 1, hy - 1, hx + 2, hy + 6, hx - 3, 92, (x, y) => dot(x, y, lc));
-    const c = part(ramp(lc), {cast: 1});
-    ell(c, hx - 4, 92.5, 3.4, 2.2, BASE, (x, y) => { const a = (x + 0.5 - (hx - 4)) / 2, b = (y + 0.5 - 92.5) / 1; return a * a + b * b > 1; });
-    dot(Math.round(hx - 4), 95, 0xf0d060);
   } else if (prop === 'stamp' || prop === 'keys') {
     const grip = holdAt(hx, hy - 3);
     if (prop === 'stamp') { rect(part(ramp(0x7a5230), {cast: 1}), Math.round(hx - 1), hy - 12, Math.round(hx + 1), hy - 5, LIT); rect(part(ramp(0x3a7a4a), {cast: 1}), Math.round(hx - 4), hy - 5, Math.round(hx + 4), hy - 3, BASE); }
@@ -1277,7 +1299,7 @@ function drop(x, y, s = 1) {
   poly(p, [x - 1.5 * s, y + 1.2 * s, x + 1.5 * s, y + 1.2 * s, x + 0.3, y - 2 * s], LIT);
 }
 function puff(p, x, y, d, n = 3) { for (let k = 0; k < n; k++) { const r = [3.4, 4, 3][k], px = x + d * k * 3.6, py = y - k * 3; ell(p, px, py, r, r * 0.92, ball(px - 1, py - 1.2, r, r)); } }
-function moodFx(g, L, M, mood, sig, P) {
+function moodFx(g, M, mood, sig) {
   const fx = M.fx || [], t = g.top;
   if (fx.includes('sweat')) drop(g.X(0.2) + g.fw - 1, t + 12, 1.35);
   if (fx.includes('tear')) drop(g.eL + 1, g.eyeY + 9, 1);
@@ -1300,7 +1322,6 @@ function moodFx(g, L, M, mood, sig, P) {
   if (fx.includes('sparkle')) sparkle(Math.round(g.X(0.3) + g.fw + 9), t + 4);
   if (sig.grin && (mood === 'neutral' || mood === 'happy' || mood === 'smug')) { const x = g.mx + 6, y = g.mouthY - 2; for (const [a, b, c] of [[0, 0, 0xffffff], [-1, 0, 0xfff4c0], [1, 0, 0xfff4c0], [0, -1, 0xfff4c0], [0, 1, 0xfff4c0], [2, 0, 0xffe080], [0, -2, 0xffe080]]) dot(x + a, y + b, c); }
   if (fx.includes('sigh')) { const p = part(ramp(0xe8eef4), {rim: false, recv: false}); ell(p, g.mx + 12, g.mouthY + 3, 2.4, 1.8, LIT); ell(p, g.mx + 15, g.mouthY + 1.5, 1.8, 1.5, LIT); }
-  void L; void P;
 }
 
 // ---------------------------------------------------------------- creatures
@@ -1343,7 +1364,7 @@ function toonFace(x, y, s, mood, mouth, blink, o = {}) {
   const d = (a, b, c) => dot(mx + a, my + b, c, m), dark = o.mouthCol ?? 0x5a1410;
   const open = mouth > 0.15 ? (mouth > 0.66 ? 3 : 2) : 0;
   const shape = o.grin && (M.mouth === 'flat' || M.mouth === 'smile') ? 'laugh' : M.mouth;
-  if (shape === 'laugh' || open) { const h = shape === 'laugh' ? 3 + (open ? 1 : 0) : open; for (let r = 0; r < h; r++) { const hw = (o.grin ? 5 : shape === 'laugh' || shape === 'smile' ? 3.5 : 2.2) - r * (o.grin ? 1.3 : 0.8); for (let a = -Math.round(hw); a <= Math.round(hw); a++) d(a, r, r === 0 && shape === 'laugh' ? 0xffffff : r === h - 1 && h > 2 ? 0xd85a62 : dark); } return; }
+  if (shape === 'laugh' || open) { const h = shape === 'laugh' ? 3 + (open ? 1 : 0) + (o.grin ? 1 : 0) : open; for (let r = 0; r < h; r++) { const hw = (o.grin ? 6.5 : shape === 'laugh' || shape === 'smile' ? 3.5 : 2.2) - r * (o.grin ? 1.6 : 0.8); for (let a = -Math.round(hw); a <= Math.round(hw); a++) d(a, r, r === 0 && shape === 'laugh' ? 0xffffff : r === h - 1 && h > 2 ? 0xd85a62 : dark); } return; }
   const shapes = {flat: [[-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0]], smile: [[-3, -1], [-2, 0], [-1, 1], [0, 1], [1, 1], [2, 0], [3, -1]], frown: [[-2, 1], [-1, 0], [0, 0], [1, 0], [2, 1]], wavy: [[-3, 0], [-2, -1], [-1, 0], [0, 1], [1, 0], [2, -1], [3, 0]], smirk: [[-2, 0], [-1, 0], [0, 0], [1, 0], [2, -1], [3, -2]], side: [[1, 0], [2, 0], [3, 0], [4, -1]], tired: [[-2, 0], [-1, 0], [0, 0], [1, 1], [2, 1]], grit: [[-3, 0], [-2, -1], [-1, 0], [0, -1], [1, 0], [2, -1], [3, 0]], o: [[0, -1], [-1, 0], [1, 0], [0, 1], [0, 0]]};
   for (const [a, b] of shapes[shape] || shapes.flat) d(a, b, ink);
 }
@@ -1582,7 +1603,7 @@ export function renderPortrait(subject, o = {}) {
     else creature(S, mood, mouth, blink);
   } catch (e) { console.warn('portrait', S.key, e); }
   const rim = mix(tint, 0xfff4e0, 0.55);
-  passes(rim);
+  passes();
   const out = new Uint8ClampedArray(NN * 4);
   compose(out, rim, !framed);
   if (framed) frame(out);
@@ -1706,6 +1727,19 @@ export function startTalking(canvas, subject, mood = 'neutral', o = {}) {
 export function stopTalking(canvas) { for (const [c, a] of ANIMS) if (!canvas || c === canvas) a.talking = false; }
 export function hidePortrait(canvas) { for (const [c, a] of [...ANIMS]) if (!canvas || c === canvas) { a.stop(); ANIMS.delete(c); } }
 export function clearPortraitCache() { FRAMES.clear(); URLS.clear(); canonCache.clear(); }
+// Render resting faces in idle time (for example everyone on a floor that just loaded),
+// so the first line of a conversation never waits for a portrait.
+export function preloadPortraits(subjects, moods = ['neutral']) {
+  const queue = [];
+  for (const s of subjects || []) if (hasPortrait(s)) for (const m of moods) queue.push([s, m]);
+  const idle = typeof requestIdleCallback === 'function' ? requestIdleCallback : f => setTimeout(() => f({timeRemaining: () => 8}), 40);
+  const step = deadline => {
+    while (queue.length && deadline.timeRemaining() > 3) { const [s, m] = queue.shift(); try { frameCanvas(s, m, 0, 0); } catch (e) { /* no canvas here: skip */ } }
+    if (queue.length) idle(step);
+  };
+  if (queue.length) idle(step);
+  return queue.length;
+}
 
 addStyles('portrait', '.portrait{image-rendering:crisp-edges;image-rendering:pixelated}');
 UI.portraitURL = portraitURL;

@@ -167,4 +167,70 @@ async function main() {
   await browser.close();
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();
+// The portraits inside the real dialogue box: the game plus portrait.js bundled into a test page
+// (the HUD itself does not show portraits yet), UI.dlgLine wrapped at runtime, a short scene played.
+async function dialog() {
+  const {build} = await import('esbuild');
+  const {SHOTS, launch, devices} = await import('./_env.mjs');
+  const src = path.resolve(here, '../../src');
+  const entry = `
+    import ${JSON.stringify(src + '/main.js')};
+    import * as PT from ${JSON.stringify(src + '/ui/portrait.js')};
+    import {UI, CAST} from ${JSON.stringify(src + '/game/bus.js')};
+    window.PT = PT; window.UI_ = UI; window.CAST_ = CAST;
+  `;
+  const res = await build({stdin: {contents: entry, resolveDir: here, loader: 'js'}, bundle: true, write: false, format: 'iife', target: ['es2022'], define: {__DEV__: 'true'}, logLevel: 'warning'});
+  const js = res.outputFiles[0].text.replace(/<\/script/gi, '<\\/script').replace(/<!--/g, '<\\!--');
+  const html = fs.readFileSync(path.resolve(here, '../../index.html'), 'utf8').replace('<!--BUNDLE-->', () => `<script>${js}</script>`);
+  const file = SHOTS + 'portraits-dialog.html';
+  fs.writeFileSync(file, html);
+  const browser = await launch();
+  const lines = [['joop', 'Mijn opa zei altijd: een sleutel die niet piept, is een sleutel die je vergeten bent.', 'happy'], ['glans3', 'Goedemorgen! Ik ben Glans, van PraatPal. Heeft u even, of heeft u even heel veel?', 'smug'], ['ilse', 'Dit is mijn derde thee vandaag. Het is half tien.', 'tired'], ['you', 'Even voor de duidelijkheid: wat doet dat Orakel eigenlijk?', 'thinking'], ['bakker', 'Ik sta hier al sinds de vorige gemeenteraadsverkiezingen.', 'angry']];
+  // software WebGL: keep the viewports small (see README.md)
+  for (const [name, opts] of [['desktop', {viewport: {width: 960, height: 540}, deviceScaleFactor: 1}], ['phone', {viewport: {width: 667, height: 375}, isMobile: true, hasTouch: true, deviceScaleFactor: 2}]].filter(([n]) => !process.env.ONLY || process.env.ONLY === n)) {
+    const ctx = await browser.newContext(opts), page = await ctx.newPage(), errs = [];
+    page.setDefaultTimeout(120000);
+    page.on('pageerror', e => errs.push(e.message));
+    await page.goto(pathToFileURL(file).href + '?q=low');
+    await page.waitForTimeout(2500);
+    await page.evaluate(() => document.querySelector('#titleBtns .go').click());
+    // a few real frames for the backdrop, then freeze the 3D view: the loop still runs the HUD and the typewriter
+    await page.waitForFunction(() => window.__orakel && window.__orakel.GAME.frames > 4, null, {timeout: 120000});
+    await page.evaluate(async s => {
+      const o = window.__orakel;
+      o.GAME.noRender = true;
+      for (let i = 0; i < 30 && o.DLG.active; i++) { document.getElementById('dialog').click(); await new Promise(r => setTimeout(r, 120)); }
+      // the looks of the character bible (this sets the model on the shared cast entries, so aliases follow)
+      for (const [id, c] of Object.entries(s)) if (window.CAST_[id] && c.model) window.CAST_[id].model = c.model;
+    }, SAMPLES);
+    // the integration the HUD lane will make: a canvas in the box, a face per line, talking while the text types
+    await page.evaluate(() => {
+      const css = document.createElement('style');
+      css.textContent = '#dialog.has-portrait{padding-left:128px;min-height:124px}#dialog .dlg-portrait{position:absolute;left:16px;top:14px;width:96px;height:96px;border-radius:4px;box-shadow:0 4px 14px rgba(0,0,0,.5)}@media (max-height:500px){#dialog.has-portrait{padding-left:92px;min-height:88px}#dialog .dlg-portrait{left:10px;top:10px;width:72px;height:72px}}';
+      document.head.append(css);
+      const box = document.getElementById('dialog'), cv = document.createElement('canvas'), {PT, UI_: UI} = window, {DLG} = window.__orakel;
+      cv.className = 'portrait dlg-portrait'; cv.setAttribute('aria-hidden', 'true'); box.prepend(cv);
+      const line = UI.dlgLine, close = UI.dlgClose;
+      UI.dlgLine = (sp, text, o) => { line(sp, text, o); const on = PT.hasPortrait(sp); box.classList.toggle('has-portrait', on); cv.hidden = !on; if (on) PT.startTalking(cv, sp, o.mood || 'neutral', {size: 96}); else PT.hidePortrait(cv); };
+      UI.dlgClose = () => { close(); PT.hidePortrait(cv); box.classList.remove('has-portrait'); };
+      (function watch() { if (!DLG.typing) PT.stopTalking(cv); requestAnimationFrame(watch); })();
+    });
+    await page.evaluate(ls => { const o = window.__orakel; o.scene(async () => { for (const [who, text, mood] of ls) await o.say(who, text, {mood}); }); }, lines);
+    for (let i = 0; i < lines.length; i++) {
+      await page.waitForTimeout(i === 0 ? 450 : 350);
+      await page.screenshot({path: `${SHOTS}portraits-dialog-${name}-${i + 1}-typing.png`});
+      await page.waitForTimeout(1900);
+      await page.screenshot({path: `${SHOTS}portraits-dialog-${name}-${i + 1}.png`});
+      await page.evaluate(() => { const d = document.getElementById('dialog'); if (window.__orakel.DLG.typing) d.click(); d.click(); });
+    }
+    console.log('[portraits dialog]', name, errs.length ? errs.join(' | ') : 'no errors');
+    await ctx.close();
+  }
+  await browser.close();
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const mode = process.argv[2] || 'all';
+  if (mode !== 'dialog') await main();
+  if (mode !== 'gallery') await dialog();
+}
