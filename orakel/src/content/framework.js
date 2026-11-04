@@ -86,7 +86,7 @@ export function councilLines(entry, labels) {
   const roles = roleOrder(entry.byRole, entry.roles, NET.roles);
   return labels.map((label, i) => {
     const per = roles.map(r => [roleInfo(r, entry.roles, NET.roles).name, +entry.byRole[r]?.counts?.[i] || 0]).filter(([, n]) => n > 0);
-    return `- ${label}: ${view.counts[i]}${per.length ? ` (${per.map(([n, c]) => `${n} ${c}`).join(', ')})` : ''}`;
+    return `- **${view.counts[i]}** · ${label}${per.length ? ` (${per.map(([n, c]) => `${n} ${c}`).join(', ')})` : ''}`;
   });
 }
 
@@ -96,7 +96,8 @@ function summaryLines(d, f) {
   const out = ['## Jouw afdaling', '', `**Speelstijl: ${style.name}.** ${style.line}`];
   if (style.also.length) out.push(`Ook: ${style.also.map(t => t.name).join(', ')}.`);
   out.push('');
-  if ((hero.name || '').trim() || arch) out.push(`- Adviseur: ${(hero.name || '').trim() || 'naamloos'}${arch ? `, ${arch.name} (${arch.kind})` : ''}`);
+  const who = [(hero.name || '').trim(), arch && `${arch.name} (${arch.kind})`].filter(Boolean);
+  if (who.length) out.push(`- Adviseur: ${who.join(', ')}`);
   const perDepth = Object.keys(DEPTHS).filter(k => f.floorTime[k] >= 30).map(k => `${DEPTHS[k].name} ${fmtMin(f.floorTime[k])}`);
   out.push(`- Tijd in het Gewelf: ${fmtMin(f.time)}${perDepth.length ? ` (${perDepth.join(' · ')})` : ''}`,
     `- Dossier: ${f.strong} stevig · ${f.open} open · ${plural(f.blind, 'blinde vlek', 'blinde vlekken')}`,

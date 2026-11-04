@@ -50,6 +50,7 @@ addStyles('council-chips', `
 .rchip b{font-weight:700}
 .rchip .rn{color:var(--parch)}
 .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+@media print{.rchip{background:color-mix(in srgb,var(--rc,#b9aa8c) 26%,#fff);border-color:color-mix(in srgb,var(--rc,#b9aa8c) 70%,#000)}}
 `);
 
 export function clueHtml(c) {

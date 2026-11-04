@@ -240,7 +240,14 @@ async function desktop(browser) {
   await page.keyboard.press('Tab'); kb.push(await page.evaluate(() => document.activeElement?.id || document.activeElement?.className));
   await page.keyboard.press('Digit3'); kb.push(await page.evaluate(() => document.querySelector('.endtab[aria-selected=true]').id));
   await page.keyboard.press('Digit1');
-  check('ending: keyboard', kb[0] === 'endtab-epilogue' && kb[1] === 'endtab-summary|endtab-summary' && kb[2] === 'endtab-debrief' && kb[3] === 'endtab-epilogue' && kb[4] === 'endpanel-epilogue' && kb[5] === 'endtab-debrief', kb);
+  // a button in a panel that closes hands the focus to the new tab
+  await page.focus('.endnext-b');
+  await page.keyboard.press('Enter');
+  kb.push(await page.evaluate(() => document.activeElement?.id + '|' + document.querySelector('.endtab[aria-selected=true]').id));
+  await page.keyboard.press('Tab'); kb.push(await page.evaluate(() => document.activeElement?.id));
+  await page.keyboard.press('Digit1');
+  check('ending: keyboard', kb[0] === 'endtab-epilogue' && kb[1] === 'endtab-summary|endtab-summary' && kb[2] === 'endtab-debrief' && kb[3] === 'endtab-epilogue' && kb[4] === 'endpanel-epilogue' && kb[5] === 'endtab-debrief'
+    && kb[6] === 'endtab-summary|endtab-summary' && kb[7] === 'endpanel-summary', kb);
 
   await tabShots(page, 'ending-desk', {scrolls: 6});
   // the header sticks while scrolling
@@ -343,6 +350,16 @@ async function phone(browser) {
   await page.evaluate(() => { document.getElementById('ending').scrollTop = document.querySelector('.dbkh').offsetTop - 60; });
   await wait(200);
   await page.screenshot({path: `${SHOTS}ending-phone-differ.png`});
+  // held sideways
+  await page.setViewportSize({width: 844, height: 390});
+  await wait(400);
+  for (const id of ['summary', 'debrief']) {
+    await page.click(`#endtab-${id}`);
+    await wait(400);
+    await page.screenshot({path: `${SHOTS}ending-phone-landscape-${id}.png`});
+    const of = await page.evaluate(overflow);
+    check(`phone sideways ${id}: nothing sticks out`, !of.page && !of.ending && !of.items.length, of);
+  }
   check('phone: no page errors', !errs.length, errs.slice(0, 5));
   await ctx.close();
 }

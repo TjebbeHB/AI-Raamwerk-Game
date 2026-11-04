@@ -179,7 +179,7 @@ export const FACILITATOR = {
     'Vraag naar twijfel. ‘Waar twijfelde je het langst?’ levert meer op dan ‘Wat was het goede antwoord?’',
     'Dalwijk is verzonnen, de vragen zijn echt. Haal de voorbeelden zo snel mogelijk naar jullie eigen praktijk.',
     'Een blinde vlek is geen fout: het is iets wat nog niemand heeft bekeken. Dat is ook in het echt een eerlijke constatering.',
-    'Speelden er adviseurs mee? Vergelijk per rol: zien inwoners, juristen en uitvoerders hetzelfde?',
+    'Speelden er adviseurs mee? Kijk dan per rol: zien de rollen in de raad hetzelfde, of juist niet? Daar zit vaak het beste gesprek.',
   ],
 };
 

@@ -153,7 +153,9 @@ export function showEnding({title, eyebrow = 'Een jaar later', text, judgement, 
     }
     if (user && current !== t.id) { SFX.play?.('switch'); root.scrollTop = 0; }
     current = t.id; END.tab = t.id; root.dataset.tab = t.id;
-    if (focusTab) btns[t.id].focus({preventScroll: true});
+    // keep the focus in view: a button in a panel that just closed would drop it on the page
+    const a = document.activeElement;
+    if (focusTab || (a && a !== document.body && a.closest?.('.endpanel[hidden]'))) btns[t.id].focus({preventScroll: true});
     btns[t.id].scrollIntoView?.({block: 'nearest', inline: 'nearest'});
   }
   list.addEventListener('keydown', e => {
@@ -193,6 +195,8 @@ function prepareRoot(root) {
   // The game keeps Tab, Space and the arrow keys for itself (core/input.js). Inside the ending
   // they should scroll, move the focus and press buttons as usual.
   root.addEventListener('keydown', e => { if (NAV_KEYS.has(e.code) && !root.hidden) e.stopPropagation(); });
+  // and should the focus ever fall back to the page itself, the same goes for the page
+  document.addEventListener('keydown', e => { if (!root.hidden && NAV_KEYS.has(e.code) && !root.contains(e.target) && !e.target?.closest?.('.modal')) e.stopPropagation(); }, true);
   // number keys 1-3 switch tabs, unless you are typing somewhere
   root.addEventListener('keydown', e => {
     if (root.hidden || e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || '')) return;

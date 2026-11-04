@@ -6,6 +6,7 @@ import {UI, ON, CAST} from '../game/bus.js';
 import {G} from '../game/state.js';
 import {assess, CHAMBERS, CHAMBER, STATE_LABEL, CRITICAL, FOUNDATIONS, DOMAINS} from '../content/framework.js';
 import {facts, playstyle, relations, relWord, fmtDist, fmtMin, DEPTHS, ARCHETYPES, TITLES, titleName} from '../content/nabespreking.js';
+import {FLOORS, parsed} from '../game/world.js';
 
 // ---------------------------------------------------------------- faces
 const HONORIFIC = new Set(['mevrouw', 'meneer', 'wethouder', 'vrouwe', 'stoker', 'de', 'het', 'van', 'der', 'den']);
@@ -15,12 +16,19 @@ export function initials(name) {
   const use = core.length ? core : words;
   return ((use.length > 1 ? use[0][0] + use.at(-1)[0] : (use[0] || '?')[0]) || '?').toUpperCase();
 }
+// aliases (bakker3, glans2...) share one cast entry: faces use the first id that points to it
+export function canon(id) {
+  const c = CAST[id];
+  if (c) for (const k in CAST) if (CAST[k] === c) return k;
+  return id;
+}
 // a face: the drawn portrait when the portrait module is there (UI.portraitURL), initials otherwise
 export function portraitOf(id, mood) {
   try { const u = UI.portraitURL?.(id, mood); return typeof u === 'string' && u ? u : null; } catch (e) { return null; }
 }
 export function face(id, {size = 44, mood = 'neutral', name, glyph} = {}) {
   name ||= CAST[id]?.name || String(id || '?');
+  id = canon(id);
   const url = portraitOf(id, mood);
   // golden-angle hues, so neighbours in a list rarely share a colour
   const box = el('span', {class: `face${url ? ' img' : ''}`, style: `--s:${size}px;--fh:${Math.round((hashString(String(id)) % 97) * 137.508) % 360}`, title: name});
@@ -112,19 +120,43 @@ function dossier(d) {
   ]));
 }
 
+// Where the things you did not find yet are: counts per depth, never the exact spot,
+// so the summary invites a second descent without spoiling it.
+function stillHidden() {
+  const have = {bron: new Set(G.bronnen.map(b => `bron:${b}`)), halluc: new Set(G.hallucs.map(h => `halluc:${h}`)), card: new Set(G.cards.map(c => `card:${c}`)), kristal: new Set(G.crystals.map(c => `kristal:${c}`))};
+  const out = {bron: {}, halluc: {}, card: {}, kristal: {}};
+  for (const fid of Object.keys(DEPTHS)) {
+    let L = null;
+    try { L = FLOORS[fid] ? parsed(fid) : null; } catch (e) { L = null; }
+    for (const e of L?.entities || []) {
+      const ids = e.type === 'item' ? [e.id] : e.type === 'chest' ? [].concat(e.items || e.item || []) : [];
+      for (const id of ids) { const k = String(id).split(':')[0]; if (out[k] && !have[k].has(id)) out[k][fid] = (out[k][fid] || 0) + 1; }
+    }
+  }
+  return out;
+}
+function hiddenHint(per, missing) {
+  if (missing <= 0) return el('span', {class: 'fdone', text: 'Alles gevonden'});
+  const parts = Object.keys(DEPTHS).filter(k => per?.[k]).map(k => `${DEPTHS[k].depth}: ${per[k]}`);
+  const placed = Object.values(per || {}).reduce((a, b) => a + b, 0);
+  if (missing > placed) parts.push(`uit een gesprek: ${missing - placed}`);
+  return el('span', {class: 'fwhere', text: `Nog ${missing} te vinden${parts.length ? ` · ${parts.join(' · ')}` : ''}`});
+}
+
 function finds(f) {
+  const where = stillHidden();
   const rows = [
-    ['Bronnen', 'rollen die een afweging makkelijker maken', f.bronnen, f.totals.bronnen, '#9fc3ff'],
-    ['Hallucinaties', 'verzonnen antwoorden van het Orakel', f.hallucs, f.totals.hallucs, '#ffd36b'],
-    ['Visitekaartjes', 'van Glans, PraatPal', f.cards, f.totals.cards, '#e8c27a'],
-    ['Vertrouwenskristallen', 'meer vertrouwen', f.crystals, f.totals.crystals, '#b9a2ff'],
+    ['Bronnen', 'rollen die een afweging makkelijker maken', f.bronnen, f.totals.bronnen, '#9fc3ff', where.bron],
+    ['Hallucinaties', 'verzonnen antwoorden van het Orakel', f.hallucs, f.totals.hallucs, '#ffd36b', where.halluc],
+    ['Visitekaartjes', 'van Glans, PraatPal', f.cards, f.totals.cards, '#e8c27a', where.card],
+    ['Vertrouwenskristallen', 'meer vertrouwen', f.crystals, f.totals.crystals, '#b9a2ff', where.kristal],
     f.secrets && ['Geheimen', 'verborgen in het Gewelf', f.secrets.got, f.secrets.total, '#ff9fd8'],
     f.trinkets && ['Kantoorvondsten', 'voor in je bureaula', f.trinkets.got, f.trinkets.total, '#9fe0b0'],
     f.bingo && ['Vergaderbingo', 'woorden die je hoorde', f.bingo.got, f.bingo.total, '#f0a541'],
   ].filter(Boolean);
-  const grid = el('div', {class: 'finds'}, rows.map(([name, sub, got, total, color]) => el('div', {class: 'find'},
+  const grid = el('div', {class: 'finds'}, rows.map(([name, sub, got, total, color, per]) => el('div', {class: 'find'},
     el('div', {class: 'fh'}, el('b', {text: name}), el('span', {class: 'fn', text: `${got}/${total}`})),
-    meter(got, total, color), el('span', {class: 'fs', text: sub}))));
+    meter(got, total, color), el('span', {class: 'fs', text: sub}), per ? hiddenHint(per, total - got) : null)));
   return section('Wat je vond', null, grid, secretsList(), trinketsList(), bingoCard());
 }
 
@@ -262,6 +294,9 @@ addStyles('summary', `
 .find .fh b{font-family:var(--f-display);font-size:14px}
 .find .fn{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(--gold-hi)}
 .find .fs{font-size:12px;color:var(--dim)}
+.find .fwhere{font-size:12px;line-height:1.35;color:var(--parch);opacity:.85}
+.find .fdone{font-size:12px;color:var(--good)}
+.find .fdone::before{content:'✓ '}
 .meter{display:block;height:8px;border-radius:5px;background:rgba(0,0,0,.42);overflow:hidden}
 .meter i{display:block;height:100%;width:calc(var(--m) * 100%);background:var(--mc);border-radius:5px;box-shadow:0 0 10px color-mix(in srgb,var(--mc) 50%,transparent)}
 .cards2{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}

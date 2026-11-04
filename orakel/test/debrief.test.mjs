@@ -166,7 +166,7 @@ test('the report carries the summary, the council votes and the discussion quest
   const md = report();
   for (const s of ['## Het besluit', '## Jouw afdaling', '**Speelstijl:', '- Adviseur: Sam, De Datatovenaar (tovenaar)', 'Tijd in het Gewelf: 1 u 3 min', 'De Kelder der Beloften 15 min',
     '### Jouw keuzes', '**Joop** · Het Gewelf: Je vroeg Joop wat het Gewelf is.', '### Relaties', '- Joop: warm (+4)', '### Prestaties', '- Eerste werkdag: De brief gelezen.',
-    'Adviesraad (7 stemmen):', '- Eerst verder onderzoeken: 3 (Jurist 2, Inwoner 1)', 'De adviesraad koos een ander besluit dan de speler.',
+    'Adviesraad (7 stemmen):', '- **3** · Eerst verder onderzoeken (Jurist 2, Inwoner 1)', 'De adviesraad koos een ander besluit dan de speler.',
     '## Nabespreking', '### Over het besluit', 'Jullie kozen ‘Een begrensde pilot’', '## De kamers', 'Gespreksvragen:', 'Voor je eigen organisatie:', 'Adviesraad (3 stemmen):', 'De adviesraad koos anders dan de speler.']) {
     assert.ok(md.includes(s), `report misses: ${s}`);
   }
