@@ -10,6 +10,8 @@ import {CHAMBERS, CHAMBER, STATE_LABEL, CRITICAL, FOUNDATIONS, DOMAINS} from '..
 import {clueHtml} from '../../ui/decision.js';
 import {HALLUCS, CARDS} from '../items.js';
 import {heardCount} from '../puzzles.js';
+import {onItem, onCoffee} from './systems.js';
+import {heroName} from '../../game/hero.js';
 import {el, esc, IS_TOUCH} from '../../core/util.js';
 
 Object.assign(DEPTH_NAMES, {f0: 'het stadhuis', f1: 'Diepte 1', f2: 'Diepte 2', f3: 'Diepte 3', f4: 'Diepte 4'});
@@ -85,6 +87,8 @@ ON.afterItem = id => {
     }
   }
   if (id.startsWith('card:')) { startQuest('kaartjes', true); if (G.cards.length >= 8) setStage('kaartjes', 1); }
+  // Kantoorvondsten, vergaderbingo and the achievements that follow from what you carry
+  onItem(id);
 };
 // give an item from inside another item's handler, after it has finished
 const giveItemLater = id => setTimeout(() => ON.give?.(id), 400);
@@ -105,6 +109,7 @@ ON.use.coffee = k => {
   saveGame();
   SFX.play('coffee');
   UI.toast('Pauze', `${COFFEE[(G.stats.coffee = (G.stats.coffee || 0) + 1) % COFFEE.length]} Vertrouwen hersteld, voortgang bewaard.`, 'good');
+  onCoffee();
 };
 
 ON.deathLine = () => ['Hela. Je vertrouwen was op, dus ik heb je teruggebracht naar de koffie. Wat je al wist, ben je niet kwijt.', 'Even bijkomen bij de automaat. Probeer het andere gereedschap eens: kijk wat een monster zwak maakt.', 'Terug bij de koffie. Weet je dat je kunt wegduiken met Spatie?', 'Ik heb je teruggebracht. Als het te pittig is: in het menu staat de moeilijkheid ‘Verhaal’ of ‘Rustig’.'][G.stats.deaths % 4];
@@ -154,8 +159,9 @@ JOURNAL_TABS.splice(1, 0,
 // ---- the opening ----
 ON.start = {floor: 'f0', at: 'start'};
 ON.newGame = () => scene(async () => {
+  const name = heroName('');
   await say('nar', 'Maandag, 8:57. Gemeente Dalwijk.');
-  await say('nar', 'Je eerste werkdag als adviseur Dienstverlening. Op je bureau ligt een envelop met het gemeentewapen erop.');
+  await say('nar', `Je eerste werkdag als adviseur Dienstverlening.${name ? ` Op de deur hangt al een papiertje met ‘${name}’ erop, met plakband.` : ''} Op je bureau ligt een envelop met het gemeentewapen erop.`);
   UI.toast('Zo beweeg je', IS_TOUCH
     ? 'Stick: lopen · rechts slepen: rondkijken · E: praten en gebruiken · ✦: gereedschap'
     : 'WASD lopen · muis kijken (klik in de wereld) · E gebruiken · V wisselt eerste en derde persoon', 'quest');

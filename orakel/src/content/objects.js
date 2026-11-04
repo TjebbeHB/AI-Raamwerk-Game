@@ -3,9 +3,12 @@ import * as THREE from 'three';
 import {OBJECT_KINDS} from '../game/entities.js';
 import {glowSprite} from '../engine/models.js';
 import {R} from '../engine/render.js';
-import {P, UI, SFX, ON} from '../game/bus.js';
+import {P, UI, SFX, ON, ITEMS} from '../game/bus.js';
 import {FX} from '../engine/particles.js';
 import {chamberState} from '../game/bus.js';
+import {G} from '../game/state.js';
+import {BINGO} from './items.js';
+import {findSecret} from './story/systems.js';
 
 // a floating label that always faces you
 export function labelSprite(text, {color = '#f2e6cc', bg = 'rgba(20,15,10,.82)', border = '#b48a4a', size = 30, maxW = 22, scale = 1} = {}) {
@@ -302,5 +305,356 @@ Object.assign(OBJECT_KINDS, {
     build(o) { o.refresh = (text, color) => label(o, text, 2.2, {maxW: 18, size: 28, color: color || '#ffe2a6'}); o.refresh(o.def.label || ''); },
     interactable: () => false,
     update(o) { show(o, 14); },
+  },
+});
+
+// ---------------------------------------------------------------- the story systems: finds, bingo, secrets
+// Canvas textures are drawn once per key and shared, so a floor can be entered again without redrawing.
+const TEX = new Map();
+function canvasTex(key, w, h, draw) {
+  let t = TEX.get(key);
+  if (!t) {
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    draw(c.getContext('2d'), w, h);
+    t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4;
+    TEX.set(key, t);
+  }
+  return t;
+}
+const HAND = `'Segoe Print','Bradley Hand','Marker Felt','Comic Sans MS',cursive`;
+function wrapLines(g, text, maxW) {
+  const out = []; let cur = '';
+  for (const w of String(text).split(' ')) { const t = cur ? `${cur} ${w}` : w; if (g.measureText(t).width > maxW && cur) { out.push(cur); cur = w; } else cur = t; }
+  if (cur) out.push(cur);
+  return out;
+}
+const CYL = new THREE.CylinderGeometry(1, 1, 1, 12), BALL = new THREE.IcosahedronGeometry(1, 1);
+function cyl(o, r, h, hex, x, y, z, parent) { const c = new THREE.Mesh(CYL, o.mat(hex)); c.scale.set(r, h, r); c.position.set(x, y, z); parent.add(c); return c; }
+
+// the small voxel things you find (Kantoorvondsten and other pickups), by shape
+function findShape(o, shape, color) {
+  const g = new THREE.Group(), em = (hex, ei = 0.35) => ({m: {emissive: hex, emissiveIntensity: ei}});
+  if (shape === 'stapler') {
+    o.box(0.46, 0.07, 0.15, 0x2a2622, 0, -0.06, 0, {}, g);
+    const arm = o.box(0.44, 0.08, 0.13, color, 0.01, 0.03, 0, em(color, 0.45), g); arm.rotation.z = 0.12;
+    o.box(0.06, 0.06, 0.15, color, -0.2, 0.0, 0, em(color, 0.45), g);
+  } else if (shape === 'ticket' || shape === 'card') {
+    o.box(0.42, 0.26, 0.02, color, 0, 0, 0, em(color, 0.3), g);
+    o.box(0.42, 0.05, 0.025, shape === 'card' ? 0x2a2418 : 0xc04030, 0, 0.08, 0, {}, g);
+    if (shape === 'card') for (let i = -1; i <= 1; i++) o.box(0.025, 0.14, 0.03, 0x2a2418, i * 0.09, -0.04, 0, {}, g);
+    else o.box(0.05, 0.05, 0.03, 0x2a2418, 0.15, -0.06, 0, {}, g);
+  } else if (shape === 'rod') {
+    o.box(0.05, 0.34, 0.05, color, 0, -0.12, 0, {}, g);
+    for (const s of [-1, 1]) { const a = o.box(0.045, 0.34, 0.045, color, s * 0.09, 0.15, 0, {}, g); a.rotation.z = -s * 0.5; }
+    o.box(0.07, 0.07, 0.07, 0xffe2a6, 0, 0.03, 0, em(0xffe2a6, 0.8), g);
+  } else if (shape === 'flashlight') {
+    const c = cyl(o, 0.06, 0.34, color, 0, 0, 0, g); c.rotation.z = Math.PI / 2;
+    const h = cyl(o, 0.085, 0.09, 0x3a3a3a, 0.2, 0, 0, g); h.rotation.z = Math.PI / 2;
+    o.box(0.02, 0.12, 0.12, 0xfff4c0, 0.25, 0, 0, em(0xfff4c0, 1), g);
+  } else if (shape === 'agenda' || shape === 'book') {
+    o.box(0.3, 0.38, 0.08, color, 0, 0, 0, em(color, 0.2), g);
+    o.box(0.27, 0.35, 0.085, 0xf4ecd8, 0.02, 0, 0, {}, g);
+    if (shape === 'agenda') o.box(0.04, 0.38, 0.09, 0x2a2a34, 0.1, 0, 0, {}, g);
+    else o.box(0.3, 0.04, 0.09, 0xd8b050, 0, 0.1, 0, {}, g);
+  } else if (shape === 'mug') {
+    cyl(o, 0.1, 0.2, color, 0, 0, 0, g);
+    o.box(0.04, 0.12, 0.03, color, 0.12, 0, 0, {}, g); o.box(0.05, 0.03, 0.03, color, 0.1, 0.05, 0, {}, g); o.box(0.05, 0.03, 0.03, color, 0.1, -0.05, 0, {}, g);
+    cyl(o, 0.085, 0.01, 0x6a4020, 0, 0.09, 0, g);
+  } else if (shape === 'postits') {
+    o.box(0.24, 0.14, 0.24, color, 0, 0, 0, em(color, 0.3), g);
+    const top = o.box(0.24, 0.012, 0.24, 0xfff2a0, 0.03, 0.076, 0.02, em(0xfff2a0, 0.4), g); top.rotation.y = 0.25;
+  } else if (shape === 'ball') {
+    const b = new THREE.Mesh(BALL, o.mat(color, {emissive: color, emissiveIntensity: 0.25})); b.scale.setScalar(0.15); g.add(b);
+  } else if (shape === 'stamp') {
+    o.box(0.08, 0.2, 0.08, 0x6a4a2a, 0, 0.06, 0, {}, g); o.box(0.2, 0.07, 0.2, color, 0, -0.07, 0, em(color, 0.4), g);
+    o.box(0.12, 0.05, 0.12, 0x6a4a2a, 0, 0.18, 0, {}, g);
+  } else if (shape === 'duck') {
+    o.box(0.3, 0.18, 0.22, color, 0, 0, 0, em(color, 0.25), g); o.box(0.16, 0.16, 0.16, color, 0.1, 0.16, 0, em(color, 0.25), g);
+    o.box(0.1, 0.05, 0.1, 0xf08a1a, 0.22, 0.14, 0, {}, g); o.box(0.08, 0.03, 0.18, 0xe8c060, 0.06, 0.07, 0, em(0xe8c060, 0.5), g);
+    for (const s of [-1, 1]) o.box(0.03, 0.03, 0.02, 0x1a1208, 0.15, 0.2, s * 0.08, {}, g);
+  } else if (shape === 'clock') {
+    cyl(o, 0.16, 0.08, color, 0, 0, 0, g).rotation.x = Math.PI / 2;
+    o.box(0.02, 0.1, 0.02, 0x1a1208, 0, 0.04, 0.05, {}, g); o.box(0.07, 0.02, 0.02, 0x1a1208, 0.03, 0, 0.05, {}, g);
+    for (const s of [-1, 1]) o.box(0.06, 0.06, 0.06, 0xc8a050, s * 0.11, 0.16, 0, {}, g);
+  } else {
+    o.box(0.3, 0.3, 0.3, color, 0, 0, 0, em(color, 0.5), g);
+  }
+  return g;
+}
+const nameOfGive = id => (ITEMS[id]?.name || '').replace(/^Kantoorvondst: /, '');
+
+// the town hall's paintings: three mayors, one of them a duck; and a sepia photo of opa Joop
+function drawPortrait(g, w, h, who) {
+  if (who === 'opa') {
+    g.fillStyle = '#d8c49a'; g.fillRect(0, 0, w, h);
+    g.fillStyle = 'rgba(90,60,30,.25)'; for (let k = 0; k < 40; k++) g.fillRect((k * 37) % w, (k * 53) % h, 2, 2);
+    g.fillStyle = '#6a5034'; g.fillRect(w * 0.62, h * 0.55, w * 0.3, h * 0.45);                    // the stair going down
+    for (let k = 0; k < 5; k++) { g.fillStyle = k % 2 ? '#5a4028' : '#7a5c3c'; g.fillRect(w * 0.62, h * (0.6 + k * 0.08), w * 0.3, h * 0.04); }
+    g.fillStyle = '#4a3a28'; g.beginPath(); g.ellipse(w * 0.4, h * 1.0, w * 0.34, h * 0.36, 0, 0, Math.PI * 2); g.fill();   // jacket
+    g.fillStyle = '#e0c8a0'; g.beginPath(); g.ellipse(w * 0.4, h * 0.45, w * 0.17, h * 0.16, 0, 0, Math.PI * 2); g.fill();  // face
+    g.fillStyle = '#3a2e22'; g.beginPath(); g.moveTo(w * 0.2, h * 0.36); g.lineTo(w * 0.6, h * 0.36); g.lineTo(w * 0.56, h * 0.27); g.lineTo(w * 0.24, h * 0.27); g.fill();   // flat cap
+    g.fillRect(w * 0.18, h * 0.35, w * 0.46, h * 0.025);
+    g.fillStyle = '#efe6d4'; g.beginPath(); g.ellipse(w * 0.4, h * 0.52, w * 0.15, h * 0.05, 0, 0, Math.PI); g.fill();     // the walrus moustache
+    g.beginPath(); g.ellipse(w * 0.4, h * 0.515, w * 0.15, h * 0.028, 0, Math.PI, 0); g.fill();
+    g.fillStyle = '#2a2018'; for (const s of [-1, 1]) { g.fillRect(w * 0.4 + s * w * 0.07 - 4, h * 0.42, 8, 3); g.fillRect(w * 0.4 + s * w * 0.07 - 6, h * 0.395, 12, 3); }
+    g.strokeStyle = 'rgba(60,40,20,.5)'; g.lineWidth = 6; g.strokeRect(3, 3, w - 6, h - 6);
+    return;
+  }
+  const bg = g.createLinearGradient(0, 0, 0, h);
+  bg.addColorStop(0, who === 'eend' ? '#3a4a5a' : who === 'v1' ? '#4a2a2a' : '#2a3a2a'); bg.addColorStop(1, '#16120c');
+  g.fillStyle = bg; g.fillRect(0, 0, w, h);
+  // shoulders and the chain of office
+  g.fillStyle = who === 'eend' ? '#f2eee2' : who === 'v1' ? '#2a2a3a' : '#20201c';
+  g.beginPath(); g.ellipse(w / 2, h * 1.02, w * 0.46, h * 0.34, 0, 0, Math.PI * 2); g.fill();
+  g.strokeStyle = '#e8c060'; g.lineWidth = 5;
+  g.beginPath(); g.arc(w / 2, h * 0.62, w * 0.24, 0.15 * Math.PI, 0.85 * Math.PI); g.stroke();
+  g.fillStyle = '#e8c060'; g.beginPath(); g.arc(w / 2, h * 0.86, 9, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#a07a20'; g.beginPath(); g.arc(w / 2, h * 0.86, 4, 0, Math.PI * 2); g.fill();
+  if (who === 'eend') {
+    g.fillStyle = '#f6f2e6'; g.beginPath(); g.ellipse(w / 2, h * 0.42, w * 0.22, h * 0.17, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#f08a1a'; g.beginPath(); g.ellipse(w / 2 + w * 0.17, h * 0.47, w * 0.13, h * 0.045, 0.12, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#1a1208'; g.beginPath(); g.arc(w / 2 + w * 0.06, h * 0.38, 4, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#f6f2e6'; g.beginPath(); g.moveTo(w / 2 - 6, h * 0.26); g.lineTo(w / 2 + 2, h * 0.19); g.lineTo(w / 2 + 6, h * 0.27); g.fill();
+    return;
+  }
+  const skin = who === 'v1' ? '#c68c62' : '#e8b896';
+  g.fillStyle = who === 'v1' ? '#1a1208' : '#9a9a96';
+  g.beginPath(); g.ellipse(w / 2, h * (who === 'v1' ? 0.36 : 0.38), w * 0.21, h * 0.2, 0, 0, Math.PI * 2); g.fill();
+  if (who === 'v1') { g.beginPath(); g.arc(w / 2, h * 0.16, w * 0.1, 0, Math.PI * 2); g.fill(); }
+  g.fillStyle = skin; g.beginPath(); g.ellipse(w / 2, h * 0.42, w * 0.17, h * 0.17, 0, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#1a1208';
+  for (const s of [-1, 1]) { g.beginPath(); g.arc(w / 2 + s * w * 0.065, h * 0.4, 3, 0, Math.PI * 2); g.fill(); }
+  if (who === 'm1') { g.fillStyle = '#d8d8d4'; g.beginPath(); g.ellipse(w / 2, h * 0.5, w * 0.09, h * 0.028, 0, 0, Math.PI * 2); g.fill(); }
+  else { g.strokeStyle = '#7a3028'; g.lineWidth = 2.5; g.beginPath(); g.arc(w / 2, h * 0.47, 8, 0.2 * Math.PI, 0.8 * Math.PI); g.stroke(); }
+}
+// what is drawn on a whiteboard
+function drawBoard(g, w, h, kind) {
+  g.fillStyle = '#fbfbf8'; g.fillRect(0, 0, w, h);
+  g.fillStyle = 'rgba(120,130,140,.08)'; for (let k = 0; k < 6; k++) { g.beginPath(); g.ellipse(60 + k * 80, 40 + (k % 3) * 90, 70, 22, 0.3, 0, Math.PI * 2); g.fill(); }
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  if (kind === 'horizon') {
+    g.save(); g.translate(34, 62); g.rotate(-0.04); g.fillStyle = '#1f8a3a'; g.font = `700 40px ${HAND}`; g.fillText('STIP OP DE HORIZON', 0, 0); g.restore();
+    g.strokeStyle = '#2a4ac0'; g.lineWidth = 5; g.beginPath(); g.moveTo(26, 192);
+    for (let x = 26; x <= w - 26; x += 16) g.lineTo(x, 192 + Math.sin(x * 0.05) * 2);
+    g.stroke();
+    g.strokeStyle = '#e0a020'; g.lineWidth = 4; g.beginPath(); g.arc(110, 192, 34, Math.PI, 0); g.stroke();
+    for (let k = 0; k < 5; k++) { const a = Math.PI + (k + 0.5) * Math.PI / 5; g.beginPath(); g.moveTo(110 + Math.cos(a) * 44, 192 + Math.sin(a) * 44); g.lineTo(110 + Math.cos(a) * 58, 192 + Math.sin(a) * 58); g.stroke(); }
+    g.fillStyle = '#111'; g.beginPath(); g.arc(388, 188, 8, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = '#c02a2a'; g.lineWidth = 3.5; g.beginPath(); g.moveTo(330, 246); g.quadraticCurveTo(352, 214, 380, 198); g.stroke();
+    g.beginPath(); g.moveTo(380, 198); g.lineTo(366, 199); g.moveTo(380, 198); g.lineTo(374, 210); g.stroke();
+    g.fillStyle = '#c02a2a'; g.font = `700 28px ${HAND}`; g.fillText('Is dit hem?', 214, 268);
+    g.fillStyle = '#333'; g.font = `600 20px ${HAND}`; g.fillText('Actie: iedereen', 26, 268);
+  }
+}
+
+Object.assign(OBJECT_KINDS, {
+  // a Kantoorvondst or other find on a little stand: {kind: 'vondst', give: 'trinket:<id>'}
+  vondst: {
+    solid: false,
+    build(o) {
+      const info = ITEMS[o.def.give] || {}, color = o.def.color ?? info.color ?? 0xffd36b;
+      o.base = o.def.stand === false ? 0.55 : 0.98;
+      if (o.def.stand !== false) { o.box(0.5, 0.66, 0.5, 0x6e4a2c, 0, 0.33, 0); o.box(0.6, 0.06, 0.6, 0x8a5e38, 0, 0.69, 0); o.box(0.36, 0.02, 0.36, 0x9a2a2a, 0, 0.73, 0); }
+      o.holder = new THREE.Group(); o.holder.position.y = o.base; o.group.add(o.holder);
+      const shape = findShape(o, o.def.shape || info.shape || 'card', color); shape.rotation.x = 0.25; o.holder.add(shape);
+      o.glow = glowSprite(color, 1.3, 0.45); o.holder.add(o.glow);
+      o.taken = !!G.items[o.def.give];
+      o.holder.visible = !o.taken;
+      label(o, nameOfGive(o.def.give) || o.def.label, 1.85, {maxW: 22, color: '#ffe2a6'});
+    },
+    label: o => `Pak: ${nameOfGive(o.def.give) || o.def.label || 'wat hier ligt'}`,
+    interactable: o => !o.taken && o.dist() < 2.4,
+    interact(o) {
+      o.taken = true; o.holder.visible = false;
+      FX.burst(o.x, o.base, o.z, 26, {color: [o.def.color ?? ITEMS[o.def.give]?.color ?? 0xffd36b, 0xffffff], speed: 2.2, up: 1.6, life: 0.8});
+      ON.give?.(o.def.give, o);
+      ON.use[o.id]?.(o);
+    },
+    update(o, dt) {
+      if (o.taken) { if (o.labelSp) o.labelSp.visible = false; return; }
+      o.holder.rotation.y += dt * 1.3; o.holder.position.y = o.base + Math.sin(R.time * 2 + o.x) * 0.05;
+      o.glow.material.opacity = 0.35 + Math.sin(R.time * 3 + o.z) * 0.1;
+      show(o, 5);
+    },
+  },
+  // a buzzword on a sticky note, for the vergaderbingo: {kind: 'bingo', give: 'bingo:<id>'} (on a wall; wall: false for an easel)
+  bingo: {
+    solid: false,
+    build(o) {
+      const id = String(o.def.give || '').split(':')[1], b = BINGO.find(x => x.id === id) || {word: '?'};
+      o.word = b.word; o.bid = id;
+      const tex = canvasTex(`bingo:${id}`, 256, 256, (g, w, h) => {
+        const bg = g.createLinearGradient(0, 0, 0, h); bg.addColorStop(0, '#fff07a'); bg.addColorStop(1, '#f2d24a');
+        g.fillStyle = bg; g.fillRect(0, 0, w, h);
+        g.fillStyle = 'rgba(0,0,0,.08)'; g.fillRect(0, 0, w, 34);
+        g.fillStyle = '#7a5a10'; g.font = `700 19px 'DM Sans',system-ui,sans-serif`; g.textAlign = 'center'; g.fillText('VERGADERBINGO', w / 2, 24);
+        g.fillStyle = '#2a2418'; g.font = `700 38px ${HAND}`;
+        const lines = wrapLines(g, b.word, w - 36);
+        lines.forEach((l, i) => g.fillText(l, w / 2, h / 2 + 14 + (i - (lines.length - 1) / 2) * 44));
+        g.strokeStyle = 'rgba(122,90,16,.5)'; g.lineWidth = 2;
+        for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) g.strokeRect(w - 54 + i * 13, h - 50 + j * 13, 11, 11);
+      });
+      const wall = o.def.wall !== false, y = wall ? 1.65 : 1.15, z = wall ? -0.92 : 0;
+      if (!wall) { o.box(0.08, 1.2, 0.08, 0x6e4a2c, -0.3, 0.6, 0.1); o.box(0.08, 1.2, 0.08, 0x6e4a2c, 0.3, 0.6, 0.1); o.box(0.08, 1.2, 0.08, 0x6e4a2c, 0, 0.6, -0.25); }
+      o.note = o.box(0.62, 0.62, 0.02, 0xffffff, 0, y, z, {m: {map: tex, emissive: 0x3a3008, emissiveIntensity: 0.35}});
+      if (!wall) o.note.rotation.x = -0.2;
+      o.box(0.06, 0.06, 0.03, 0xc03020, 0, y + 0.26, z + 0.02, {m: {emissive: 0x601010, emissiveIntensity: 0.6}});
+      o.check = new THREE.Group(); o.check.position.set(0.12, y - 0.08, z + 0.03); o.group.add(o.check);
+      const green = {m: {emissive: 0x1a8a3a, emissiveIntensity: 0.8}};
+      const a = o.box(0.07, 0.2, 0.02, 0x2fbf5a, -0.08, -0.02, 0, green, o.check); a.rotation.z = 0.7;
+      const c = o.box(0.07, 0.42, 0.02, 0x2fbf5a, 0.06, 0.06, 0, green, o.check); c.rotation.z = -0.55;
+      o.glow = glowSprite(0xffe08a, 1.1, 0.3); o.glow.position.set(0, y, z + 0.2); o.group.add(o.glow);
+    },
+    label: o => (o.ticked ? `Vergaderbingo: ‘${o.word}’ is afgestreept` : `Streep af op je bingokaart: ‘${o.word}’`),
+    interactable: o => !o.ticked && o.dist() < 2.6,
+    interact(o) { o.ticked = true; ON.give?.(o.def.give, o); ON.use[o.id]?.(o); },
+    update(o) {
+      o.ticked = !!G.items[o.def.give] || G.bingo.includes(o.bid);
+      o.check.visible = o.ticked;
+      o.glow.material.opacity = o.ticked ? 0.06 : 0.25 + Math.sin(R.time * 2.4 + o.x) * 0.1;
+    },
+  },
+  // a whiteboard that tells a story (and may tick a bingo square): {kind: 'whiteboard', draw, title, text, give}
+  whiteboard: {
+    solid: false,
+    build(o) {
+      o.box(2.62, 1.5, 0.06, 0x9aa0a8, 0, 1.75, -0.95);
+      const tex = canvasTex(`wb:${o.def.draw}`, 512, 288, (g, w, h) => drawBoard(g, w, h, o.def.draw));
+      o.box(2.46, 1.34, 0.02, 0xffffff, 0, 1.75, -0.91, {m: {map: tex, emissive: 0x2a2a2a, emissiveIntensity: 0.35}});
+      o.box(2.3, 0.05, 0.16, 0x8a9098, 0, 1.03, -0.86);
+      for (const [x, c] of [[-0.7, 0x2a8a3a], [-0.52, 0xc02a2a], [-0.34, 0x2a4ac0]]) o.box(0.14, 0.035, 0.035, c, x, 1.07, -0.84);
+      o.box(0.18, 0.06, 0.08, 0x4a4a52, 0.7, 1.08, -0.85);
+    },
+    label: o => o.def.label || 'Lees het whiteboard',
+    interactable: o => o.dist() < 2.8,
+    async interact(o) {
+      await UI.read(o.def.title || 'Het whiteboard', o.def.text || '');
+      if (o.def.give && !G.items[o.def.give]) ON.give?.(o.def.give, o);
+      ON.use[o.id]?.(o);
+    },
+  },
+  // a small thing that tells a joke when you look at it (and may hide a secret):
+  // {kind: 'ding', shape: 'duck' | 'clock' | 'book' | ..., color, label, title, text, secret, stand: false}
+  ding: {
+    solid: false,
+    build(o) {
+      const color = o.def.color ?? 0xffe08a;
+      o.base = o.def.stand === false ? (o.def.y ?? 0.25) : 0.98;
+      if (o.def.stand !== false) { o.box(0.5, 0.66, 0.5, 0x6e4a2c, 0, 0.33, 0); o.box(0.6, 0.06, 0.6, 0x8a5e38, 0, 0.69, 0); }
+      o.holder = new THREE.Group(); o.holder.position.y = o.base; o.group.add(o.holder);
+      o.holder.add(findShape(o, o.def.shape || 'card', color));
+      if (o.def.glow !== false) { o.glow = glowSprite(color, 1.0, 0.25); o.holder.add(o.glow); }
+      if (o.def.label) label(o, o.def.label, o.base + 0.85, {maxW: 22});
+    },
+    label: o => o.def.label || 'Bekijk het',
+    interactable: o => o.dist() < 2.4,
+    interact: o => (ON.use[o.id] ? ON.use[o.id](o) : UI.read(o.def.title || o.def.label || 'Iets', o.def.text || '')),
+    update(o) { if (o.def.bob !== false) o.holder.position.y = o.base + Math.sin(R.time * 1.6 + o.x) * 0.04; if (o.labelSp) show(o, 5); },
+  },
+  // walk in, find a secret: {kind: 'geheim', secret: '<id>', r: 1.6} (invisible)
+  geheim: {
+    solid: false,
+    build(o) { o.found = G.secrets.includes(o.def.secret); },
+    interactable: () => false,
+    update(o) { if (!o.found && o.dist() < (o.def.r ?? 1.6)) { o.found = true; findSecret(o.def.secret); } },
+  },
+  // the wethouder's mailbox, on a wall
+  brievenbus: {
+    solid: false,
+    build(o) {
+      const red = o.mat(0xb8302a, {emissive: 0x2a0806, emissiveIntensity: 0.5});
+      o.box(0.72, 0.92, 0.34, 0, 0, 1.36, -0.79, {material: red});
+      o.box(0.78, 0.1, 0.4, 0x8a2420, 0, 1.86, -0.79);
+      o.box(0.48, 0.05, 0.04, 0x1a1010, 0, 1.6, -0.61);
+      [[-0.16, 0xffffff, 0.15], [-0.04, 0xf4dce8, -0.1], [0.08, 0xffffff, 0.05], [0.19, 0xd8e8ff, -0.2]].forEach(([x, c, rz], i) => {
+        const l = o.box(0.2, 0.15 + i * 0.02, 0.02, c, x, 1.68 + i * 0.012, -0.6, {m: {emissive: 0x3a3a3a, emissiveIntensity: 0.3}}); l.rotation.z = rz;
+      });
+      o.box(0.44, 0.14, 0.01, 0xfff4d8, 0, 1.22, -0.615, {m: {emissive: 0x4a4030, emissiveIntensity: 0.5}});
+      label(o, 'Wethouder Hendriks · graag op papier', 2.4, {maxW: 18, size: 26});
+    },
+    label: () => 'Kijk in de brievenbus van de wethouder',
+    interactable: o => o.dist() < 2.4,
+    interact: o => (ON.use[o.id] ? ON.use[o.id](o) : UI.read(o.def.title || 'De brievenbus', o.def.text || '')),
+    update(o) { show(o, 6); },
+  },
+  // the kantine fridge, with a war of notes on it
+  fridge: {
+    r: 0.55,
+    build(o) {
+      o.box(0.95, 1.95, 0.72, 0xe8e6e0, 0, 0.975, -0.55);
+      o.box(0.97, 0.03, 0.74, 0xb8b6b0, 0, 1.3, -0.55);
+      o.box(0.05, 0.42, 0.06, 0xa8a8a8, 0.36, 1.62, -0.17); o.box(0.05, 0.36, 0.06, 0xa8a8a8, 0.36, 0.98, -0.17);
+      [[-0.18, 1.62, 0xfff07a, 0.08], [0.06, 1.52, 0xffb8d8, -0.12], [-0.12, 1.08, 0xbfe0ff, 0.05], [0.1, 0.84, 0xfff07a, -0.06]].forEach(([x, y, c, rz]) => {
+        const n = o.box(0.22, 0.22, 0.01, c, x, y, -0.185, {m: {emissive: c, emissiveIntensity: 0.18}}); n.rotation.z = rz;
+        o.box(0.04, 0.04, 0.02, 0xc03020, x, y + 0.09, -0.18);
+      });
+    },
+    label: () => 'Lees de briefjes op de koelkast',
+    interactable: o => o.dist() < 2.4,
+    interact: o => (ON.use[o.id] ? ON.use[o.id](o) : UI.read(o.def.title || 'De koelkast', o.def.text || '')),
+  },
+  // the vending machine with one bar that has been hanging there since 2011
+  snoep: {
+    r: 0.6,
+    build(o) {
+      o.box(1.05, 1.95, 0.8, 0x2a5a6a, 0, 0.975, -0.5, {m: {emissive: 0x05141a, emissiveIntensity: 0.6}});
+      o.box(0.7, 1.24, 0.02, 0xbfe8ff, -0.12, 1.27, -0.09, {m: {emissive: 0x6aa8c8, emissiveIntensity: 0.55}});
+      const cols = [0xd84a3a, 0xf0c040, 0x4a8ad8, 0x8ad84a, 0xd88ad8, 0xf08a2a];
+      for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) o.box(0.12, 0.16, 0.08, cols[(r * 4 + c) % cols.length], -0.36 + c * 0.16, 0.8 + r * 0.3, -0.16);
+      o.stuck = o.box(0.12, 0.16, 0.08, 0xffd36b, 0.12, 1.69, -0.14, {m: {emissive: 0x6a4a08, emissiveIntensity: 0.5}}); o.stuck.rotation.x = 0.7; o.stuck.rotation.z = 0.3;
+      o.box(0.22, 0.42, 0.02, 0x1a1a1e, 0.36, 1.32, -0.09);
+      for (let k = 0; k < 6; k++) o.box(0.05, 0.04, 0.01, 0x9aa0a8, 0.31 + (k % 2) * 0.1, 1.44 - Math.floor(k / 2) * 0.08, -0.08);
+      o.box(0.62, 0.18, 0.04, 0x111114, -0.12, 0.4, -0.09);
+      o.glow = glowSprite(0x9fd8ff, 1.8, 0.25); o.glow.position.set(-0.1, 1.3, 0.1); o.group.add(o.glow);
+      o.shake = 0;
+    },
+    label: () => (G.flags.reep ? 'De snoepautomaat (de reep is eruit)' : 'Probeer de snoepautomaat'),
+    interactable: o => o.dist() < 2.4,
+    interact: o => { o.shake = 0.6; return ON.use[o.id]?.(o); },
+    update(o, dt) {
+      o.stuck.visible = !G.flags.reep;
+      if (o.shake > 0) { o.shake = Math.max(0, o.shake - dt); o.group.rotation.z = Math.sin(R.time * 40) * 0.025 * o.shake; } else if (o.group.rotation.z) o.group.rotation.z = 0;
+    },
+  },
+  // a painting in a gold frame: {kind: 'portret', face: 'm1' | 'v1' | 'eend', title, text}
+  portret: {
+    solid: false,
+    build(o) {
+      o.box(1.0, 1.26, 0.08, 0xc8a050, 0, 1.95, -0.94, {m: {emissive: 0x3a2808, emissiveIntensity: 0.6}});
+      const tex = canvasTex(`portret:${o.def.face}`, 160, 200, (g, w, h) => drawPortrait(g, w, h, o.def.face));
+      o.box(0.82, 1.06, 0.02, 0xffffff, 0, 1.95, -0.895, {m: {map: tex, emissive: 0x201810, emissiveIntensity: 0.3}});
+      o.box(0.46, 0.11, 0.03, 0xd8b050, 0, 1.22, -0.9, {m: {emissive: 0x4a3010, emissiveIntensity: 0.5}});
+    },
+    label: o => `Bekijk het portret: ${o.def.title}`,
+    interactable: o => o.dist() < 2.6,
+    interact: o => (ON.use[o.id] ? ON.use[o.id](o) : UI.read(o.def.title, o.def.text || '')),
+  },
+  // the Reprografie printer: a big office machine that (almost) never works
+  printer: {
+    r: 0.65,
+    build(o) {
+      const body = o.mat(0xdcdad4), dark = o.mat(0x3a3c42);
+      o.box(1.25, 1.02, 0.92, 0, 0, 0.51, -0.1, {material: body});
+      for (const y of [0.18, 0.42]) o.box(1.1, 0.02, 0.02, 0x9a9890, 0, y, 0.37);
+      o.box(1.3, 0.06, 0.96, 0, 0, 1.05, -0.1, {material: dark});
+      o.box(1.12, 0.24, 0.8, 0, 0, 1.2, -0.16, {material: body});
+      o.box(0.74, 0.04, 0.46, 0x3a3c42, 0.1, 0.78, 0.42);
+      o.paper = o.box(0.5, 0.02, 0.34, 0xffffff, 0.1, 0.81, 0.4, {m: {emissive: 0x605a50, emissiveIntensity: 0.3}});
+      o.box(0.34, 0.16, 0.03, 0x1a1c20, -0.38, 1.1, 0.4);
+      o.screen = o.box(0.26, 0.1, 0.02, 0x2a3a2a, -0.38, 1.1, 0.42, {m: {emissive: 0x40c060, emissiveIntensity: 0.5}});
+      o.led = o.box(0.05, 0.05, 0.02, 0xff3020, -0.12, 1.1, 0.42, {m: {emissive: 0xff3020, emissiveIntensity: 1.2}});
+      o.glow = glowSprite(0xff5040, 0.7, 0.5); o.glow.position.set(-0.12, 1.1, 0.5); o.group.add(o.glow);
+      o.printT = 0;
+    },
+    label: () => (G.flags.printer_ok ? 'De printer (hij doet het!)' : 'Probeer iets te printen'),
+    interactable: o => o.dist() < 2.6,
+    interact: o => ON.use[o.id]?.(o),
+    update(o, dt) {
+      const ok = !!G.flags.printer_ok, on = ok || Math.sin(R.time * 6) > 0, c = ok ? 0x40ff70 : 0xff3020;
+      if (o.ledC !== c) { o.ledC = c; o.led.material.color.setHex(c); o.led.material.emissive.setHex(c); o.glow.material.color.setHex(c); }
+      o.led.material.emissiveIntensity = on ? 1.2 : 0.1; o.glow.material.opacity = on ? 0.5 : 0.08;
+      o.screen.material.emissiveIntensity = 0.4 + Math.sin(R.time * 11) * 0.06;
+      if (o.printT > 0) { o.printT = Math.max(0, o.printT - dt); const k = 1 - o.printT / 1.4; o.paper.position.z = 0.4 + k * 0.3; o.paper.position.y = 0.81 - k * 0.05; }
+    },
   },
 });
