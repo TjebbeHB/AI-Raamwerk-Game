@@ -147,7 +147,7 @@ const FINDS = () => [...SECRETS.map(s => ({key: `secret:${s.id}`, floor: s.floor
 
 test('every secret, Kantoorvondst and bingo square is placed once, on its own depth', t => {
   const census = findsCensus(), strict = new Set(strictFloors()), pending = [];
-  assert.ok(strict.has('f0'), 'Diepte 0 checks its finds strictly');
+  for (const f of FLOORS) assert.ok(strict.has(f.id), `${f.depth} checks its finds strictly`);
   for (const f of FINDS()) {
     const at = census[f.key] || [];
     assert.ok(at.length <= 1, `${f.key} is placed ${at.length} times: ${at.map(a => a.where).join('; ')}`);

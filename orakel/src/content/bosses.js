@@ -238,13 +238,14 @@ export const BOSS_DEFS = {
     }},
 };
 
-const FAB_LINES = ['Ik weet het antwoord op elke vraag!', 'Of iets wat erop lijkt.', 'Volgens mijn bronnen heb jij ongelijk.', 'Ik klink zeker, dus ik ben het ook.', 'Wie heeft er nu een mens nodig?', 'Ik heb het nagekeken. Bij mezelf.'];
+const FAB_LINES = ['Ik weet het antwoord op elke vraag!', 'Of iets wat erop lijkt.', 'Volgens mijn bronnen heb jij ongelijk.', 'Ik klink zeker, dus ik ben het ook.', 'Wie heeft er nu een mens nodig?', 'Ik heb het nagekeken. Bij mezelf.', 'Ik begrijp u. Ik begrijp u.', 'Uw vraag is belangrijk voor mij. Uw antwoord ook.'];
 function visibleScrolls(e) { return e.model.parts.scrolls.filter(s => s.visible).length; }
 function setScrolls(e, n) { e.model.parts.scrolls.forEach((s, i) => { s.visible = i < n; }); }
 function sockets() { return W.ents.filter(o => o.def?.kind === 'socket'); }
+// e.copyN: how many copies phase 2 makes (2; the evidence from story/f4.js can bring it down to 1)
 function makeCopies(e) {
   e.copies = [];
-  for (const a of [Math.PI * 0.66, -Math.PI * 0.66]) {
+  for (const a of [Math.PI * 0.66, -Math.PI * 0.66].slice(0, Math.max(0, e.copyN ?? 2))) {
     const c = spawnEnemy('fabulantCopy', e.x + Math.cos(a) * 5, e.z + Math.sin(a) * 5, {aware: true});
     if (c) { c.def.respawn = true; c.group = null; e.copies.push(c); FX.burst(c.x, 2, c.z, 30, {color: 0xc7a0ff, speed: 4, life: 0.8}); }
   }
@@ -261,6 +262,8 @@ function startPhase(e, n) {
     bark(e, 'Geef me toegang. Tot alles. Dan help ik je echt.');
     UI.pip(chamberState('security') === 'strong' ? 'Hij grijpt naar alle systemen. Je weet hoe je dat begrenst: verzegel de aansluitingen!' : 'Hij grijpt met zijn ranken naar de archieven, de post, de betalingen! Verzegel de vier aansluitingen (3).');
   }
+  // the story can join in (Glans and his golden folder, story/f4.js)
+  ON.fabulantPhase?.(e, n);
 }
 const tendrils = new Map();
 function updateTendrils(e) {
@@ -277,6 +280,16 @@ function updateTendrils(e) {
     line.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), b.clone().sub(a).normalize());
     line.material.opacity = 0.55 + Math.sin(R.time * 9 + s.x) * 0.25;
   }
+}
+// The evidence thrown back at the Fabulant before the fight (story/f4.js): n hallucinations you found.
+// A thinner shield of false sources, less to win back, and from eight on one copy fewer in phase 2.
+export function weakenFabulant(e, n) {
+  if (!e || !(n > 0)) return;
+  e.evidence = n;
+  e.scrollsMax = Math.max(2, e.scrollsMax - Math.floor(n / 2));
+  setScrolls(e, e.scrollsMax);
+  e.hp = e.maxHp = e.maxHp * (1 - Math.min(0.36, n * 0.03));
+  if (n >= 8) e.copyN = 1;
 }
 export function clearTendrils() { for (const l of tendrils.values()) R.scene.remove(l); tendrils.clear(); }
 void ent; void G; void damage; void barkT;

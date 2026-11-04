@@ -20,6 +20,11 @@ m.stamp(2, 1, `
 ########______________........______...T....`, {'<': [{id: 'up_f3', to: 'f3', at: 'brugeinde', label: 'Terug naar de Galerij'}], '@': [{id: 'from_f3', dir: 'e'}],
   T: [{id: 't_drempel1', r: 1.5}, {id: 't_drempel2', r: 1.5}, {id: 't_drempel3', r: 1.5}], E: [{kind: 'whisper', n: 3, group: 'f4_w1'}, {kind: 'halluc', n: 2, group: 'f4_h'}],
   H: Array.from({length: 11}, () => ({color: 0xffe2a6})), K: [{id: 'k_drempel', dir: 'w', name: 'De Drempel'}]});
+// a welcome sign, a place to shout into the abyss, and a stress ball someone left on a far platform
+m.ent(2, 3, 'M', {id: 'drempelbord', kind: 'board', dir: 'e', title: 'Welkom op de Drempel',
+  text: 'WELKOM OP DE DREMPEL\n\nHier eindigt de kaart.\nVanaf hier is alles wat u ziet een voorstel.\n\nHet Orakel aanvaardt geen aansprakelijkheid voor bruggen, vloeren of de afgrond.'});
+m.ent(9, 5, 'Q', {id: 'echo', kind: 'ding', shape: 'card', color: 0xc8b8ff, label: 'Roep iets in de afgrond', secret: 'echo'});
+m.ent(30, 1, 'Q', {id: 'stressbal', kind: 'vondst', give: 'trinket:stressbal'});
 // down to the core
 m.rect(41, 13, 42, 21);
 // the cocoon: Glans is wrapped in his own contract
@@ -32,7 +37,7 @@ m.stamp(30, 14, `
 .Q......Q.
 ..........`, {Q: [{id: 'draad0', kind: 'thread'}, {id: 'draad1', kind: 'thread'}, {id: 'cocon', kind: 'cocoon'}, {id: 'draad2', kind: 'thread'}, {id: 'draad3', kind: 'thread'}]});
 m.rect(40, 17, 40, 17);
-m.ent(35, 18, 'N', {id: 'glans4', dir: 'e', if: 'glans_vrij'});
+m.ent(35, 18, 'N', {id: 'glans4', dir: 'e', if: 'glans_vrij&!fabulant_down'});
 // the core
 m.stamp(18, 22, `
 ...........Q............
@@ -55,7 +60,7 @@ Q..........Q...........Q
 ........................
 ........................
 .......Q................`, {Q: [{id: 'sock0', kind: 'socket', dir: 's', label: 'Archieven'}, {id: 'sock1', kind: 'socket', dir: 'e', label: 'Post en mail'}, {id: 'orakel', kind: 'orakel', dir: 's'}, {id: 'sock2', kind: 'socket', dir: 'w', label: 'Betalingen'}, {id: 'sock3', kind: 'socket', dir: 'n', label: 'Dossiers'}],
-  T: [{id: 't_kern', r: 3}]});
+  T: [{id: 't_kern', r: 3, repeat: true}]});
 m.ent(30, 22, '@', {id: 'kernbegin', dir: 's'});
 // the seal chamber
 m.put(29, 42, 'G', {id: 'zegelhek', flag: 'fabulant_down', sign: true, signColor: 0xffd36b, color: 0x8a6a2a, label: 'De Zegelkamer', msg: 'Achter dit hek ligt de Zegelkamer. Het gaat pas open als het Orakel weer stil is.'});
@@ -74,6 +79,12 @@ m.stamp(20, 43, `
 ....................`, {Q: [{id: 'sealtable', kind: 'sealtable'}],
   N: [{id: 'wethouder', dir: 's', if: 'fabulant_down'}, {id: 'ilse4', dir: 's', if: 'fabulant_down'}, {id: 'bakker4', dir: 's', if: 'fabulant_down'}, {id: 'joop4', dir: 'n', if: 'fabulant_down'}, {id: 'glans5', dir: 'n', if: 'fabulant_down&glans_vrij'}],
   '@': [{id: 'zegelbegin', dir: 'n'}]});
+// opa Joop made the seal table; and everyone you met on the way down comes to see how it ends
+// (story/f4.js narrows down who is there: only the people you actually met)
+m.ent(27, 48, 'Q', {id: 'opa4', kind: 'ding', shape: 'card', color: 0xc8a070, stand: false, y: 0.3, secret: 'opa_d4', title: 'Onder de zegeltafel',
+  text: 'Je bukt bij de zijkant van de zegeltafel. In het hout eronder is iets gekrast, met een krul aan de J:\n\n‘Gemaakt door J., 1948, voor wie later komt. Gebruik met verstand. Opa.’'});
+for (const [x, z, id, dir, extra] of [[23, 50, 'kok4', 'e'], [35, 50, 'sanne4', 'w'], [24, 46, 'dewit4', 'e'], [34, 46, 'eend4', 'w', '&eend'],
+  [21, 43, 'daan4', 's'], [38, 43, 'wouter4', 's', '&bridge_built'], [25, 54, 'kim4', 'n'], [33, 54, 'henk4', 'n']]) m.ent(x, z, 'N', {id, dir, if: `fabulant_down${extra || ''}`});
 // the fifteen chambers of the dossier, in a ring around the seal table
 CHAMBERS.forEach((c, k) => {
   const a = (k / CHAMBERS.length) * Math.PI * 2 - Math.PI / 2;
@@ -83,7 +94,7 @@ CHAMBERS.forEach((c, k) => {
 });
 
 export default {
-  id: 'f4', depth: 'Diepte 4', name: 'De Kern', music: 'f4',
+  id: 'f4', depth: 'Diepte 4', name: 'De Kern', music: 'f4', strictFinds: true,
   fog: 0x0e0808, fogDensity: 0.035, sky: 0xc8a0a0, ground: 0x200a0a, hemi: 0.2,
   defaults: {wall: 'ashlar', floor: 'flag', ceil: 'rough', ceilH: 6, torch: 0xff8a70, torchEvery: 4, fill: [0x5a2a2a, 0.04],
     tint: {wall: 0xa0726a, floor: 0x8e7068, ceil: 0x4a3030, pillar: 0xc8a090}},
