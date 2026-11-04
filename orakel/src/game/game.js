@@ -8,12 +8,14 @@ import {G, SETTINGS, saveGame, loadGame, hasSave, resetState, loadSettings, save
 import {W, loadFloor, FLOORS, parsed, saveExplored} from './world.js';
 import {spawnEntities, setTravel, setGiveItem, dropCarry, Npc} from './entities.js';
 import {P, UI, SFX, ON, ITEMS, NET, CAST, cond} from './bus.js';
-import {PL, initPlayer, placePlayer, updatePlayer, setCamMode, hurtPlayer, healPlayer, pipHint, savePosition} from './player.js';
+import {PL, initPlayer, placePlayer, updatePlayer, setCamMode, hurtPlayer, healPlayer, pipHint, savePosition, rebuildHeroModel} from './player.js';
 import {C, TOOLS, TOOL_ORDER, useTool, revealPulse, updateCombat, spawnFloorEnemies, clearEnemies, aim} from './combat.js';
 import {DLG, updateDialogue, talkTo, converse, say, choose, wait, scene, unlockForUi, relock} from './dialogue.js';
 import {tracked, QUESTS, stage, setStage, startQuest} from './quests.js';
 import {initHud, updateHud, dialogueKey} from '../ui/hud.js';
 import {TILE, tileOf, $, clamp} from '../core/util.js';
+import {applyStart, makeHero} from '../content/archetypes.js';
+import {resetAbility} from './ability.js';
 
 export const GAME = {mode: 'boot', time: 0, modal: null, zoneId: null, last: 0, fps: 60, frames: 0, speed: 1, onFrame: [], busy: false};
 
@@ -43,10 +45,18 @@ export function boot({onReady} = {}) {
 }
 
 // ---------------------------------------------------------------- starting and travelling
-export async function newGame() {
+// hero: what the character creator made ({name, pronouns, address, archetype, look}); without one
+// you are the default hero. tutorial: the practice round first, when there is one (ON.tutorialStart
+// takes over and ends at the normal start, opening scene included).
+export async function newGame({hero = null, tutorial = false} = {}) {
   resetState();
+  if (hero) G.hero = makeHero(hero);
+  applyStart(G);
+  rebuildHeroModel();
+  resetAbility();
   if (ON.start) { G.floor = ON.start.floor; G.at = ON.start.at; }
   GAME.mode = 'play';
+  if (tutorial && ON.tutorialStart) { await ON.tutorialStart(); return; }
   await enterFloor(G.floor, G.at, {fade: false});
   ON.newGame?.();
   saveGame();
