@@ -20,6 +20,16 @@ Het is je eerste werkdag bij de gemeente Dalwijk. Inwoners wachten negen dagen o
 
 Elke kamer van het raamwerk (probleem en noodzaak plus de veertien raamwerk­kamers) heeft een hoeder die een afweging vraagt. De inhoud komt rechtstreeks uit het raamwerk van dit project: `game/topics.json`, `game/stories.json` (het verhaal *Het Loket*), `game/trials.json` en `game/descent.json`.
 
+## Nieuw in deze versie
+
+- **Je eigen personage**: naam, aanspreekvorm en voornaamwoorden, en je hele uiterlijk (lichaamsbouw, huidskleur, haar, gezicht, bril, baard, kleding). Vier rollen met elk een speciale vaardigheid op <kbd>F</kbd>: de Handhaver, de Datatovenaar, de Archivaris en de Verbinder.
+- **Oefenlokaal**: een optionele uitleg van ongeveer vijf minuten aan het begin (aanbevolen als je niet vaak games speelt), later opnieuw te doen via het menu. Daar staat ook **Besturing**, een overzicht van alle toetsen.
+- **Keuzes die tellen**: mensen onthouden wat je zegt, en dat merk je verderop en in de afloop. Plus geheimen, kantoorvondsten met een klein voordeel, vergaderbingo, prestaties en cosmetica die je in een volgend spel kunt dragen.
+- **Gezichten en stemmen**: gedetailleerde figuren, een getekend portret met emoties in elk gesprek, en een eigen stem per personage.
+- **Adviesraad met rollen**: elke telefoon krijgt een rol met een missie, een persoonlijke agenda en per afweging een eigen aandachtspunt.
+- **Afsluiting**: naast de afloop een samenvatting van jouw afdaling en een nabespreking voor een groep, ook als download.
+- **Toegankelijkheid**: tekstgrootte, hoog contrast, rustige beweging, een extra leesbaar lettertype, toetsen aanpassen, en een rustiger scherm op telefoons.
+
 ## Zo speel je
 
 | Toets | Actie |
