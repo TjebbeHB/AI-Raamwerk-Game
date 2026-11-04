@@ -14,6 +14,7 @@ import {DLG, updateDialogue, talkTo, converse, say, choose, wait, scene, unlockF
 import {tracked, QUESTS, stage, setStage, startQuest} from './quests.js';
 import {initHud, updateHud, dialogueKey} from '../ui/hud.js';
 import {TILE, tileOf, $, clamp} from '../core/util.js';
+import {actionHit, codesFor, keyLabel} from '../core/keys.js';
 
 export const GAME = {mode: 'boot', time: 0, modal: null, zoneId: null, last: 0, fps: 60, frames: 0, speed: 1, onFrame: [], busy: false};
 
@@ -149,10 +150,16 @@ async function onDeath() {
 
 // ---------------------------------------------------------------- input
 function onKey(e) {
+  const is = action => codesFor(action).includes(e.code);
+  // Esc (and the journal and map keys on their own sheet) close a menu, also on the title screen;
+  // a decision is never closed by a key: it waits for its own buttons
+  if (GAME.modal) {
+    if (GAME.modal !== 'decision' && (e.code === 'Escape' || (GAME.modal === 'journal' && is('journal')) || (GAME.modal === 'map' && is('map')))) UI.closeModal?.();
+    return;
+  }
   if (GAME.mode !== 'play') return;
   if (DLG.active) { if (dialogueKey(e.code)) e.preventDefault(); return; }
-  if (GAME.modal) { if (e.code === 'Escape' || (e.code === 'KeyJ' && GAME.modal === 'journal') || (e.code === 'KeyM' && GAME.modal === 'map')) UI.closeModal?.(); return; }
-  if (e.code === 'Escape' && !Input.locked) UI.modal?.('menu');
+  if ((e.code === 'Escape' || is('menu')) && !Input.locked) UI.modal?.('menu');
 }
 
 function interactTarget() {
@@ -175,21 +182,22 @@ let holdT = 0;
 function handleInput(dt) {
   const target = interactTarget();
   PL.target = target;
-  if (target) UI.prompt(target.label?.() || 'Gebruik', 'E');
-  else if (P.carry) UI.prompt(`Je draagt iets · Q om het terug te leggen`, 'Q');
+  // the prompt names the key you chose (core/keys.js); on a phone the E button shows the same text
+  if (target) UI.prompt(target.label?.() || 'Gebruik', keyLabel('interact'), 'interact', target);
+  else if (P.carry) UI.prompt(`Je draagt iets · leg het terug met ${keyLabel('cycle')}`, keyLabel('cycle'), 'cycle');
   else UI.prompt(null);
-  if ((hit('KeyE') || hit('KeyF')) && target) { target.interact(); }
-  for (const [i, id] of TOOL_ORDER.entries()) if (hit(`Digit${i + 1}`) || hit(`Numpad${i + 1}`)) selectTool(id);
-  if (hit('KeyQ')) { if (P.carry) dropCarry(); else cycleTool(1); }
+  if (actionHit('interact') && target) target.interact();
+  TOOL_ORDER.forEach((id, i) => { if (actionHit(`tool${i + 1}`)) selectTool(id); });
+  if (actionHit('cycle')) { if (P.carry) dropCarry(); else cycleTool(1); }
   if (Input.wheel && PL.camMode === 'first') cycleTool(Input.wheel > 0 ? 1 : -1);
-  if (hit('KeyR') || Input.clicks[2]) revealPulse();
+  if (actionHit('reveal') || Input.clicks[2]) revealPulse();
   const attacking = Input.mouseDown[0] || down('Attack');
   if (Input.clicks[0] || hit('Attack')) { useTool(P.tool); holdT = 0; }
   else if (attacking && P.tool === 'lamp') { holdT += dt; if (holdT > 0.15) useTool('lamp'); }
-  if (hit('KeyV')) setCamMode(PL.camMode === 'first' ? 'third' : 'first');
-  if (hit('KeyJ') || hit('Tab')) UI.modal?.('journal');
-  if (hit('KeyM')) UI.modal?.('map');
-  if (hit('KeyH')) hint();
+  if (actionHit('camera')) setCamMode(PL.camMode === 'first' ? 'third' : 'first');
+  if (actionHit('journal')) UI.modal?.('journal');
+  if (actionHit('map')) UI.modal?.('map');
+  if (actionHit('hint')) hint();
   // what the crosshair is on
   if ((GAME.frames & 3) === 0) { const a = aim(); UI.target(a.target); }
 }

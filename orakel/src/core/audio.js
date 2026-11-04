@@ -1,6 +1,7 @@
 // All sound is made here, in code: effects from oscillators and noise, a stone-room
 // reverb, and a slow generative score per floor with a drum layer that grows in fights.
-import {SFX} from '../game/bus.js';
+import {SFX, CAST} from '../game/bus.js';
+import {hero} from '../game/hero.js';
 import {SETTINGS} from '../game/state.js';
 
 let ctx = null, master, sfxBus, musicBus, verb, verbSend, noiseBuf, comp;
@@ -119,6 +120,94 @@ const SOUNDS = {
   orakel: () => { chord([N(57), N(64), N(69), N(73)], {type: 'sawtooth', d: 1.6, v: 0.025, gap: 0, filter: {f: 900}, rev: 0.9}); },
 };
 
+// ---------------------------------------------------------------- voices
+// While a line types in the dialogue box, the speaker babbles in short syllable blips (ui/hud.js
+// calls SFX.voice per syllable). A voice is {pitch: Hz, timbre}; content/cast.js gives everyone
+// one, people without one get a voice made from their look. Moods bend the pitch and the pace.
+const TIMBRES = {
+  warm: {type: 'triangle', cut: 1100, d: 0.08, v: 0.16, under: 0.55},          // Joop: a soft low hum under each syllable
+  bright: {type: 'square', cut: 2600, d: 0.05, v: 0.055, glide: 1.05},         // Ilse: quick and clear
+  smooth: {type: 'sine', d: 0.085, v: 0.17, glide: 0.9, h2: 0.3},              // Glans: every syllable slides down, like a sales pitch
+  quavery: {type: 'triangle', cut: 1500, d: 0.1, v: 0.14, vib: 11, vibAmt: 0.04},  // Mevrouw Bakker
+  airy: {type: 'sine', a: 0.02, d: 0.11, v: 0.1, breath: 0.05},               // Vrouwe Waarom: half breath, half song
+  squeaky: {type: 'square', cut: 4200, d: 0.045, v: 0.045, glide: 1.3},        // Pip
+  gruff: {type: 'sawtooth', cut: 650, d: 0.075, v: 0.1, rasp: 0.05},
+  nasal: {type: 'sawtooth', cut: 1300, q: 5, band: true, d: 0.065, v: 0.09},
+  crisp: {type: 'triangle', cut: 2200, d: 0.05, v: 0.14, click: 0.05},
+  sparkle: {type: 'sine', d: 0.07, v: 0.11, h3: 0.35, glide: 1.12},
+  bubbly: {type: 'sine', d: 0.055, v: 0.15, glide: 1.45},
+  hoot: {type: 'sine', a: 0.02, d: 0.12, v: 0.16, glide: 0.8},
+  tick: {type: 'square', cut: 3000, d: 0.028, v: 0.05, click: 0.08},
+  robot: {type: 'square', cut: 1800, d: 0.065, v: 0.07, ring: 43},
+};
+// mood: [semitones, pace, contour]
+const VOICE_MOODS = {happy: [2, 1.08], laugh: [4, 1.18, 'bounce'], sad: [-3, 0.82, 'fall'], tired: [-2, 0.78, 'fall'], worried: [1, 1, 'quaver'],
+  surprised: [5, 1.12, 'rise'], angry: [-1, 1.2], smug: [-1, 0.95, 'fall'], thinking: [-1, 0.88], neutral: [0, 1]};
+const STEPS = [0, 2, 4, 7, 9, 12, 7, 4];   // a pentatonic walk: any babble sounds friendly
+const VOICE_GAIN = 0.85;
+
+function blip(vc, k = 0, mood = 'neutral', end = '', at = 0) {
+  const T = TIMBRES[vc.timbre] || TIMBRES.warm, m = VOICE_MOODS[mood] || VOICE_MOODS.neutral;
+  let semi = STEPS[k % STEPS.length] * 0.55 + m[0] + (vc.semi || 0);
+  if (end === '?') semi += 5; else if (end === '!') semi += 2;
+  if (m[2] === 'bounce') semi += (k & 1) * 3;
+  const f = Math.min(1800, Math.max(60, (vc.pitch || 200) * Math.pow(2, semi / 12)));
+  const t0 = now() + at, a = T.a ?? 0.008, d = (T.d ?? 0.07) / (m[1] || 1), v = (T.v ?? 0.1) * VOICE_GAIN * (end === '!' ? 1.25 : 1), stop = t0 + a + d + 0.06;
+  const o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = T.type; o.frequency.setValueAtTime(f, t0);
+  const glide = (T.glide || 1) * (m[2] === 'rise' || end === '?' ? 1.22 : m[2] === 'fall' ? 0.86 : 1);
+  if (glide !== 1) o.frequency.exponentialRampToValueAtTime(f * glide, t0 + a + d);
+  let node = o;
+  if (T.cut) { const fl = ctx.createBiquadFilter(); fl.type = T.band ? 'bandpass' : 'lowpass'; fl.frequency.value = T.cut; fl.Q.value = T.q ?? 0.8; node.connect(fl); node = fl; }
+  if (T.vib || m[2] === 'quaver') { const l = ctx.createOscillator(), lg = ctx.createGain(); l.frequency.value = T.vib || 8; lg.gain.value = f * (T.vibAmt || 0.03); l.connect(lg); lg.connect(o.frequency); l.start(t0); l.stop(stop); }
+  if (T.ring) { const rm = ctx.createGain(), ro = ctx.createOscillator(); ro.frequency.value = T.ring; rm.gain.value = 0; ro.connect(rm.gain); node.connect(rm); node = rm; ro.start(t0); ro.stop(stop); }
+  node.connect(g); g.connect(sfxBus);
+  const s = ctx.createGain(); s.gain.value = 0.08; g.connect(s); s.connect(verbSend);
+  env(g, t0, a, d, v);
+  o.start(t0); o.stop(stop);
+  if (T.under) tone({type: 'sine', f: f / 2, t: at, a, d, v: v * T.under, rev: 0.04});
+  if (T.h2) tone({type: 'sine', f: f * 2, t: at, a, d: d * 0.7, v: v * T.h2, rev: 0.05});
+  if (T.h3) tone({type: 'sine', f: f * 3, t: at, a, d: d * 0.6, v: v * T.h3, rev: 0.1});
+  if (T.breath) noise({f: 2600, q: 0.7, t: at, a: 0.01, d, v: T.breath, rev: 0.1});
+  if (T.click) noise({f: 4200, q: 2, t: at, d: 0.012, v: T.click, rev: 0});
+  if (T.rasp) noise({f: 480, q: 1, t: at, d: d * 0.8, v: T.rasp, type: 'lowpass', rev: 0});
+}
+
+const hashOf = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619); return h >>> 0; };
+// You: pitch from your pronouns, colour from your archetype.
+function heroVoice() {
+  const h = hero();
+  const pitch = {hij: 150, zij: 238, die: 192}[h.pronouns] || 192;
+  const timbre = {handhaver: 'crisp', datatovenaar: 'sparkle', archivaris: 'airy', verbinder: 'warm'}[h.archetype] || 'warm';
+  return {pitch, timbre};
+}
+// Someone without a voice in the cast: one made from their look, the same every time.
+const KIND_VOICE = {spark: ['sparkle', 380], owl: ['hoot', 300], cloud: ['airy', 210], padlock: ['tick', 480], pip: ['squeaky', 760], gnome: ['gruff', 250], kobold: ['nasal', 400]};
+function lookVoice(id, c) {
+  const m = c?.model || {}, h = hashOf(String(id || c?.name || 'x'));
+  if (KIND_VOICE[m.kind]) { const [timbre, p] = KIND_VOICE[m.kind]; return {pitch: Math.round(p * (0.9 + (h % 21) / 100)), timbre}; }
+  let pitch = 180 + (h % 90);
+  if (m.build === 'broad' || m.build === 'round') pitch *= 0.86;
+  if (m.facialHair && m.facialHair !== 'none') pitch *= 0.8;
+  if (m.age === 'old') pitch *= 0.92; else if (m.age === 'young') pitch *= 1.08;
+  if (m.height) pitch /= Math.max(0.6, m.height);
+  const timbre = m.age === 'old' ? 'quavery' : ['warm', 'bright', 'crisp', 'nasal', 'smooth'][(h >> 4) % 5];
+  return {pitch: Math.round(pitch), timbre};
+}
+// speaker: a dialogue speaker ({cls, id}), a cast id or a cast entry; null for the narrator
+export function voiceFor(sp) {
+  if (!sp || sp === 'nar' || sp.cls === 'nar') return null;
+  if (sp === 'you' || sp.cls === 'you' || sp.id === 'you') return heroVoice();
+  const id = typeof sp === 'string' ? sp : sp.id, c = (id && CAST[id]) || (typeof sp === 'object' && sp.model ? sp : null);
+  if (!c && !id) return null;
+  return c?.voice || lookVoice(id, c);
+}
+// a few syllables of babble at once: for previews (the voice option, a character creator)
+function babble(vc, text = 'hallo daar', mood = 'neutral') {
+  const syl = String(text).toLowerCase().match(/[^aeiouyáéíóúëïöü\s]*[aeiouyáéíóúëïöü]+/g) || ['a'];
+  syl.slice(0, 10).forEach((x, i) => blip(vc, hashOf(x) % STEPS.length, mood, i === syl.length - 1 ? (/[?!]\s*$/.exec(text)?.[0].trim() || '') : '', i * 0.085));
+}
+
 // ---------------------------------------------------------------- music
 // each floor: a root, a scale, pad colour and tempo
 const THEMES = {
@@ -185,6 +274,11 @@ Object.assign(SFX, {
     A.nextNote = now() + 1.5; A.nextBeat = now() + 0.5;
   },
   intensity(v) { A.intensity = v; },
+  // one syllable of a character voice (Opties: Stemgeluidjes); k picks the note, end is '?' or '!' at the end of a word
+  voice(vc, k = 0, mood = 'neutral', end = '') { if (!ctx || ctx.state !== 'running' || !vc || SETTINGS.voice === false) return; try { blip(vc, k, mood, end); } catch (e) { /* ignore */ } },
+  voiceFor,
+  // a short babble in someone's voice: SFX.speak('joop', 'Goeiemorgen!', 'happy')
+  speak(who, text, mood) { const vc = who && typeof who === 'object' && 'pitch' in who ? who : voiceFor(who); if (!ctx || ctx.state !== 'running' || !vc || SETTINGS.voice === false) return; try { babble(vc, text, mood); } catch (e) { /* ignore */ } },
   volume,
   mute(m) { A.muted = m; volume(); },
 });

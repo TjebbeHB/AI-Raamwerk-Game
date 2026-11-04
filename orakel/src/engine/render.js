@@ -12,7 +12,7 @@ export const R = {
   renderer: null, scene: null, camera: null, composer: null, bloom: null,
   tex: null, mats: null, glow: null, quality: 'high',
   flames: null, pool: [], lantern: null, sources: [], dynamic: new Set(),
-  time: 0,
+  time: 0, reduced: false, bloomBase: 0.55, pulse: 0, pulseRate: 0,
 };
 
 export function initRenderer(container, quality = 'high') {
@@ -68,7 +68,7 @@ export function setQuality(q) {
     composer.addPass(new RenderPass(R.scene, R.camera));
     const vp = new RenderPass(R.viewScene, R.viewCamera); vp.clear = false; vp.clearDepth = true;
     composer.addPass(vp);
-    R.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), 0.55, 0.5, 0.82);
+    R.bloom = new UnrealBloomPass(new THREE.Vector2(256, 256), R.bloomBase, 0.5, 0.82);
     composer.addPass(R.bloom);
     composer.addPass(new OutputPass());
     R.composer = composer;
@@ -190,7 +190,24 @@ export function updateLights(dt, fx, fz) {
   }
 }
 
+// Reduced motion (Opties, Toegankelijkheid): a calmer, steady glow and no bloom pulses.
+export function setReducedMotion(on) {
+  R.reduced = !!on; R.bloomBase = on ? 0.42 : 0.55;
+  if (on) R.pulse = 0;
+  if (R.bloom) R.bloom.strength = R.bloomBase + R.pulse;
+}
+// A short swell of the glow for big moments (a boss falls, an ability lands): pulseBloom(0.6, 0.5).
+// Use this instead of changing R.bloom.strength yourself, so reduced motion can switch it off.
+export function pulseBloom(amount = 0.5, sec = 0.4) {
+  if (R.reduced || !R.bloom) return;
+  R.pulse = Math.min(1.5, Math.max(R.pulse, amount)); R.pulseRate = R.pulse / Math.max(0.05, sec);
+}
+
 export function animateMaterials(dt) {
+  if (R.bloom && (R.pulse > 0 || R.bloom.strength !== R.bloomBase)) {
+    R.pulse = Math.max(0, R.pulse - R.pulseRate * dt);
+    R.bloom.strength = R.bloomBase + R.pulse;
+  }
   const wt = R.mats?.water?.userData.drift;
   if (wt) { wt.offset.x = (wt.offset.x + dt * 0.03) % 1; wt.offset.y = (wt.offset.y + dt * 0.017) % 1; }
 }
