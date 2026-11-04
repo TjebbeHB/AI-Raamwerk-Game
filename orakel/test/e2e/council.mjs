@@ -43,6 +43,10 @@ console.log('relay on', BROKER);
 
 const browser = await launch();
 const shut = async () => { for (const mq of sockets) mq.close(); await browser.close().catch(() => {}); relay.proc.kill(); };
+// screenshots are for looking at, not checks: on a busy machine a slow one only gives a warning
+async function shot(p, name) {
+  try { await p.screenshot({path: SH + name, timeout: 90000}); } catch (e) { console.log(`[warn] no screenshot ${name}: ${e.message.split('\n')[0]}`); }
+}
 const roleOf = p => p.evaluate(() => document.querySelector('#advisor .rolecard')?.dataset.role || null);
 const advisorTop = (p, y) => p.evaluate(v => { document.getElementById('advisor').scrollTop = v; }, y);
 // the phone app scrolls inside #advisor, so a tall shot needs a tall viewport
@@ -50,17 +54,18 @@ async function tallShot(p, name, h = 1900) {
   const vp = p.viewportSize();
   await p.setViewportSize({width: vp.width, height: h});
   await sleep(250);
-  await p.screenshot({path: SH + name});
+  await shot(p, name);
   await p.setViewportSize(vp);
 }
 async function phone(name, link) {
   const ctx = await browser.newContext({viewport: {width: 390, height: 844}, deviceScaleFactor: 2, isMobile: true, hasTouch: true});
   const page = await ctx.newPage();
+  page.setDefaultTimeout(60000);
   page.on('pageerror', e => logs.push(`[${name} error] ${e.message}`));
   await page.goto(link);
   await page.waitForSelector('#advisor input');
   await page.fill('#advisor input', name);
-  if (name === 'Fatima') await page.screenshot({path: SH + 'council-phone-join.png'});
+  if (name === 'Fatima') await shot(page, 'council-phone-join.png');
   await page.tap('#advisor .go');
   return page;
 }
@@ -68,6 +73,7 @@ async function phone(name, link) {
 try {
   // ---------------------------------------------------------------- the host starts a council
   const host = await browser.newPage({viewport: {width: 1280, height: 800}, deviceScaleFactor: 1});
+  host.setDefaultTimeout(90000);
   host.on('pageerror', e => logs.push('[host error] ' + e.message));
   await host.goto(`${file}?q=low&broker=${BROKER}`);
   await host.waitForFunction(() => window.__orakel && !document.querySelector('#titleBtns .go')?.disabled, null, {timeout: 90000});
@@ -77,7 +83,7 @@ try {
   await sleep(300);
   await host.evaluate(() => [...document.querySelectorAll('#menuBody button')].find(b => b.textContent.includes('Adviesraad')).click());
   await sleep(300);
-  await host.screenshot({path: SH + 'council-host-start.png'});
+  await shot(host, 'council-host-start.png');
   await host.evaluate(() => [...document.querySelectorAll('#councilBody button')].find(b => b.textContent.includes('Start')).click());
   await host.waitForSelector('#councilBody .code', {timeout: 15000});
   const link = await host.evaluate(() => document.querySelector('#councilBody input').value);
@@ -95,16 +101,16 @@ try {
   check('the two phones get different roles', r1 && r2 && r1 !== r2, `${r1} · ${r2}`);
   check('a small council gets the core roles first', DEAL_TIERS[0].includes(r1) && DEAL_TIERS[0].includes(r2));
   const seats = await host.evaluate(() => __orakel.NET.seats);
-  check('the host knows who sits where', JSON.stringify(seats) === JSON.stringify([{name: 'Fatima', role: r1}, {name: 'Sem', role: r2}]), JSON.stringify(seats));
+  check('the host knows who sits where', JSON.stringify(seats) === JSON.stringify([{name: 'Fatima', role: r1, voted: false}, {name: 'Sem', role: r2, voted: false}]), JSON.stringify(seats));
   check('the host panel lists both members with role icons', await host.evaluate(() => document.querySelectorAll('#councilBody .hs-seat .role-ic').length === 2));
   check('the phone lists everyone at the table', await p1.evaluate(() => [...document.querySelectorAll('#advisor .chip')].map(c => c.textContent).join(' | ')).then(t => t.includes('Fatima') && t.includes('Sem')));
-  await host.screenshot({path: SH + 'council-host-panel.png'});
-  await p1.screenshot({path: SH + 'council-phone-role.png'});
+  await shot(host, 'council-host-panel.png');
+  await shot(p1, 'council-phone-role.png');
   // the secret agenda opens on a tap
   await p1.tap('#advisor .rc-agenda');
   const agenda = await p1.evaluate(() => document.querySelector('#advisor .rc-a-t')?.textContent);
   check('the secret agenda shows after a tap', agenda === ROLES.find(r => r.id === r1).agenda);
-  await p1.screenshot({path: SH + 'council-phone-agenda.png'});
+  await shot(p1, 'council-phone-agenda.png');
   await tallShot(p1, 'council-phone-agenda-full.png');
 
   // ---------------------------------------------------------------- the host changes roles
@@ -116,7 +122,16 @@ try {
   await sleep(1200);
   const d1 = await roleOf(p1), d2 = await roleOf(p2);
   check('a fresh deal keeps the roles different', d1 && d2 && d1 !== d2 && DEAL_TIERS[0].includes(d1) && DEAL_TIERS[0].includes(d2), `${d1} · ${d2}`);
-  await host.screenshot({path: SH + 'council-host-redeal.png'});
+  await shot(host, 'council-host-redeal.png');
+  // playing without roles: the cards go away, and everyone gets the same role back afterwards
+  const toggleRoles = () => host.evaluate(() => [...document.querySelectorAll('#councilBody button')].find(b => b.textContent.includes('Spelen met rollen')).click());
+  await toggleRoles();
+  await p1.waitForFunction(() => !document.querySelector('#advisor .rolecard'), null, {timeout: 6000}).catch(() => {});
+  check('without roles the phones show no role card', await p1.evaluate(() => !document.querySelector('#advisor .rolecard')) && await host.evaluate(() => __orakel.NET.seats.every(s => s.role === null) && !__orakel.NET.rolesOn));
+  await shot(host, 'council-host-noroles.png');
+  await toggleRoles();
+  await p1.waitForSelector('#advisor .rolecard[data-role]', {timeout: 6000}).catch(() => {});
+  check('with roles back on everyone has their role again', await roleOf(p1) === d1 && await roleOf(p2) === d2);
 
   // ---------------------------------------------------------------- an old phone (no role code) still takes part
   const oldPhone = await bareClient();
@@ -138,7 +153,7 @@ try {
   }
   check('the role card folds during a vote', await p1.evaluate(() => document.querySelector('#advisor .rc-head').getAttribute('aria-expanded')) === 'false');
   check('before voting a phone does not see the others', await p1.evaluate(() => [...document.querySelectorAll('#advisor .optb .votes')].every(v => v.textContent === '')));
-  await p1.screenshot({path: SH + 'council-phone-vote.png'});
+  await shot(p1, 'council-phone-vote.png');
   await p1.locator('#advisor .optb').nth(0).tap();
   await p1.locator('#advisor .optb').nth(2).tap();
   await p1.tap('#advisor .go');
@@ -154,9 +169,12 @@ try {
   const who = await p1.evaluate(() => [...document.querySelectorAll('#advisor .optb')].map(b => b.querySelector('.who [aria-hidden]')?.textContent || '').join(' | '));
   check('after voting the phone shows who chose what', who.split(' | ')[2].length > 0 && who.split(' | ')[3] === '', who);
   check('phones see who has voted', await p2.evaluate(() => document.querySelectorAll('#advisor .chip .ok').length) === 3);
-  await p1.screenshot({path: SH + 'council-phone-voted.png'});
+  check('the host knows who has voted', await host.evaluate(() => __orakel.NET.seats.every(s => s.voted)));
+  const talk1 = await p1.evaluate(() => document.querySelector('#advisor .talk')?.textContent || ''), talk2 = await p2.evaluate(() => document.querySelector('#advisor .talk')?.textContent || '');
+  check('after voting a phone suggests what to talk about', /^💬 Gespreksstof: jij koos ‘Breng het probleem in kaart met cijfers en…’, .+ niet\. Leg eens uit waarom jij wel\.$/.test(talk1) && /^💬 Gespreksstof: .+ koos ‘[^’]+…’, jij niet\. Vraag eens waarom!$/.test(talk2), `${talk1} | ${talk2}`);
+  await shot(p1, 'council-phone-voted.png');
   await tallShot(p1, 'council-phone-voted-full.png', 2100);
-  await host.screenshot({path: SH + 'council-host-decision.png'});
+  await shot(host, 'council-host-decision.png');
   // the decision closes (skipped): the council's advice is kept for the debrief
   await host.evaluate(() => [...document.querySelectorAll('#decBar button')].find(b => /Sla over|Laat/.test(b.textContent)).click());
   await sleep(600);
@@ -172,14 +190,14 @@ try {
   await p2.locator('#advisor .optb').nth(2).tap();
   check('the verdict takes one choice', await p2.evaluate(() => document.querySelectorAll('#advisor .optb[aria-pressed="true"]').length) === 1);
   await p2.tap('#advisor .go');
-  await p2.screenshot({path: SH + 'council-phone-verdict.png'});
+  await shot(p2, 'council-phone-verdict.png');
   await sleep(800);
   await host.evaluate(() => { __orakel.G.verdict = {choice: 2, ceiling: 1, judgement: 'beyond', at: Date.now()}; __orakel.NET.closeVote(); });
   await p1.waitForSelector('#advisor .reveal', {timeout: 8000});
   const reveal = await p1.evaluate(() => document.querySelector('#advisor .reveal').textContent);
   check('after the verdict every agenda is revealed', [d1, d2].every(r => reveal.includes(ROLES.find(x => x.id === r).agenda)));
   await advisorTop(p1, 0);
-  await p1.screenshot({path: SH + 'council-phone-end.png'});
+  await shot(p1, 'council-phone-end.png');
 
   // ---------------------------------------------------------------- support, leaving and stopping
   await p1.tap('#advisor .cheer');
@@ -198,7 +216,7 @@ try {
   check('a phone sees the council close, and keeps the reveal', await p1.evaluate(() => document.querySelector('#advisor h1')?.textContent === 'De raad is gesloten' && !!document.querySelector('#advisor .reveal')));
   check('the reveal still shows those who already left', await p1.evaluate(() => document.querySelectorAll('#advisor .reveal .rv').length) === 3);
   check('the host council is off', await host.evaluate(() => !__orakel.NET.active && __orakel.NET.seats.length === 0));
-  await p1.screenshot({path: SH + 'council-phone-closed.png'});
+  await shot(p1, 'council-phone-closed.png');
 
   // ---------------------------------------------------------------- a new phone with an old host (no seats, no notes)
   const fake = await bareClient();
@@ -225,7 +243,7 @@ try {
   fake.publish('gewelf-orakel/v1/OUDHST/h', {...oldState, seats: [{n: 'Noor', r: 'ethicus', k: tag3}], at: Date.now()}, true);
   await p3.waitForSelector('#advisor .rolecard[data-role="ethicus"]', {timeout: 5000}).catch(() => {});
   check('the phone finds its own seat by its tag', await roleOf(p3) === 'ethicus');
-  await p3.screenshot({path: SH + 'council-phone-oldhost.png'});
+  await shot(p3, 'council-phone-oldhost.png');
   fake.publish('gewelf-orakel/v1/OUDHST/h', null, true);
 } catch (e) {
   check('the run completes', false, e.stack || e.message);

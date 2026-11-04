@@ -35,6 +35,7 @@ const roleVars = r => (r ? `--role:${r.color};--role-soft:${tint(r.color, 0.13)}
 const asRole = r => r.name.replace(/ \(.*\)$/, '').toLowerCase();       // 'Privacy-officer (FG)' -> 'privacy-officer'
 
 // What the decision panel and the debrief read: who is who (no agendas, those stay on the phones).
+// NET.seats: [{name, role: id | null, voted}] in joining order; NET.tallies.byRole: votes per role.
 NET.roles = ROLES.map(({id, name, short, icon, color}) => ({id, name, short, icon, color}));
 NET.seats = [];
 NET.rolesOn = true;
@@ -108,7 +109,7 @@ function fromAdvisor(m) {
     // the role is the one this advisor held when voting, so a later re-deal does not rewrite history
     (H.votes[m.key] ||= {})[m.id] = {picks, role: H.rolesOn ? me.role : null};
     NET.tallies = tally(m.key);
-    soon();
+    sync(); soon();
   }
   if (m.t === 'cheer') {
     const now = Date.now();
@@ -137,9 +138,9 @@ function seatFor(id) {
   return role;
 }
 function sync() {
-  const list = [...H.members.values()];
-  NET.members = list.map(x => x.name);
-  NET.seats = list.map(x => ({name: x.name, role: H.rolesOn ? x.role : null}));
+  const list = [...H.members.entries()];
+  NET.members = list.map(([, x]) => x.name);
+  NET.seats = list.map(([id, x]) => ({name: x.name, role: H.rolesOn ? x.role : null, voted: hasVoted(id)}));
   NET.rolesOn = H.rolesOn;
 }
 function prune() { const now = Date.now(); for (const [id, x] of H.members) if (now - x.seen > 70000) H.members.delete(id); sync(); }
@@ -172,7 +173,7 @@ NET.openVote = (key, question, options, multi) => {
   H.vote = {key, question, options, multi, n: ++H.voteN, prev: G.council?.[key]};
   H.votes[key] = {};
   NET.tallies = tally(key);
-  push(true); refresh();
+  sync(); push(true); refresh();
 };
 NET.closeVote = () => {
   const v = H.vote;
@@ -186,7 +187,7 @@ NET.closeVote = () => {
     }
   }
   H.vote = null;
-  push(true); refresh();
+  sync(); push(true); refresh();
 };
 NET.publish = () => push(true);
 // Roles, from the host's council panel (or tests): a fresh deal, one seat, or no roles at all.
@@ -235,7 +236,8 @@ function renderHost() {
   if (!H.mq) {
     body.append(el('div', {class: 'prose'},
       el('p', {text: 'Met de adviesraad spelen jullie samen: één persoon loopt door het Gewelf (bijvoorbeeld op het grote scherm), de anderen doen mee op hun telefoon. Bij elke afweging stemmen de adviseurs mee, en in gevechten kunnen ze steun sturen.'}),
-      el('p', {text: 'Iedere adviseur krijgt een rol aan tafel, zoals de inwoner, de jurist of de bestuurder: met een eigen invalshoek, een stopwoordje en een geheime agenda. Zo wordt stemmen een gesprek.'}),
+      el('p', {text: 'Iedere adviseur krijgt een rol aan tafel, zoals de inwoner, de jurist of de bestuurder: met een eigen invalshoek, een stopwoordje en een persoonlijke agenda die alleen zij kennen. Zo wordt stemmen een gesprek.'}),
+      el('div', {class: 'hcast', 'aria-hidden': 'true'}, ROLES.map(r => el('span', {style: roleVars(r)}, `${r.icon} ${r.name}`))),
       el('p', {html: '<small>Berichten gaan via een openbare MQTT-server, zonder account. Deel er geen persoonsgegevens in; gebruik een voornaam of bijnaam. Wil je organisatie een eigen server? Zie <code>orakel/relay</code> in de repository en start het spel met <code>?broker=wss://…</code>.</small>'}),
       el('div', {class: 'tbtns'}, el('button', {class: 'go', onclick: () => startCouncil()}, 'Start de adviesraad'), rolesToggle()),
       H.status !== 'uit' ? el('p', {class: 'label', text: H.status}) : null));
@@ -273,7 +275,7 @@ function seatsPanel() {
   box.append(grid);
   if (H.rolesOn) box.append(el('details', {class: 'hs-legend'}, el('summary', {text: 'Wat de rollen doen'}),
     el('div', {class: 'hs-roles'}, ROLES.map(r => el('div', {class: 'hs-role', style: roleVars(r)}, el('span', {class: 'role-ic', 'aria-hidden': 'true', text: r.icon}), el('p', {}, el('b', {text: r.name}), ` · ${r.mission}`)))),
-    el('p', {class: 'hs-empty', text: 'De geheime agenda’s staan alleen op de telefoons. Na het besluit worden ze onthuld.'})));
+    el('p', {class: 'hs-empty', text: 'De persoonlijke agenda’s staan alleen op de telefoons. Na het besluit worden ze onthuld.'})));
   return box;
 }
 UI.councilHost = () => openCouncil();
@@ -307,6 +309,9 @@ export function startAdvisor(hash) {
     // everyone who held a role at this table, also after they left, for the reveal at the end
     for (const x of A.seats || []) if (x.role) A.seen.set(x.tag || x.name, x);
     if (m.ended && !A.reveal && A.seen.size) A.reveal = [...A.seen.values()];
+    // a new question: fresh picks, and the role card folds again so the question is in view
+    const round = m.vote && typeof m.vote === 'object' ? `${m.vote.key}#${m.vote.n ?? ''}` : null;
+    if (round && round !== A.lastKey) { A.picks = new Set(); A.lastKey = round; A.votedKey = null; A.cardOpen = null; }
     const role = A.mine?.role || null;
     if (role !== A.role) {
       if (role) { A.deal = true; try { navigator.vibrate?.(35); } catch (e) { /* not on this phone */ } }
@@ -353,7 +358,7 @@ export function startAdvisor(hash) {
   const joinScreen = wrap => {
     wrap.append(el('h1', {text: `Doe mee met raad ${code}`}),
       el('p', {class: 'prose', style: 'margin:0', text: 'Iemand loopt door het Gewelf onder het stadhuis. Jij denkt mee: bij elke afweging stem je op de maatregelen, en in gevechten kun je steun sturen.'}),
-      el('p', {class: 'adv-teaser', text: 'Je krijgt waarschijnlijk ook een rol aan tafel: inwoner, jurist, bestuurder of een van de anderen. Met een eigen invalshoek, en een geheime agenda.'}));
+      el('p', {class: 'adv-teaser', text: 'Je krijgt waarschijnlijk ook een rol aan tafel: inwoner, jurist, bestuurder of een van de anderen. Met een eigen invalshoek, en een persoonlijke agenda die verder niemand kent.'}));
     const inp = el('input', {type: 'text', placeholder: 'Je voornaam of een bijnaam', value: A.name, maxlength: 24, 'aria-label': 'Je naam'});
     const status = el('p', {class: 'label', role: 'status'});
     wrap.append(inp, el('button', {class: 'go', onclick: async () => {
@@ -389,15 +394,14 @@ export function startAdvisor(hash) {
       el('p', {class: 'rc-mission', text: r.mission}),
       el('p', {class: 'rc-line'}, el('span', {class: 'label', text: 'Je stopwoordje'}), el('q', {text: r.line})),
       el('button', {class: `rc-agenda${A.agendaOpen ? ' open' : ''}`, 'aria-expanded': String(A.agendaOpen), onclick: () => { A.agendaOpen = !A.agendaOpen; view(); }},
-        el('span', {class: 'rc-a-h'}, el('span', {'aria-hidden': 'true', text: '🤫 '}), 'Je geheime agenda', el('small', {text: A.agendaOpen ? 'tik om te verbergen' : 'tik om te lezen'})),
+        el('span', {class: 'rc-a-h'}, el('span', {'aria-hidden': 'true', text: '🤫 '}), 'Je persoonlijke agenda', el('small', {text: A.agendaOpen ? 'tik om te verbergen' : 'geheim · tik om te lezen'})),
         A.agendaOpen ? el('span', {class: 'rc-a-t', text: r.agenda}) : null),
       el('p', {class: 'rc-how', text: 'Kijk bij elke afweging door de ogen van je rol en stem zoals die zou stemmen. Je agenda mag doorschemeren, maar verklap hem niet.'})));
     return card;
   };
 
   const voteBlock = (wrap, s, vote) => {
-    const key = String(vote.key ?? ''), round = `${key}#${vote.n ?? ''}`, opts = vote.options.slice(0, 12).map(o => String(o));
-    if (A.lastKey !== round) { A.picks = new Set(); A.lastKey = round; A.votedKey = null; }
+    const key = String(vote.key ?? ''), round = A.lastKey, opts = vote.options.slice(0, 12).map(o => String(o));
     // the host's seat list says whether this vote has your ballot; older hosts do not send it
     const voted = A.votedKey === round || !!A.mine?.voted;
     const counts = Array.isArray(s.tally?.counts) ? s.tally.counts : [];
@@ -416,10 +420,30 @@ export function startAdvisor(hash) {
         el('span', {}, o, who ? el('span', {class: 'who'}, el('span', {class: 'sr', text: `Gekozen door: ${pickedBy.map(x => x.name).join(', ')}.`}), el('span', {'aria-hidden': 'true', text: who})) : null),
         el('span', {class: 'votes', text: voted ? `${+counts[i] || 0}` : ''})));
     });
-    const ballots = +s.tally?.ballots || 0;
+    const ballots = +s.tally?.ballots || 0, talk = voted && r ? talkingPoint(byRole, opts, vote.multi) : null;
     wrap.append(el('p', {class: 'label', style: 'margin:0', text: vote.multi ? 'Kies alle maatregelen die volgens jou passen.' : 'Kies één besluit.'}), box,
       el('button', {class: 'go', disabled: !A.picks.size, onclick: () => { send({t: 'vote', key: vote.key, picks: [...A.picks]}); A.votedKey = round; if (A.mine) A.mine.voted = true; SFX.play?.('pick'); view(); }}, voted ? 'Stem bijwerken' : 'Stem'),
-      el('p', {class: 'label', style: 'margin:0', text: voted ? `Je stem is verstuurd · ${ballots} ${ballots === 1 ? 'stem' : 'stemmen'} binnen` : `${ballots} ${ballots === 1 ? 'stem' : 'stemmen'} binnen · stem eerst, dan zie je hoe de anderen kozen`}));
+      el('p', {class: 'label', style: 'margin:0', text: voted ? `Je stem is verstuurd · ${ballots} ${ballots === 1 ? 'stem' : 'stemmen'} binnen` : `${ballots} ${ballots === 1 ? 'stem' : 'stemmen'} binnen · stem eerst, dan zie je hoe de anderen kozen`}),
+      talk ? el('p', {class: 'talk'}, el('span', {'aria-hidden': 'true', text: '💬 '}), talk) : null);
+  };
+  // After voting: one concrete difference with another role at the table, to talk about.
+  const talkingPoint = (byRole, opts, multi) => {
+    const others = ROLES.filter(x => x.id !== A.role && byRole?.[x.id]?.ballots);
+    if (!others.length || !A.picks.size) return null;
+    const quote = t => `‘${t.length > 46 ? `${t.slice(0, Math.max(20, t.lastIndexOf(' ', 44))).replace(/[\s,;:.]+$/, '')}…` : t}’`;
+    const mine = [...A.picks][0];
+    for (const x of others) {
+      const c = byRole[x.id].counts, them = `${x.icon}\u00a0de ${asRole(x)}`;
+      if (!multi) {
+        const j = c.findIndex((v, k) => v > 0 && !A.picks.has(k));
+        if (j >= 0) return `Gespreksstof: ${them} koos ${quote(opts[j])}, jij ${quote(opts[mine])}. Wie overtuigt wie?`;
+        continue;
+      }
+      const i = opts.findIndex((_, k) => (c[k] > 0) !== A.picks.has(k));
+      if (i < 0) continue;
+      return c[i] > 0 ? `Gespreksstof: ${them} koos ${quote(opts[i])}, jij niet. Vraag eens waarom!` : `Gespreksstof: jij koos ${quote(opts[i])}, ${them} niet. Leg eens uit waarom jij wel.`;
+    }
+    return 'Tot nu toe koos iedereen hetzelfde als jij. Eensgezind, of te snel klaar?';
   };
 
   // Who sits at the table, with their roles: handy when you want to ask the jurist something.
@@ -429,12 +453,12 @@ export function startAdvisor(hash) {
       const r = roleById(x.role);
       return el('span', {class: `chip${x === A.mine ? ' me' : ''}`, style: roleVars(r), title: r ? r.name : ''},
         r ? el('span', {'aria-hidden': 'true', text: r.icon}) : null, el('span', {text: x.name}), r ? el('small', {text: r.short}) : null,
-        x === A.mine ? el('small', {class: 'you', text: 'jij'}) : null, voting && x.voted ? el('span', {class: 'ok', 'aria-label': 'heeft gestemd', text: '✓'}) : null);
+        x === A.mine ? el('small', {class: 'you', text: 'jij'}) : null, voting && x.voted ? el('span', {class: 'ok'}, el('span', {'aria-hidden': 'true', text: '✓'}), el('span', {class: 'sr', text: 'heeft gestemd'})) : null);
     })));
 
   // After the verdict the secret agendas come out, which is half the fun of having had them.
-  const agendas = seats => el('section', {class: 'reveal', 'aria-label': 'De geheime agenda’s'},
-    el('h3', {text: 'De geheime agenda’s'}),
+  const agendas = seats => el('section', {class: 'reveal', 'aria-label': 'De persoonlijke agenda’s'},
+    el('h3', {text: 'De persoonlijke agenda’s'}),
     el('p', {class: 'rv-intro', text: 'Nu mag het gezegd worden: wie had er stiekem wat in gedachten?'}),
     ...seats.filter(x => x.role).map(x => { const r = roleById(x.role); return el('div', {class: 'rv', style: roleVars(r)}, el('span', {class: 'role-ic', 'aria-hidden': 'true', text: r.icon}), el('p', {}, el('b', {text: `${x.name} · ${r.name}`}), el('br'), r.agenda)); }));
 
@@ -445,6 +469,8 @@ export function startAdvisor(hash) {
 // Scoped to the council panel (.hseats) and the phone app (.adv), so other screens are unaffected.
 addStyles('council-roles', `
 .hseats .role-ic,.adv .role-ic{width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;font-size:21px;line-height:1;background:var(--role-soft,rgba(242,226,196,.08));border:1px solid var(--role-line,var(--line))}
+.hcast{display:flex;flex-wrap:wrap;gap:6px;margin:-4px 0 14px}
+.hcast span{padding:4px 11px;border-radius:999px;border:1px solid var(--role-line);background:var(--role-soft);font-family:var(--f-ui);font-size:13px;line-height:1.5;color:var(--parch)}
 .hseats{margin-top:18px;padding-top:14px;border-top:1px solid var(--line);display:grid;gap:12px}
 .hseats .hs-head{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .hseats .hs-head .btn{padding:7px 11px;font-size:13px}
@@ -498,6 +524,7 @@ addStyles('council-roles', `
 .adv .rn-h{display:flex;align-items:center;gap:9px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--role);font-weight:700}
 .adv .rn-h .role-ic{width:28px;height:28px;font-size:15px}
 .adv .rolenote p{margin:7px 0 0;font-family:var(--f-body);font-size:17px;line-height:1.42;color:var(--parch)}
+.adv .talk{margin:0;padding:10px 13px;border-radius:14px 14px 14px 4px;background:rgba(242,226,196,.06);border:1px solid var(--line);font-family:var(--f-body);font-size:17px;line-height:1.4}
 .adv .optb .who{display:block;margin-top:5px;font-family:var(--f-ui);font-size:14px;letter-spacing:.06em;color:var(--dim)}
 .adv .adv-table{display:grid;gap:8px}
 .adv .chips{display:flex;flex-wrap:wrap;gap:6px}
