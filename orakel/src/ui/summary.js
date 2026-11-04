@@ -88,7 +88,7 @@ function numbers(f) {
 }
 
 function depthTimes(f) {
-  const ids = Object.keys(DEPTHS).filter(k => f.floorTime[k] > 0);
+  const ids = Object.keys(DEPTHS).filter(k => f.floorTime[k] >= 1);
   if (!ids.length) return null;
   const rest = Math.max(0, f.active - f.tracked);
   const max = Math.max(1, ...ids.map(k => f.floorTime[k]), rest);
