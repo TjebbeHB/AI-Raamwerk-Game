@@ -9,7 +9,9 @@ import {fileURLToPath} from 'node:url';
 import {parseFloor, reachable, T} from '../src/engine/level.js';
 import {CHAMBERS, CHAMBER, FOUNDATIONS, DOMAINS, CRITICAL, assess, judge, epilogue, recordChoice, VERDICT} from '../src/content/framework.js';
 import {CAST_DEFS} from '../src/content/cast.js';
-import {itemDefs, HALLUCS, CARDS, BRIDGE_KEYS} from '../src/content/items.js';
+import {CAST_EXTRA, ALIAS, REL_PEOPLE} from '../src/content/cast_extra.js';
+import {itemDefs, HALLUCS, CARDS, BRIDGE_KEYS, SECRETS, TRINKETS, BINGO, BINGO_GRID, ACHIEVEMENTS, COSMETICS} from '../src/content/items.js';
+import {FACTORS, ADDS} from '../src/game/mods.js';
 import {G, resetState} from '../src/game/state.js';
 import F0 from '../src/content/floors/f0.js';
 import F1 from '../src/content/floors/f1.js';
@@ -18,7 +20,8 @@ import F3 from '../src/content/floors/f3.js';
 import F4 from '../src/content/floors/f4.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const storySrc = fs.readdirSync(path.join(here, '../src/content/story')).map(f => fs.readFileSync(path.join(here, '../src/content/story', f), 'utf8')).join('\n');
+const STORY_FILES = Object.fromEntries(fs.readdirSync(path.join(here, '../src/content/story')).map(f => [f, fs.readFileSync(path.join(here, '../src/content/story', f), 'utf8')]));
+const storySrc = Object.values(STORY_FILES).join('\n');
 const FLOORS = [F0, F1, F2, F3, F4];
 const PARSED = Object.fromEntries(FLOORS.map(f => [f.id, parseFloor(f)]));
 const ITEMS = itemDefs();
@@ -63,9 +66,9 @@ test('hidden things really are hidden: the critical paths need the lamp', () => 
 });
 
 test('every person on a map has a cast entry and something to say', () => {
-  const aliases = ['bakker1', 'bakker3', 'bakker4', 'ilse1', 'ilse4', 'glans1', 'glans2', 'glans3', 'glans4', 'glans5', 'joop4'];
+  const CAST = {...CAST_DEFS, ...CAST_EXTRA};
   for (const e of allEntities().filter(e => e.type === 'npc')) {
-    assert.ok(CAST_DEFS[e.id] || aliases.includes(e.id), `${e.floor}: npc ${e.id} has no cast entry`);
+    assert.ok(CAST[e.id] || CAST[ALIAS[e.id]], `${e.floor}: npc ${e.id} has no cast entry`);
     assert.ok(storySrc.includes(`ON.talk.${e.id} =`) || storySrc.includes(`ON.talk[npc]`) && /guardian\('\w+', '(\w+)'/.test(storySrc) || storySrc.includes(`id: '${e.id}'`), `${e.floor}: npc ${e.id} has no conversation`);
   }
 });
@@ -117,6 +120,99 @@ test('every monster on a map is in the bestiary', async () => {
 test('every puzzle object kind has a look', () => {
   const src = fs.readFileSync(path.join(here, '../src/content/objects.js'), 'utf8');
   for (const e of allEntities().filter(e => e.type === 'object')) assert.ok(new RegExp(`\\b${e.kind}: \\{`).test(src), `${e.floor}: unknown object kind ${e.kind}`);
+});
+
+// ---- the story systems: secrets, Kantoorvondsten, vergaderbingo, achievements, cosmetics, people ----
+// Where every find is placed: a map entity with `secret:` (secrets), an item, a chest, or an object with
+// `give:` (trinkets and bingo squares), or a literal findSecret / giveItem call in a story file.
+// A floor switches on the strict check for its own finds with `strictFinds: true` in its floor file.
+export function findsCensus() {
+  const out = {};
+  const add = (key, where) => (out[key] ||= []).push(where);
+  for (const e of allEntities()) {
+    const at = {floor: e.floor, where: `${e.floor} ${e.type} ${e.id || e.kind || ''} at ${e.x},${e.z}`};
+    if (e.secret) add(`secret:${e.secret}`, at);
+    const ids = e.type === 'item' ? [e.id] : e.type === 'chest' ? [].concat(e.items || e.item || []) : e.type === 'object' && e.give ? [e.give] : [];
+    for (const id of ids) if (/^(trinket|bingo):/.test(id || '')) add(id, at);
+  }
+  for (const [file, src] of Object.entries(STORY_FILES)) {
+    const floor = /^f\d\.js$/.test(file) ? file.slice(0, 2) : null;
+    for (const m of src.matchAll(/findSecret\('([\w-]+)'\)/g)) add(`secret:${m[1]}`, {floor, where: `story/${file}`});
+    for (const m of src.matchAll(/giveItem\('((?:trinket|bingo):[\w-]+)'\)/g)) add(m[1], {floor, where: `story/${file}`});
+  }
+  return out;
+}
+export const strictFloors = () => FLOORS.filter(f => f.strictFinds).map(f => f.id);
+const FINDS = () => [...SECRETS.map(s => ({key: `secret:${s.id}`, floor: s.floor})), ...TRINKETS.map(t => ({key: `trinket:${t.id}`, floor: t.floor})), ...BINGO.map(b => ({key: `bingo:${b.id}`, floor: b.floor}))];
+
+test('every secret, Kantoorvondst and bingo square is placed once, on its own depth', t => {
+  const census = findsCensus(), strict = new Set(strictFloors()), pending = [];
+  assert.ok(strict.has('f0'), 'Diepte 0 checks its finds strictly');
+  for (const f of FINDS()) {
+    const at = census[f.key] || [];
+    assert.ok(at.length <= 1, `${f.key} is placed ${at.length} times: ${at.map(a => a.where).join('; ')}`);
+    for (const a of at) assert.ok(!a.floor || !f.floor || a.floor === f.floor, `${f.key} belongs to ${f.floor} but is placed at ${a.where}`);
+    if (f.floor === null) assert.equal(at.length, 1, `${f.key} must be handed out by the systems`);
+    else if (strict.has(f.floor)) assert.equal(at.length, 1, `${f.key} (${f.floor}) is not placed anywhere yet`);
+    else if (!at.length) pending.push(`${f.floor} ${f.key}`);
+  }
+  if (pending.length) t.diagnostic(`pending for later lanes (${pending.length}): ${pending.join(', ')}`);
+  // nothing on a map or in a story points at a find that does not exist
+  const known = new Set(FINDS().map(f => f.key));
+  for (const key of Object.keys(census)) assert.ok(known.has(key), `unknown find ${key} at ${census[key].map(a => a.where).join('; ')}`);
+});
+
+test('the registries of the story systems are complete', () => {
+  const unique = (list, what) => assert.equal(new Set(list.map(x => x.id)).size, list.length, `${what}: duplicate ids`);
+  const floors = new Set(FLOORS.map(f => f.id));
+  unique(SECRETS, 'secrets'); unique(TRINKETS, 'trinkets'); unique(BINGO, 'bingo'); unique(ACHIEVEMENTS, 'achievements'); unique(COSMETICS, 'cosmetics');
+  for (const s of SECRETS) { assert.ok(s.name && s.text && s.hint, `secret ${s.id} needs a name, text and hint`); assert.ok(floors.has(s.floor), `secret ${s.id}: unknown floor ${s.floor}`); }
+  for (const tr of TRINKETS) {
+    assert.ok(tr.name && tr.text && tr.effect && tr.icon && tr.shape, `trinket ${tr.id} needs a name, text, effect, icon and shape`);
+    assert.ok(tr.floor === null || floors.has(tr.floor), `trinket ${tr.id}: unknown floor ${tr.floor}`);
+    for (const [k, v] of Object.entries(tr.mods || {})) assert.ok((k in FACTORS || k in ADDS) && typeof v === 'number', `trinket ${tr.id}: unknown modifier ${k}`);
+  }
+  assert.equal(BINGO.length, 9, 'nine bingo squares');
+  assert.deepEqual([...BINGO_GRID].sort(), BINGO.map(b => b.id).sort(), 'the bingo card holds every square once');
+  for (const b of BINGO) assert.ok(b.word && floors.has(b.floor) && b.hint, `bingo ${b.id}`);
+  assert.ok(ACHIEVEMENTS.length >= 15 && ACHIEVEMENTS.length <= 22, 'about fifteen to twenty achievements');
+  for (const a of ACHIEVEMENTS) assert.ok(a.name && a.text && a.icon, `achievement ${a.id} needs a name, text and icon`);
+  for (const c of COSMETICS) assert.ok(c.name && c.hint && c.look && Object.keys(c.look).length, `cosmetic ${c.id}`);
+  for (const h of HALLUCS) assert.ok(h.retort, `hallucination ${h.id} has a retort for the Fabulant`);
+  // the story only awards, unlocks and finds what exists
+  const ids = list => new Set(list.map(x => x.id));
+  for (const [re, set, what] of [[/award\('(\w+)'/g, ids(ACHIEVEMENTS), 'achievement'], [/unlock\('(\w+)'/g, ids(COSMETICS), 'cosmetic'], [/findSecret\('(\w+)'/g, ids(SECRETS), 'secret']])
+    for (const m of storySrc.matchAll(re)) assert.ok(set.has(m[1]), `unknown ${what} ${m[1]}`);
+  // the epilogue, the journal and the summary know everyone with a relationship
+  for (const p of REL_PEOPLE) assert.ok(CAST_DEFS[p.npc] || CAST_EXTRA[p.npc], `relationship with unknown person ${p.npc}`);
+});
+
+// the shared look schema (game/hero.js): the new people and the cosmetics may only use these
+const LOOK = {
+  build: ['slim', 'average', 'broad', 'round'], age: ['young', 'adult', 'old'], brows: ['thin', 'normal', 'thick', 'bushy'], nose: ['small', 'normal', 'big', 'long'],
+  facialHair: ['none', 'stubble', 'moustache', 'walrus', 'goatee', 'beard', 'full'], glasses: ['none', 'round', 'square', 'half', 'shades'],
+  hair: ['bald', 'buzz', 'short', 'side', 'slick', 'curly', 'afro', 'pixie', 'bob', 'long', 'ponytail', 'bun', 'braids', 'headscarf'],
+  hat: ['cap', 'beret', 'beanie', 'tophat', 'hood', 'quill', 'hardhat'], top: ['blazer', 'cardigan', 'jumper', 'shirt', 'tshirt', 'hoodie', 'vest', 'dress', 'robe', 'apron', 'hawaii', 'hivis'],
+  bottom: ['trousers', 'skirt', 'shorts'],
+};
+const LOOK_COLOURS = ['skin', 'eyes', 'hairColor', 'facialHairColor', 'glassesColor', 'scarfColor', 'hatColor', 'topColor', 'top2', 'tie', 'bottomColor', 'shoes', 'scarf'];
+const LOOK_OTHER = ['height', 'freckles', 'blush', 'lanyard', 'earrings', 'headset', 'patches', 'holdL', 'holdR', 'idle'];
+function checkLook(look, what) {
+  for (const [k, v] of Object.entries(look)) {
+    if (LOOK[k]) assert.ok(LOOK[k].includes(v), `${what}: ${k} '${v}' is not in the look schema`);
+    else if (LOOK_COLOURS.includes(k)) assert.ok(Number.isInteger(v) && v >= 0 && v <= 0xffffff, `${what}: ${k} must be a hex colour`);
+    else assert.ok(LOOK_OTHER.includes(k), `${what}: unknown look key ${k}`);
+  }
+  if (look.height !== undefined) assert.ok(look.height >= 0.86 && look.height <= 1.14, `${what}: height out of range`);
+}
+test('new people and cosmetics follow the look schema', () => {
+  for (const [id, c] of Object.entries(CAST_EXTRA)) {
+    assert.ok(c.name && c.title && c.model, `${id} needs a name, title and model`);
+    assert.ok(!CAST_DEFS[id], `${id} is already in cast.js`);
+    if (!c.model.kind) { checkLook(c.model, id); for (const k of ['build', 'skin', 'hair', 'hairColor', 'top', 'topColor', 'bottom']) assert.ok(k in c.model, `${id}: look needs ${k}`); }
+  }
+  for (const c of COSMETICS) checkLook(c.look, `cosmetic ${c.id}`);
+  for (const [alias, id] of Object.entries(ALIAS)) assert.ok(CAST_DEFS[id] || CAST_EXTRA[id], `alias ${alias} points at unknown ${id}`);
 });
 
 // ---- the dossier follows the framework's rules ----
