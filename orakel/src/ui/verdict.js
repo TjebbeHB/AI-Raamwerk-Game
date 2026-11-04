@@ -142,6 +142,8 @@ export function showEnding({title, eyebrow = 'Een jaar later', text, judgement, 
   let current = null;
   function select(id, user = false, focusTab = false) {
     const t = tabs.find(x => x.id === id) || tabs[0];
+    // remember where the focus was: hiding its panel can drop it on the page before we look again
+    const had = document.activeElement, hadPanel = had && root.contains(had) ? had.closest?.('.endpanel') : null;
     if (!built[t.id]) {
       built[t.id] = true;
       try { t.build(panels[t.id]); } catch (e) { console.error('ending tab', t.id, e); panels[t.id].append(el('p', {class: 'prose', text: 'Dit onderdeel kon niet worden getoond.'})); }
@@ -154,8 +156,7 @@ export function showEnding({title, eyebrow = 'Een jaar later', text, judgement, 
     if (user && current !== t.id) { SFX.play?.('switch'); root.scrollTop = 0; }
     current = t.id; END.tab = t.id; root.dataset.tab = t.id;
     // keep the focus in view: a button in a panel that just closed would drop it on the page
-    const a = document.activeElement;
-    if (focusTab || (a && a !== document.body && a.closest?.('.endpanel[hidden]'))) btns[t.id].focus({preventScroll: true});
+    if (focusTab || (hadPanel && hadPanel.hidden) || had?.classList?.contains('endtab') || !root.contains(document.activeElement)) btns[t.id].focus({preventScroll: true});
     btns[t.id].scrollIntoView?.({block: 'nearest', inline: 'nearest'});
   }
   list.addEventListener('keydown', e => {
@@ -195,14 +196,15 @@ function prepareRoot(root) {
   // The game keeps Tab, Space and the arrow keys for itself (core/input.js). Inside the ending
   // they should scroll, move the focus and press buttons as usual.
   root.addEventListener('keydown', e => { if (NAV_KEYS.has(e.code) && !root.hidden) e.stopPropagation(); });
-  // and should the focus ever fall back to the page itself, the same goes for the page
-  document.addEventListener('keydown', e => { if (!root.hidden && NAV_KEYS.has(e.code) && !root.contains(e.target) && !e.target?.closest?.('.modal')) e.stopPropagation(); }, true);
-  // number keys 1-3 switch tabs, unless you are typing somewhere
-  root.addEventListener('keydown', e => {
-    if (root.hidden || e.altKey || e.ctrlKey || e.metaKey || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || '')) return;
+  // The same when the focus has fallen back to the page itself; and the number keys 1-3 switch
+  // tabs from anywhere, unless you are typing somewhere.
+  document.addEventListener('keydown', e => {
+    if (root.hidden || GAME.mode !== 'ending') return;
+    const inside = root.contains(e.target), typing = /^(INPUT|TEXTAREA|SELECT)$/.test(e.target?.tagName || '');
+    if (NAV_KEYS.has(e.code) && !inside && !e.target?.closest?.('.modal')) e.stopPropagation();
     const n = ['Digit1', 'Digit2', 'Digit3'].indexOf(e.code);
-    if (n >= 0 && END.select) { END.select(END_TABS[n]); e.preventDefault(); }
-  });
+    if (n >= 0 && !typing && !e.altKey && !e.ctrlKey && !e.metaKey && END.select) { END.select(END_TABS[n]); e.preventDefault(); }
+  }, true);
 }
 
 function buildEpilogue(p, {title, eyebrow, text, judgement, extra, select}) {

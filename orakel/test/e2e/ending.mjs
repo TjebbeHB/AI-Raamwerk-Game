@@ -132,6 +132,8 @@ const VERDICT_TALLY = {id: 'verdict', counts: [1, 3, 2, 1], ballots: 7, byRole: 
 
 // ---------------------------------------------------------------- helpers
 async function boot(page) {
+  // software rendering on a busy machine can be slow: be patient rather than flaky
+  page.setDefaultTimeout(+process.env.TIMEOUT || 120000);
   await page.goto(GAME_URL + Q);
   await page.waitForFunction(() => window.__orakel && !document.querySelector('#titleBtns .go')?.disabled, null, {timeout: 60000});
   await page.evaluate(() => document.querySelector('#titleBtns .go').click());
@@ -187,7 +189,7 @@ async function verdictFlow(page, {choice = 2, shots = null} = {}) {
   await page.click('#decBar .go');
   await wait(400);
   await page.click('#decBar .go');          // 'Een jaar later…'
-  await page.waitForSelector('#ending:not([hidden])', {timeout: 20000});
+  await page.waitForSelector('#ending:not([hidden])');
   await wait(1500);
   const stored = await page.evaluate(() => window.__orakel.G.council.verdict);
   check(`${shots || 'verdict'}: the verdict tally is stored with roles`, stored && stored.ballots === 7 && stored.byRole?.jurist?.counts?.[1] === 1, stored && {ballots: stored.ballots, roles: stored.roles?.length});
@@ -328,7 +330,7 @@ async function autoVerdict(page, choice) {
     await o.run(1);
     t.interact();
   }, choice);
-  await page.waitForSelector('#ending:not([hidden])', {timeout: 20000});
+  await page.waitForSelector('#ending:not([hidden])');
   await wait(1500);
 }
 
@@ -411,7 +413,7 @@ async function shortcut(browser) {
     g.interact();
     await o.run(14, {choices: [0, 0]});
   });
-  await page.waitForSelector('#ending:not([hidden])', {timeout: 20000});
+  await page.waitForSelector('#ending:not([hidden])');
   await wait(1200);
   const st = await page.evaluate(() => ({title: document.querySelector('#endpanel-epilogue h1')?.textContent, tab: document.querySelector('.endtab[aria-selected=true] .tn')?.textContent, talks: window.__orakel.G.stats.talks, met: window.__orakel.G.stats.met}));
   check('shortcut: the Snelle Lift ending opens on its epilogue', st.title === 'De Snelle Lift' && st.tab === 'Zes weken later', st);
