@@ -45,7 +45,7 @@ test('the facilitator plan adds up to twenty minutes and the verdict has questio
 
 test('no em dashes in the texts and code of the summary and the debrief', () => {
   const files = ['../src/content/nabespreking.js', '../src/ui/summary.js', '../src/ui/debrief.js', '../src/ui/verdict.js'];
-  for (const f of files) assert.ok(!fs.readFileSync(path.join(here, f), 'utf8').includes('—'), `${f} contains an em dash`);
+  for (const f of files) assert.ok(!fs.readFileSync(path.join(here, f), 'utf8').includes('\u2014'), `${f} contains an em dash`);
 });
 
 // ---------------------------------------------------------------- playstyle titles

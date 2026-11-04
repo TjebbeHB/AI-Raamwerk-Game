@@ -16,6 +16,7 @@ const check = (name, ok, info) => {
   console.log(`${ok ? 'ok  ' : 'FAIL'} ${name}${info === undefined ? '' : ` · ${typeof info === 'string' ? info : JSON.stringify(info)}`}`);
 };
 const wait = ms => new Promise(r => setTimeout(r, ms));
+const step = (...a) => { if (process.env.VERBOSE) console.log('....', ...a); };
 
 // ---------------------------------------------------------------- in the page: a rich end state
 function fakeRich() {
@@ -136,9 +137,12 @@ async function boot(page) {
   page.setDefaultTimeout(+process.env.TIMEOUT || 120000);
   await page.goto(GAME_URL + Q);
   await page.waitForFunction(() => window.__orakel && !document.querySelector('#titleBtns .go')?.disabled, null, {timeout: 60000});
+  step('title');
   await page.evaluate(() => document.querySelector('#titleBtns .go').click());
   await wait(1800);
+  step('new game');
   await page.evaluate(async () => { await window.__orakel.run(3); });
+  step('opening done');
 }
 // everything inside the ending that sticks out to the right (scrollers that may scroll are fine)
 const overflow = () => {
@@ -155,6 +159,7 @@ async function tabShots(page, prefix, {scrolls = 3} = {}) {
   for (const id of ['epilogue', 'summary', 'debrief']) {
     await page.click(`#endtab-${id}`);
     await wait(500);
+    step(prefix, id);
     const h = await page.evaluate(() => { const e = document.getElementById('ending'); e.scrollTop = 0; return e.scrollHeight; });
     const vh = page.viewportSize().height;
     for (let k = 0; k < scrolls && k * (vh - 80) < h; k++) {
@@ -373,6 +378,7 @@ async function plain(browser) {
   const errs = [];
   page.on('pageerror', e => errs.push(e.message));
   await boot(page);
+  step('plain: booted');
   await page.evaluate(async () => {
     const o = window.__orakel;
     o.autoDecide = 'best';
@@ -382,7 +388,9 @@ async function plain(browser) {
     o.autoDecide = null;
     o.G.stats = {time: 2400, kills: 12, deaths: 1, steps: 300, shortcut: 0, revealed: 4};   // a save from before this version
   });
+  step('plain: state set');
   await autoVerdict(page, 'ceiling');
+  step('plain: ending open');
   await tabShots(page, 'ending-plain', {scrolls: 3});
   const st = await page.evaluate(() => ({
     sections: [...document.querySelectorAll('#endpanel-summary .sumh')].map(h => h.textContent),
@@ -434,18 +442,24 @@ async function shortcut(browser) {
   await ctx.close();
 }
 
+// Every scenario runs on its own; a renderer that crashes (software WebGL on a busy machine)
+// gets one more try before the scenario counts as failed.
+const SCENARIOS = {desktop, print, phone, plain, shortcut};
 const browser = await launch();
-try {
-  if (ONLY.includes('desktop')) await desktop(browser);
-  if (ONLY.includes('print')) await print(browser);
-  if (ONLY.includes('phone')) await phone(browser);
-  if (ONLY.includes('plain')) await plain(browser);
-  if (ONLY.includes('shortcut')) await shortcut(browser);
-} catch (e) {
-  check('script ran to the end', false, e.message);
-} finally {
-  await browser.close();
+for (const [name, fn] of Object.entries(SCENARIOS)) {
+  if (!ONLY.includes(name)) continue;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    const mark = results.length;
+    try { await fn(browser); break; } catch (e) {
+      for (const c of browser.contexts()) await c.close().catch(() => {});
+      const crashed = /crash/i.test(e.message);
+      if (crashed && attempt === 1) { results.length = mark; console.log(`.... ${name}: the page crashed, trying once more`); continue; }
+      check(`${name} ran to the end`, false, e.message.split('\n')[0]);
+      break;
+    }
+  }
 }
+await browser.close();
 const failed = results.filter(r => !r.ok).length;
 console.log(`${results.length - failed}/${results.length} checks passed`);
 process.exit(failed ? 1 : 0);
