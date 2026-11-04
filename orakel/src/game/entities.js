@@ -232,6 +232,7 @@ export class Npc extends Ent {
       this.group.position.set(this.x, this.y, this.z);
       moveCollider(this.col, this.x, this.z);
       W.probeAt(this.x, this.z, this.probe.value);
+      this.st.look = null;
     } else {
       const d = this.dist(), toYou = Math.atan2(P.x - this.x, P.z - this.z);
       let want = this.baseYaw;
