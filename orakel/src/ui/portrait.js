@@ -37,25 +37,26 @@ function fromHsl(h, s, l) {
   const f = t => { t = (t + 1) % 1; return t < 1 / 6 ? p + (q - p) * 6 * t : t < 0.5 ? q : t < 2 / 3 ? p + (q - p) * (2 / 3 - t) * 6 : p; };
   return pack(f(h + 1 / 3) * 255, f(h) * 255, f(h - 1 / 3) * 255);
 }
-const hueTo = (h, t, k) => h + ((((t - h) % 360) + 540) % 360 - 180) * k;
+// move hue h toward t by fraction k along the short way round, but never more than max degrees
+const hueTo = (h, t, k, max = 180) => { const d = ((((t - h) % 360) + 540) % 360 - 180) * k; return h + (d > max ? max : d < -max ? -max : d); };
 export const luma = c => (cr(c) * 0.299 + cg(c) * 0.587 + cb(c) * 0.114) / 255;
-// Six hue-shifted tones per colour: shadows lean cool (skin: rosy), lights lean warm.
+// Six hue-shifted tones per colour: shadows lean cool (skin: rosy, metal: brown), lights lean warm.
 // [0 line, 1 deep shadow, 2 shadow, 3 base, 4 light, 5 highlight]
 const RAMPS = new Map();
-function ramp(hex, kind = 0) {           // kind: 0 cloth, 1 skin, 2 hair, 3 glowing
-  const key = hex * 4 + kind;
+function ramp(hex, kind = 0) {           // kind: 0 cloth, 1 skin, 2 hair, 3 glowing, 4 metal
+  const key = hex * 8 + kind;
   let r = RAMPS.get(key);
   if (r) return r;
   const [h, s, l] = toHsl(hex), grey = s < 0.07;
-  const cool = kind === 1 ? 350 : 246, warm = kind === 1 ? 36 : 50, hc = grey ? cool : h, hw = grey ? warm : h, add = grey ? 0.05 : kind === 3 ? 0.04 : 0.1;
-  const dk = kind === 3 ? [0.55, 0.72, 0.86] : [0.34, 0.6, 0.8];
+  const cool = kind === 1 ? 350 : kind === 4 ? 28 : 246, warm = kind === 1 ? 36 : 52, hc = grey ? cool : h, hw = grey ? warm : h, add = grey ? 0.05 : kind === 3 ? 0.04 : 0.1;
+  const dk = kind === 3 ? [0.55, 0.72, 0.86] : kind === 4 ? [0.3, 0.56, 0.78] : [0.34, 0.6, 0.8];
   r = [
-    fromHsl(hueTo(hc, cool, 0.32), s + add * 1.3, l * dk[0] + 0.012),
-    fromHsl(hueTo(hc, cool, 0.2), s + add, l * dk[1]),
-    fromHsl(hueTo(hc, cool, 0.1), s + add * 0.5, l * dk[2]),
+    fromHsl(hueTo(hc, cool, 0.32, 24), s + add * 1.3, l * dk[0] + 0.012),
+    fromHsl(hueTo(hc, cool, 0.2, 16), s + add, l * dk[1]),
+    fromHsl(hueTo(hc, cool, 0.1, 9), s + add * 0.5, l * dk[2]),
     hex,
-    fromHsl(hueTo(hw, warm, 0.08), s * 0.96, l + (1 - l) * (kind === 3 ? 0.35 : 0.2)),
-    fromHsl(hueTo(hw, warm, 0.16), s * 0.85, l + (1 - l) * (kind === 3 ? 0.7 : 0.46)),
+    fromHsl(hueTo(hw, warm, 0.08, 6), s * 0.96, l + (1 - l) * (kind === 3 ? 0.35 : 0.2)),
+    fromHsl(hueTo(hw, warm, 0.16, 10), s * (kind === 4 ? 0.7 : 0.85), l + (1 - l) * (kind === 3 ? 0.7 : kind === 4 ? 0.6 : 0.46)),
   ];
   RAMPS.set(key, r);
   return r;
@@ -146,7 +147,7 @@ function ball(cx, cy, rx, ry, bias = 0, top = LIT) {
   };
 }
 // 3 x 5 pixel letters for the mug and the tickets; under FLIP they are drawn mirrored so the final flip reads right
-const FONT = {A: '010101111101101', B: '110101110101110', C: '011100100100011', D: '110101101101110', E: '111100110100111', G: '011100101101011', I: '111010010010111', K: '101101110101101', L: '100100100100111', M: '101111111101101', N: '110101101101101', O: '010101101101010', P: '110101110100100', R: '110101110101101', S: '011100010001110', T: '111010010010010', U: '101101101101111', W: '101101111111101', 0: '111101101101111', 1: '010110010010111', 2: '110001010100111', 3: '110001010001110', 4: '101101111001001', 5: '111100110001110', 8: '010101010101010', 9: '010101011001110', '!': '010010010000010', '?': '110001010000010', '.': '000000000000010'};
+const FONT = {A: '010101111101101', B: '110101110101110', C: '011100100100011', D: '110101101101110', E: '111100110100111', G: '011100101101011', I: '111010010010111', K: '101101110101101', L: '100100100100111', M: '101111111101101', N: '110101101101101', O: '010101101101010', P: '110101110100100', R: '110101110101101', S: '011100010001110', T: '111010010010010', U: '101101101101111', W: '101101111111101', 0: '111101101101111', 1: '010110010010111', 2: '111001111100111', 3: '111001011001111', 4: '101101111001001', 5: '111100111001111', 6: '111100111101111', 7: '111001001001001', 8: '111101111101111', 9: '111101111001111', '!': '010010010000010', '?': '110001010000010', '.': '000000000000010'};
 function text(str, x, y, col, m) {
   let cx = x;
   for (const ch of str.toUpperCase()) {
@@ -491,7 +492,7 @@ function human(S, mood, mouth, blink, extra) {
   if (sig.shadesUp) shadesUp(g);
   if (L.headset) headset(g, P);
   if (L.earrings) earrings(g, L, covered);
-  if (sig.ticket) { const x = Math.round(g.X(0.3) + 7), y = t + 3; P.tk = part(ramp(0xf4efe2), {cast: 1}); rect(P.tk, x - 1, y - 1, x + 12, y + 5, LIT); text(sig.ticket, x + 1, y, 0xc0302a, P.tk); }
+  if (sig.ticket) { const x = Math.round(g.X(0.3) + 6), y = t + 3; P.tk = part(ramp(0xf6f2e6), {cast: 1}); rect(P.tk, x - 1, y - 2, x + 11, y + 5, LIT); for (let a = x - 1; a <= x + 11; a++) dot(a, y - 2, 0xd0402a, P.tk); text(sig.ticket, x, y, 0x2a2228, P.tk); }
   // ---- hands and the thing they hold
   const prop = sig.prop || (PROPS.has(L.holdR) ? L.holdR : PROPS.has(L.holdL) ? L.holdL : null);
   if (prop) heldProp(g, L, P, sig, prop, skinR, topC, top2C, under);
@@ -680,7 +681,7 @@ function garment(g, L, P, sig, topC, top2C, skinR) {
     const flap = part(topR, {soft: true, cast: 1});
     poly(flap, [x - nw - 2.2, y - 3, x - nw + 1.2, y - 3, x + 7.5, 97, cx - w - 3, 97, cx - w, y + 8], (a, b) => (a < cx - w * 0.5 && b < y + 14 ? LIT : BASE));
     const lining = part(t2R, {soft: true});
-    strip(lining, [x - nw - 0.2, y - 3, x + 6.8, 97], 2.2, LIT);
+    strip(lining, [x - nw + 0.4, y - 3, x + 7.4, 97], 3.4, (a) => (a < x ? LIT : BASE));
     for (const [x0, x1] of [[cx - w + 6, cx - w + 9], [x - 8, x - 6], [cx + w - 7, cx + w - 9]]) quad(x0, g.shY + 4, x0 + 3, g.shY + 15, x1, 97, (a, b) => tone(a, b, SH, [P.top, flap]));
   } else if (top === 'apron') {
     collar(col, x, y, nw - 1.4);
@@ -1034,7 +1035,7 @@ function frontHair(g, L, P, sig, hairR, skinR) {
   }
   if (style === 'pixie') for (const [sx, d] of [[sideL + 0.5, 1], [sideR - 0.5, -1]]) poly(p, [sx - 2 * d, t + 20, sx + 2.6 * d, t + 21, sx + 0.8 * d, t + 30], shade);
   if (style === 'braids') {
-    const bead = part(ramp(0xd8a840), {cast: 1});
+    const bead = part(ramp(0xd8a840, 4), {cast: 1});
     for (const [sx, d] of [[sideL + 1, -1], [sideR - 1, 1]]) {
       let bx = sx, by = t + 24;
       const seg = part(hairR, {soft: true, cast: 1});
@@ -1077,7 +1078,7 @@ function hat(g, L, P, sig, hairR) {
     ell(p, cx, t + 5.5, fw + 2.8, 8.2, (x, y) => { const s = sh(x, y); return (x * 7 + y * 3) % 5 === 0 && s >= BASE ? s + 1 : (x * 7 + y * 3) % 5 === 2 ? Math.max(SH2, s - 1) : s; }, (x, y) => y + 0.5 < t + 11.8);
     const brim = part(R, {cast: 3});
     ell(brim, g.X(0.55) + 1, t + 11.6, 12.6, 2.4, (x, y) => (y + 0.5 < t + 11.2 ? BASE : SH));
-    if (sig.postal) { const b = part(ramp(0xf0c838)); ell(b, g.X(0.5), t + 6, 2.2, 1.8, LIT); }
+    if (sig.postal) { const b = part(ramp(0xf0c838, 4)); ell(b, g.X(0.5), t + 6, 2.2, 1.8, LIT); }
   } else if (kind === 'beret') {
     const pts = [];
     for (let k = 0; k < 24; k++) { const a = (k / 24) * Math.PI * 2, ex = Math.cos(a) * (fw + 4.6), ey = Math.sin(a) * 6.6; pts.push(cx - 2 + ex * Math.cos(-0.14) - ey * Math.sin(-0.14), t + 4.4 + ex * Math.sin(-0.14) + ey * Math.cos(-0.14)); }
@@ -1145,7 +1146,7 @@ function glasses(g, L, sig, P) {
   for (let x = lenses[1][1] + 1; x < Math.round(g.cx + g.fw - 0.5); x++) dot(x, y0 + hf + 2, fr[SH], -1);
   // the watchmaker's loupe: a brass tube over the far lens, the eye behind it magnified
   if (sig.loupe) {
-    const cx = (lenses[1][0] + lenses[1][1]) / 2 + 0.5, cy = g.eyeY + 3.6, br = ramp(0xb8863a);
+    const cx = (lenses[1][0] + lenses[1][1]) / 2 + 0.5, cy = g.eyeY + 3.6, br = ramp(0xb8863a, 4);
     eachEll(cx, cy, 6.2, 6.2, (x, y) => { const d = Math.hypot(x + 0.5 - cx, y + 0.5 - cy); if (d > 4.3) dot(x, y, d > 5.6 ? br[LINE] : x + y < cx + cy - 1 ? br[LIT] : br[SH]); else if (d > 3.6) dot(x, y, 0x2a2228); });
     dot(Math.round(cx - 2), Math.round(cy - 2), 0xffffff); dot(Math.round(cx - 1), Math.round(cy - 3), 0xdcecff);
   }
@@ -1184,77 +1185,80 @@ function earrings(g, L, covered) {
 function heldProp(g, L, P, sig, prop, skinR, topC, top2C, under) {
   const right = prop === 'folder' || prop === 'leash' || prop === 'ruler' || L.holdL === prop && !L.holdR;
   const s = right ? 1 : -1, cx = g.cx + 0.5, hx = cx + s * (g.sw - 11), hy = 86;
-  const sleeveC = under ? top2C : topC, sl = part(ramp(sleeveC), {soft: true, cast: 1});
+  const sl = part(ramp(under ? top2C : topC), {soft: true, cast: 1});
   const hand = part(sig.mitt ? ramp(0xd8502a) : skinR, {soft: true, cast: 1});
-  const fingers = (fx, fy, n = 3) => { for (let k = 0; k < n; k++) { const i = (Math.round(fy) + k * 2) * N + Math.round(fx); if (PART[i] === hand) TONE[i] = SH; } };
-  const sleeve = () => strip(sl, [hx - s * 3, 99, hx + s * 0.5, hy + 4], 9.5, (x) => (x < hx ? LIT : BASE));
-  const drawHand = (x, y) => { ell(hand, x, y, 4.2, 3.8, ball(x - 1.5, y - 2, 5, 5)); fingers(x + s * 1.5, y - 2); if (sig.mitt) for (let yy = y - 3; yy < y + 3; yy += 2) for (let xx = x - 3; xx < x + 3; xx += 2) dot(Math.round(xx), Math.round(yy), 0xf0d0a0, hand); if (sig.ink) { dot(Math.round(x - 1), Math.round(y - 2), 0x1a2a5a, hand); dot(Math.round(x + 1), Math.round(y - 1), 0x1a2a5a, hand); } };
+  // the forearm comes up from the bottom edge to the wrist, with a darker cuff
+  const sleeve = (wx, wy) => { strip(sl, [wx - s * 5, 99, wx, wy], 9, (x) => (x < wx - 1.5 ? LIT : BASE)); eachEll(wx, wy + 1, 4.6, 1.8, (x, y) => tone(x, y, SH, sl)); };
+  // a fist from the front: two finger creases, the thumb on top (a quilted oven mitt for Sien)
+  const fist = (x, y) => {
+    poly(hand, [x - 3.8, y - 2.2, x - 1.6, y - 3.8, x + 2.8, y - 3.4, x + 4, y - 0.6, x + 3.6, y + 3.2, x + 1.6, y + 4.2, x - 2.6, y + 3.8, x - 4.2, y + 1.2], (xx, yy) => (yy + 0.5 < y - 2 ? LIT : xx + 0.5 > x + 2.4 || yy + 0.5 > y + 2.9 ? SH : BASE));
+    if (sig.mitt) { for (let yy = Math.round(y) - 3; yy <= y + 3; yy += 2) for (let xx = Math.round(x) - 3; xx <= x + 3; xx += 2) dot(xx, yy, 0xf2c890, hand); return; }
+    for (const fy of [-0.2, 1.9]) line(x - 3, y + fy, x + 2, y + fy, onPart(hand, SH));
+    line(x - 2.4, y - 2.8, x + 1, y - 3.2, onPart(hand, LIT));
+    if (sig.ink) { dot(Math.round(x - 1), Math.round(y + 1), 0x1a2a5a, hand); dot(Math.round(x + 2), Math.round(y - 1), 0x1a2a5a, hand); dot(Math.round(x), Math.round(y + 3), 0x24346a, hand); }
+  };
+  const holdAt = (x, y) => { sleeve(x - s * 1.2, y + 4); return () => fist(x, y); };
   if (prop === 'mug' || prop === 'tea' || prop === 'coffee') {
     const big = !!sig.mugText, w = big ? 22 : 12, h = big ? 18 : 12, x0 = Math.round(hx - w / 2 + s * 3), y0 = Math.round(hy - h + 4);
-    const mc = prop === 'tea' ? 0xe8945a : 0xf2ede4, m = part(ramp(mc), {cast: 1});
-    sleeve();
+    const mc = prop === 'tea' ? 0xe8945a : 0xf2ede4, m = part(ramp(mc), {cast: 1}), hxs = s < 0 ? x0 - 3 : x0 + w + 3;
+    const grip = holdAt(hxs + s * 0.5, y0 + h / 2 + 1);
     poly(m, [x0, y0, x0 + w, y0, x0 + w, y0 + h - 2, x0 + w - 2, y0 + h, x0 + 2, y0 + h, x0, y0 + h - 2], (x) => (x < x0 + 3 ? LIT : x > x0 + w - 4 ? SH : BASE));
-    const hxs = s < 0 ? x0 - 3 : x0 + w + 3;
     ell(m, hxs, y0 + h / 2 - 1, 3.6, 4.4, BASE, (x, y) => { const a = (x + 0.5 - hxs) / 2, b = (y + 0.5 - (y0 + h / 2 - 1)) / 2.6; return a * a + b * b > 1; });
     ell(part(ramp(prop === 'coffee' || big ? 0x5a3418 : 0xb8742a)), x0 + w / 2, y0 + 0.6, w / 2 - 1, 1.6, BASE);
     if (big) { text(sig.mugText[0], x0 + 2, y0 + 4, 0x2a4a8a, m); text(sig.mugText[1], x0 + 2, y0 + 11, 0xb83a2a, m); }
     if (prop === 'tea') { line(x0 + w - 3, y0, x0 + w - 2, y0 + 5, (x, y) => dot(x, y, 0xf4f0e8)); rect(part(ramp(0xf2c838)), x0 + w - 4, y0 + 5, x0 + w - 1, y0 + 8, LIT); }
     for (const k of [0, 1]) { const sx = x0 + w / 2 - 3 + k * 5; quad(sx, y0 - 2, sx + 2, y0 - 5, sx, y0 - 8, (x, y) => dot(x, y, mix(OVER[y * N + x] >= 0 ? OVER[y * N + x] : 0x403020, 0xffffff, 0.45), i => !PART[i])); }
-    drawHand(hxs + s * 0.5, y0 + h / 2 + 1);
+    grip();
   } else if (prop === 'folder') {
-    sleeve();
-    const f = part(ramp(0xe8c050), {cast: 1}), x0 = hx - 12, y0 = hy - 14;
+    const f = part(ramp(0xe8c050, 4), {cast: 1}), x0 = hx - 12, y0 = hy - 14, grip = holdAt(hx - s * 2, hy - 13);
     poly(f, [x0, y0 + 2, x0 + 20, y0 - 1, x0 + 23, y0 + 24, x0 + 3, y0 + 27], (x, y) => { const d = (x - x0) - (y - y0) * 0.6; return d > 6 && d < 9 ? HI : d > 14 ? SH : d < 3 ? LIT : BASE; });
     text('PP', Math.round(x0 + 7), Math.round(y0 + 8), 0x8a5a10, f);
     sparkle(Math.round(x0 + 19), Math.round(y0 + 2), 0xfff8d0);
-    drawHand(hx - s * 2, hy - 13);
+    grip();
   } else if (prop === 'book') {
-    sleeve();
-    const bc = sig.bookColor ?? 0x6a2a2a, b = part(ramp(bc), {cast: 1}), x0 = Math.round(hx - 8), y0 = hy - 12;
+    const bc = sig.bookColor ?? 0x6a2a2a, b = part(ramp(bc), {cast: 1}), x0 = Math.round(hx - 8), y0 = hy - 12, grip = holdAt(s < 0 ? x0 + 15 : x0, y0 + 10);
     rect(b, x0, y0, x0 + 15, y0 + 20, (x) => (x < x0 + 3 ? LIT : BASE));
     for (let y = y0 + 1; y < y0 + 20; y++) dot(s < 0 ? x0 + 15 : x0, y, 0xefe6d0, b);
     for (let x = x0 + 4; x < x0 + 13; x++) { dot(x, y0 + 4, 0xd8b050, b); dot(x, y0 + 7, 0xd8b050, b); }
-    drawHand(s < 0 ? x0 + 15 : x0, y0 + 9);
+    grip();
   } else if (prop === 'form' || prop === 'clipboard') {
-    sleeve();
-    const x0 = Math.round(hx - 5), y0 = hy - 16;
+    const x0 = Math.round(hx - 5), y0 = hy - 16, grip = holdAt(x0 + 2, y0 + 13);
     if (prop === 'clipboard') rect(part(ramp(0xa07a50), {cast: 1}), x0 - 2, y0 - 2, x0 + 12, y0 + 16, BASE);
     const f = part(ramp(0xf6f2ea), {cast: 1});
     rect(f, x0, y0, x0 + 10, y0 + 13, LIT);
     for (let k = 0; k < 4; k++) for (let x = x0 + 2; x < x0 + 8 - (k === 3 ? 3 : 0); x++) dot(x, y0 + 2 + k * 2, 0x8a8aa0, f);
     rect(part(ramp(0xd04a3a)), x0 + 6, y0 + 9, x0 + 8, y0 + 11, BASE);
     if (prop === 'clipboard') rect(part(ramp(0xb8bec8)), x0 + 3, y0 - 3, x0 + 7, y0, LIT);
-    drawHand(x0 + 2, y0 + 12);
+    grip();
   } else if (prop === 'ruler') {
-    sleeve();
-    const r = part(ramp(0xf0d050), {cast: 1}), x0 = Math.round(hx - 1);
+    const r = part(ramp(0xf0d050), {cast: 1}), x0 = Math.round(hx - 1), grip = holdAt(x0 + 1.5, hy - 2);
     rect(r, x0, 50, x0 + 3, 96, (x) => (x === x0 ? LIT : BASE));
     for (let y = 52; y < 96; y += 2) dot(x0 + 3, y, 0x5a4a1a, r);
     for (let y = 52; y < 96; y += 6) { dot(x0 + 2, y, 0x5a4a1a, r); dot(x0 + 1, y, 0x5a4a1a, r); }
-    drawHand(x0 + 1.5, hy - 2);
+    grip();
   } else if (prop === 'horn') {
     // an ear trumpet: a brass tube from her ear that flares into a wide bell
-    const br = ramp(0xd8a848), p = part(br, {cast: 1}), ex = g.cx - g.fw, ey = g.eyeY + 6;
+    const br = ramp(0xd8a848, 4), p = part(br, {cast: 1}), ex = g.cx - g.fw, ey = g.eyeY + 6;
     strip(sl, [cx - g.sw + 4, 99, ex - 6, ey + 15], 8, (x) => (x < ex - 8 ? LIT : BASE));
     strip(p, [ex + 1.5, ey, ex - 3, ey + 2, ex - 7, ey + 5.5], 2.4, LIT);
     poly(p, [ex - 6, ey + 3.4, ex - 8, ey + 8.2, ex - 13.5, ey + 15.6, ex - 16.6, ey + 2.2], (x, y) => (y + 0.5 < ey + 6 ? LIT : BASE));
     ell(p, ex - 15.6, ey + 9, 3.4, 7.2, (x, y) => (y + 0.5 < ey + 7 ? HI : LIT));
     ell(part(ramp(0x3a2410), {soft: true}), ex - 15.8, ey + 9, 1.9, 5.2, (x, y) => (y + 0.5 < ey + 7 ? SH : BASE));
-    drawHand(ex - 7, ey + 11);
+    fist(ex - 7, ey + 11);
   } else if (prop === 'leash') {
-    sleeve();
-    const lc = 0xc0302a;
-    drawHand(hx, hy - 4);
+    // Meneer De Wit holds the lead of a dog that is not there: an empty collar dangles at the end
+    const lc = 0xc0302a, grip = holdAt(hx, hy - 4);
+    grip();
     quad(hx - 2, hy - 7, hx - 9, hy - 9, hx - 4, hy - 2, (x, y) => dot(x, y, lc));
     quad(hx + 1, hy - 1, hx + 2, hy + 6, hx - 3, 92, (x, y) => dot(x, y, lc));
     const c = part(ramp(lc), {cast: 1});
     ell(c, hx - 4, 92.5, 3.4, 2.2, BASE, (x, y) => { const a = (x + 0.5 - (hx - 4)) / 2, b = (y + 0.5 - 92.5) / 1; return a * a + b * b > 1; });
     dot(Math.round(hx - 4), 95, 0xf0d060);
   } else if (prop === 'stamp' || prop === 'keys') {
-    sleeve();
+    const grip = holdAt(hx, hy - 3);
     if (prop === 'stamp') { rect(part(ramp(0x7a5230), {cast: 1}), Math.round(hx - 1), hy - 12, Math.round(hx + 1), hy - 5, LIT); rect(part(ramp(0x3a7a4a), {cast: 1}), Math.round(hx - 4), hy - 5, Math.round(hx + 4), hy - 3, BASE); }
-    else { const k = part(ramp(0xd8b050), {cast: 1}); ell(k, hx, hy - 9, 4.4, 4.4, BASE, (x, y) => Math.hypot(x + 0.5 - hx, y + 0.5 - hy + 9) > 3); for (const a of [-1, 0, 1]) { strip(k, [hx + a * 3, hy - 5, hx + a * 4, hy + 2], 1.8, LIT); } }
-    drawHand(hx, hy - 3);
+    else { const k = part(ramp(0xd8b050, 4), {cast: 1}); ell(k, hx, hy - 9, 4.4, 4.4, BASE, (x, y) => Math.hypot(x + 0.5 - hx, y + 0.5 - hy + 9) > 3); for (const a of [-1, 0, 1]) { strip(k, [hx + a * 3, hy - 5, hx + a * 4, hy + 2], 1.8, LIT); } }
+    grip();
   }
 }
 function sparkle(x, y, c = 0xfff8d0) {
@@ -1296,6 +1300,7 @@ function moodFx(g, L, M, mood, sig, P) {
 
 // ---------------------------------------------------------------- creatures
 // a simple face for the folk without human features
+const halfMask = (M, blink) => M.eye === 'half' || M.eye === 'tired' || (blink >= 0.3 && blink < 0.75);
 function toonFace(x, y, s, mood, mouth, blink, o = {}) {
   const M = MOOD[mood], ink = o.ink ?? 0x2a1406, e = o.eye ?? ink, gap = Math.round(8 * s), ew = Math.max(2, Math.round(3 * s)), eh = Math.max(3, Math.round(4.4 * s)), m = o.mask;
   const closed = blink >= 0.75 || M.eye === 'arc';
@@ -1347,10 +1352,10 @@ function creature(S, mood, mouth, blink) {
   if (k === 'spark') {
     const col = c ?? 0xffb84a, R = ramp(col, 3), p = part(R, {ink: R[LINE], rim: false}), vonk = id === 'vonk';
     const gl = glowBody(p, 48, 64, 19, 22);
-    aura(col, vonk ? 8 : 6, 0.5);
     flame(p, 48, 60, vonk ? 2 : 16, vonk ? 20 : 15, gl, vonk ? 1.8 : 1);
     if (vonk) { flame(p, 33, 62, 22, 7, gl); flame(p, 63, 62, 18, 7, gl); }
     ell(p, 48, 66, 20, 21, gl);
+    aura(col, vonk ? 8 : 6, 0.5);
     if (id === 'pieter' || sp.dim) for (let y = 0; y < N; y++) for (let x = 49; x < N; x++) { const i = y * N + x; if (PART[i] === p) { TONE[i] = Math.max(SH2, TONE[i] - 2); if ((x + y) % 2 === 0 && x === 49) OVER[i] = R[LINE]; } }
     toonFace(48, 63, 1.1, mood, mouth, blink, {mask: p, grin: vonk});
     // Ans: thirty years of experience, tiny reading glasses perched low
@@ -1409,7 +1414,7 @@ function creature(S, mood, mouth, blink) {
     return;
   }
   if (k === 'padlock') {
-    const col = c ?? 0xc8a040, R = ramp(col), sh = part(ramp(0x9a9aa8), {soft: true}), p = part(R, {soft: true, cast: 2});
+    const col = c ?? 0xc8a040, R = ramp(col, 4), sh = part(ramp(0x9a9aa8, 4), {soft: true}), p = part(R, {soft: true, cast: 2});
     ell(sh, 48, 40, 17.5, 22, ball(40, 30, 18, 22), (x, y) => Math.hypot((x + 0.5 - 48) / 11.2, (y + 0.5 - 40) / 15.6) > 1 && y < 52);
     poly(p, [26, 50, 70, 50, 72, 54, 72, 88, 68, 92, 28, 92, 24, 88, 24, 54], ball(38, 58, 34, 34));
     for (const [x, y] of [[29, 55], [67, 55], [29, 87], [67, 87]]) { dot(x, y, R[HI], p); dot(x + 1, y + 1, R[SH2], p); }
@@ -1419,39 +1424,48 @@ function creature(S, mood, mouth, blink) {
     return;
   }
   if (k === 'orakel') {
-    const gold = ramp(0xf0c458), fr = part(gold, {soft: true, ink: 0x5a3a08});
+    // PraatPal Orakel(TM): a golden frame around a screen face that glows
+    const gold = ramp(0xf0c458, 4), fr = part(gold, {soft: true, ink: 0x4a3008}), M = MOOD[mood], angry = mood === 'angry';
+    poly(fr, [24, 12, 72, 12, 80, 20, 80, 80, 72, 88, 24, 88, 16, 80, 16, 20], ball(34, 26, 44, 48));
+    for (const [x, y] of [[48, 9], [14, 50], [82, 50]]) { const gem = part(ramp(0x5ad0ff, 3), {ink: 0x1a4a6a}); ell(gem, x, y, 3.3, 3.3, glowBody(gem, x, y, 3.3, 3.3)); }
+    const scrC = angry ? 0x3a1018 : mood === 'sad' ? 0x0e1e3a : 0x0b2a34, sR = ramp(scrC), scr = part(sR, {soft: true, rim: false});
+    poly(scr, [27, 20, 69, 20, 73, 24, 73, 76, 69, 80, 27, 80, 23, 76, 23, 24], (x, y) => { const d = (x - 48) ** 2 / 700 + (y - 50) ** 2 / 900; return d < 0.32 ? LIT : d < 0.8 ? BASE : SH; });
+    for (let y = 21; y < 80; y += 3) for (let x = 23; x < 74; x++) { const i = y * N + x; if (PART[i] === scr) TONE[i] = Math.max(SH2, TONE[i] - 1); }
+    for (let y = 21; y < 46; y++) for (let x = 24; x < 62; x++) { const i = y * N + x, d = x - 24 + (y - 21); if (d >= 7 && d <= 10 && PART[i] === scr) OVER[i] = mix(sR[TONE[i]], 0xffffff, 0.14); }
     aura(0xffd36b, 8, 0.5);
-    poly(fr, [24, 14, 72, 14, 78, 20, 78, 78, 72, 86, 24, 86, 18, 78, 18, 20], ball(36, 28, 40, 44));
-    for (const [x, y] of [[48, 11], [16, 50], [80, 50]]) { const gem = part(ramp(0x5ad0ff, 3)); ell(gem, x, y, 3.2, 3.2, glowBody(gem, x, y, 3.2, 3.2)); }
-    const scr = part(ramp(mood === 'angry' ? 0x3a1414 : 0x0e2a36), {line: true, soft: true, rim: false});
-    poly(scr, [27, 21, 69, 21, 72, 24, 72, 74, 69, 78, 27, 78, 24, 74, 24, 24], (x, y) => (y % 2 ? BASE : SH));
-    const gl = mood === 'angry' ? 0xff8a6a : 0xfff1b8, gl2 = mood === 'angry' ? 0xc8402a : 0x9ff0ff, M = MOOD[mood];
-    for (let y = 22; y < 78; y++) for (let x = 25; x < 72; x++) { const i = y * N + x; if (PART[i] === scr && ((x - 48) ** 2 / 900 + (y - 48) ** 2 / 1100) < 0.5) TONE[i] = Math.min(LIT, TONE[i] + 1); }
-    const eyeY = 40;
+    const gl = angry ? 0xffb49a : 0xfff4c8, gl2 = angry ? 0xd0503a : 0x7ae0f0, lit = new Set();
+    const px = (x, y, c = gl) => { x = Math.round(x); y = Math.round(y); const i = y * N + x; if (PART[i] === scr) { OVER[i] = c; lit.add(i); } };
+    const blinkC = blink >= 0.75, halfE = M.eye === 'half' || M.eye === 'tired' || (blink >= 0.3 && !blinkC);
     for (const sx of [-1, 1]) {
-      const ex = 48 + sx * 10;
-      const pix = (a, b, c = gl) => dot(ex + a, eyeY + b, c, scr);
-      if (blink >= 0.75 || M.eye === 'arc' || M.eye === 'smile') { for (let a = -3; a <= 3; a++) pix(a, Math.abs(a) === 3 ? 1 : Math.abs(a) === 2 ? 0 : -1); for (let a = -2; a <= 2; a++) pix(a, Math.abs(a) === 2 ? 1 : 0, gl2); }
-      else if (M.eye === 'wide') { for (let a = -3; a <= 3; a++) for (let b = -3; b <= 3; b++) { const d = Math.hypot(a, b); if (d > 2 && d < 3.5) pix(a, b); } pix(0, 0); }
-      else if (M.eye === 'angry') { for (let a = -3; a <= 3; a++) { pix(a, Math.round(a * sx * 0.6)); pix(a, Math.round(a * sx * 0.6) + 1, gl2); } }
-      else if (M.eye === 'sad') { for (let a = -3; a <= 3; a++) pix(a, Math.round(-a * sx * 0.4)); pix(sx * -2, 3, gl2); pix(sx * -2, 4, gl2); pix(sx * -2, 6, gl2); }
-      else if (M.eye === 'half' || M.eye === 'tired' || blink >= 0.3) { for (let a = -3; a <= 3; a++) { pix(a, 0); pix(a, 1, gl2); } }
-      else if (mood === 'thinking') { pix(0, 0); pix(1, 0); pix(0, 1); pix(1, 1); }
-      else { const lx = M.look[0] * sx * 0; for (let a = -2; a <= 2; a++) for (let b = -3; b <= 3; b++) if (Math.abs(a) + Math.abs(b) < 5) pix(a + lx + (mood === 'worried' ? -1 : 0), b, Math.abs(a) < 2 && Math.abs(b) < 3 ? gl : gl2); }
+      const ex = 48 + sx * 11, ey = 42;
+      if (M.eye === 'arc' || M.eye === 'smile') for (let a = -3; a <= 3; a++) { px(ex + a, ey + Math.round(Math.abs(a) * 0.8) - 1); px(ex + a, ey + Math.round(Math.abs(a) * 0.8)); }
+      else if (blinkC) for (let a = -3; a <= 3; a++) px(ex + a, ey + 1);
+      else if (M.eye === 'wide') { for (let a = -4; a <= 4; a++) for (let b = -4; b <= 4; b++) { const d = Math.hypot(a, b); if (d > 2.6 && d < 3.9) px(ex + a, ey + b); } px(ex, ey); }
+      else if (M.eye === 'angry') for (let a = -3; a <= 3; a++) { px(ex + a, ey + Math.round(a * sx * 0.6)); px(ex + a, ey + Math.round(a * sx * 0.6) + 1); }
+      else if (M.eye === 'sad') { for (let a = -3; a <= 3; a++) { px(ex + a, ey - Math.round(a * sx * 0.5)); px(ex + a, ey - Math.round(a * sx * 0.5) + 1); } for (const b of [4, 5, 7]) px(ex - sx * 2, ey + b, gl2); }
+      else if (halfE) for (let a = -2; a <= 2; a++) for (let b = 0; b <= 2; b++) px(ex + a, ey + b);
+      else if (mood === 'thinking') for (let a = 0; a <= 1; a++) for (let b = 0; b <= 1; b++) px(ex + 1 + a, ey - 2 + b);
+      else { const lx = mood === 'worried' ? -1 : 0; for (let a = -2; a <= 1; a++) for (let b = -3; b <= 3; b++) if (!((a === -2 || a === 1) && Math.abs(b) === 3)) px(ex + a + lx, ey + b); px(ex - 1 + lx, ey - 2, 0xffffff); }
     }
-    const my = 62;
-    const open = mouth > 0.15;
-    if (open || mood === 'laugh') { const hs = [2, 4, 6, 4, 7, 3, 5, 2], amp = mood === 'laugh' ? 1.4 : mouth; hs.forEach((h, i) => { const hh = Math.max(1, Math.round(h * amp * (0.6 + ((i * 7) % 5) / 10))); for (let b = -hh; b <= hh; b++) dot(34 + i * 4, my + b, Math.abs(b) === hh ? gl2 : gl, scr); dot(35 + i * 4, my, gl2, scr); }); }
-    else if (mood === 'thinking') { for (let x = 32; x <= 64; x++) dot(x, my, x < 50 ? gl : gl2, scr); for (let x = 31; x <= 65; x++) { dot(x, my - 2, gl2, scr); dot(x, my + 2, gl2, scr); } dot(31, my - 1, gl2, scr); dot(31, my + 1, gl2, scr); dot(65, my - 1, gl2, scr); dot(65, my + 1, gl2, scr); }
-    else {
-      const shapes = {flat: a => 0, smile: a => Math.round((a * a) / 40) * -1 + 2, frown: a => Math.round((a * a) / 40), wavy: a => Math.round(Math.sin(a * 0.6) * 1.4), smirk: a => (a > 0 ? -Math.round(a / 4) : 0), side: a => 0, tired: a => 0, grit: a => Math.round((a * a) / 50), o: a => 0};
-      const f = shapes[M.mouth] || shapes.flat, wd = M.mouth === 'o' ? 3 : M.mouth === 'side' ? 5 : 10;
-      for (let a = -wd; a <= wd; a++) dot(48 + a + (M.mouth === 'side' ? 6 : 0), my + f(a), gl, scr);
-      if (M.mouth === 'o') for (let a = -2; a <= 2; a++) { dot(48 + a, my - 2, gl, scr); dot(48 + a, my + 2, gl, scr); }
+    const my = 63;
+    if (mouth > 0.15 || mood === 'laugh') {
+      // talking: an equaliser instead of a mouth
+      const hs = [1, 3, 5, 3, 6, 2, 4, 1], amp = mood === 'laugh' ? 1.3 : mouth;
+      hs.forEach((h, i) => { const hh = Math.max(0, Math.round(h * amp)); for (let b = -hh; b <= hh; b++) { px(34 + i * 4, my + b, Math.abs(b) === hh && hh ? gl2 : gl); px(35 + i * 4, my + b, Math.abs(b) === hh && hh ? gl2 : gl); } });
+    } else if (mood === 'thinking') {
+      // a progress bar: denkt na...
+      for (let x = 33; x <= 63; x++) { px(x, my - 2, gl2); px(x, my + 2, gl2); }
+      for (let y = my - 1; y <= my + 1; y++) { px(33, y, gl2); px(63, y, gl2); for (let x = 35; x <= 49; x++) px(x, y); }
+    } else {
+      const f = {flat: a => Math.round((1 - (a * a) / 64) * 1.2), smile: a => Math.round((1 - (a * a) / 64) * 3) - 1, frown: a => 1 - Math.round((1 - (a * a) / 64) * 2.6), wavy: a => Math.round(Math.sin(a * 0.8) * 1.4), smirk: a => (a > 1 ? -Math.round((a - 1) / 2.5) : 0), tired: () => 0, grit: a => (a % 2 ? 1 : -1), o: () => 0}[M.mouth] || (() => 0);
+      if (M.mouth === 'o') { for (let a = -3; a <= 3; a++) for (let b = -3; b <= 3; b++) { const d = Math.hypot(a, b); if (d > 1.8 && d < 3.1) px(48 + a, my + b); } }
+      else for (let a = -8; a <= 8; a++) px(48 + a, my + f(a));
     }
-    if (mood === 'tired') { const bx = 60, by = 70; for (let x = bx; x <= bx + 8; x++) { dot(x, by, gl2, scr); dot(x, by + 4, gl2, scr); } for (let y = by; y <= by + 4; y++) { dot(bx, y, gl2, scr); dot(bx + 8, y, gl2, scr); } dot(bx + 9, by + 2, gl2, scr); dot(bx + 1, by + 2, 0xff6a5a, scr); dot(bx + 2, by + 2, 0xff6a5a, scr); }
-    if (mood === 'worried') { for (const b of [0, 1, 2, 4]) dot(66, 26 + b, 0xffd060, scr); }
-    text('TM', 66, 80, gold[LINE], fr);
+    if (mood === 'tired') { const bx = 59, by = 71; for (let x = bx; x <= bx + 8; x++) { px(x, by, gl2); px(x, by + 4, gl2); } for (let y = by; y <= by + 4; y++) { px(bx, y, gl2); px(bx + 8, y, gl2); } px(bx + 9, by + 2, gl2); for (let y = by + 1; y <= by + 3; y++) px(bx + 1, y, 0xff6a5a); }
+    if (mood === 'worried') for (const b of [0, 1, 2, 4]) px(67, 25 + b, 0xffd060);
+    if (mood === 'smug') for (const [a, b] of [[0, 0], [-1, 0], [1, 0], [0, -1], [0, 1]]) px(64 + a, 27 + b, 0xffffff);
+    for (const i of lit) for (const j of [i - 1, i + 1, i - N, i + N]) if (!lit.has(j) && PART[j] === scr && OVER[j] < 0) OVER[j] = mix(gl2, sR[TONE[j]], 0.45);
+    text('TM', 67, 82, gold[LINE], fr);
     return;
   }
   if (k === 'fabulant') {
@@ -1459,27 +1473,40 @@ function creature(S, mood, mouth, blink) {
     poly(robe, [48, 4, 70, 14, 80, 44, 92, 97, 4, 97, 16, 44, 26, 14], ball(40, 30, 50, 60));
     const hole = part(ramp(0x0c0616), {line: false, rim: false});
     ell(hole, 48, 47, 17, 23, BASE);
-    const gold = ramp(0xe8c27a), mk = part(gold, {soft: true, cast: 2}), M = MOOD[mood];
+    const gold = ramp(0xe8c27a, 4), mk = part(gold, {soft: true, cast: 2}), M = MOOD[mood];
     poly(mk, [34, 34, 48, 28, 62, 34, 63, 50, 56, 62, 48, 66, 40, 62, 33, 50], ball(42, 38, 18, 22));
-    const lilac = 0xd8b8ff;
+    const lilac = 0xd8b8ff, inkM = 0x140a20, happy = ['happy', 'laugh', 'smug'].includes(mood), sad = ['sad', 'worried', 'tired'].includes(mood);
     for (const sx of [-1, 1]) {
-      const ex = 48 + sx * 7, ey = 42, closed = blink >= 0.75 || M.eye === 'arc';
-      for (let a = -3; a <= 3; a++) for (let b = -2; b <= 2; b++) {
-        if (Math.abs(a) / 3.4 + Math.abs(b) / 2.2 > 1) continue;
-        let tb = b;
-        if (M.eye === 'angry') tb = b + Math.round(a * -sx * 0.5);
-        if (M.eye === 'sad') tb = b - Math.round(a * -sx * 0.5);
-        if (closed && b !== 0) continue;
-        dot(ex + a, ey + tb, 0x140a20, mk);
+      const ex = 48 + sx * 7, ey = 42, closed = blink >= 0.75 || M.eye === 'arc', tilt = M.eye === 'angry' ? -1 : M.eye === 'sad' || sad ? 1 : 0;
+      // the painted brow of the mask
+      for (let a = -4; a <= 4; a++) dot(ex + a, ey - 5 - Math.round((a * -sx / 4) * tilt * 1.5) - (mood === 'surprised' ? 2 : 0) + (Math.abs(a) > 3 ? 1 : 0), gold[SH2], mk);
+      // an almond eye hole, a glowing pupil
+      for (let a = -4; a <= 4; a++) for (let b = -3; b <= 3; b++) {
+        const w = 2.1 * (1 - (a / 4.4) ** 2), bb = b + (M.eye === 'angry' ? Math.round(a * -sx * 0.35) : M.eye === 'sad' ? -Math.round(a * -sx * 0.35) : 0);
+        if (closed ? b !== 0 && b !== 1 : Math.abs(b - 0.3) > w + (M.eye === 'wide' ? 0.8 : 0) || (halfMask(M, blink) && b < 0)) continue;
+        dot(ex + a, ey + bb, inkM, mk);
       }
-      if (!closed) { dot(ex, ey, lilac, mk); dot(ex + (M.look[0] || 0), ey, 0xffffff, mk); }
+      if (!closed) { const lx = M.look[0] || 0; dot(ex + lx, ey, lilac, mk); dot(ex + lx + 1, ey, mix(lilac, inkM, 0.4), mk); dot(ex + lx, ey - 1, 0xffffff, mk); }
     }
-    const happy = ['happy', 'laugh', 'smug'].includes(mood), sad = ['sad', 'worried', 'tired'].includes(mood), my = 56, open = mouth > 0.15 ? 2 : mood === 'laugh' || mood === 'surprised' ? 2 : 0;
-    for (let a = -5; a <= 5; a++) { const yy = my + (happy ? -Math.round(((25 - a * a) / 25) * 2) + 1 : sad ? Math.round(((25 - a * a) / 25) * 2) - 1 : 0); dot(48 + a, yy, 0x140a20, mk); for (let o = 1; o <= open; o++) if (Math.abs(a) < 4) dot(48 + a, yy + o, 0x140a20, mk); }
-    const core = part(ramp(0xfff1b8, 3), {rim: false, ink: 0xc89a3a});
-    ell(core, 48, 86, 5, 5, glowBody(core, 48, 86, 5, 5));
-    const sc = part(ramp(0xf4ecd8), {soft: true});
-    for (const [x, y] of [[12, 30], [84, 62]]) { rect(sc, x - 2, y - 6, x + 2, y + 6, (xx) => (xx < x ? LIT : BASE)); rect(part(ramp(0xc8a050)), x - 3, y - 7, x + 3, y - 6, BASE); rect(part(ramp(0xc8a050)), x - 3, y + 6, x + 3, y + 7, BASE); }
+    const my = 56, open = mouth > 0.15 ? 2 : mood === 'laugh' || mood === 'surprised' ? 2 : 0, curve = happy ? 1 : sad ? -1 : 0;
+    if (mood === 'surprised') { for (let a = -2; a <= 2; a++) for (let b = -2; b <= 3; b++) if (Math.abs(a) / 2.4 + Math.abs(b - 0.5) / 3 <= 1) dot(48 + a, my + b, inkM, mk); }
+    else for (let a = -6; a <= 6; a++) {
+      // comedy curves up at the corners, tragedy down
+      const yy = my - Math.round((a * a / 36) * 2.4 * curve) + (curve > 0 ? 1 : curve < 0 ? -1 : 0);
+      dot(48 + a, yy, inkM, mk);
+      for (let o = 1; o <= open; o++) if (Math.abs(a) < 5) dot(48 + a, yy + o, o === open && Math.abs(a) < 2 ? 0x6a2a4a : inkM, mk);
+    }
+    aura(0xb48cff, 5, 0.4);
+    const core = part(ramp(0xfff1b8, 3), {rim: false, soft: true, ink: 0xd8a040});
+    ell(core, 48, 85, 5.2, 5.2, glowBody(core, 48, 85, 5.2, 5.2));
+    eachEll(48, 85, 9, 9, (x, y) => { const i = y * N + x, d = Math.hypot(x + 0.5 - 48, y + 0.5 - 85); if (PART[i] === robe && d > 5.6 && (d < 7 || (x + y) % 2 === 0)) OVER[i] = mix(ramp(0x2a1640)[BASE], 0xffd36b, d < 7 ? 0.45 : 0.22); });
+    // the scrolls it reads its stories from, floating
+    for (const [x, y] of [[14, 30], [82, 60]]) {
+      const sc = part(ramp(0xf4ecd8), {soft: true}), rl = part(ramp(0xd8c49a), {soft: true});
+      rect(sc, x - 3, y - 7, x + 3, y + 7, (xx) => (xx < x - 1 ? LIT : BASE));
+      for (let r = -4; r <= 4; r += 2) for (let a = x - 2; a <= x + 1 + (r % 4 ? 0 : 1); a++) dot(a, y + r, 0x9a8a70, sc);
+      ell(rl, x, y - 7.5, 4.6, 1.8, LIT); ell(rl, x, y + 7.5, 4.6, 1.8, BASE);
+    }
     return;
   }
   // unknown: a mysterious silhouette
