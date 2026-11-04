@@ -322,9 +322,8 @@ addStyles('ability', `
 .tool.ability.nope,.tbtn.tability.nope{animation:ab-nope .3s}
 @keyframes ab-pop{0%{transform:scale(1)}40%{transform:scale(1.16)}100%{transform:scale(1)}}
 @keyframes ab-nope{0%,100%{translate:0}25%{translate:-4px}75%{translate:4px}}
-.tbtn.tability{right:36px;bottom:196px;width:58px;height:58px;font-size:25px;overflow:hidden}
+.tbtn.tability{overflow:hidden}      /* its place in the thumb arc comes from index.html (#tAbility) */
 .tbtn.tability .cd{position:absolute;inset:0;border-radius:50%;background:conic-gradient(rgba(0,0,0,.62) var(--p,0%),transparent 0);pointer-events:none}
-@media (max-height:500px){.tbtn.tability{right:30px;bottom:190px;width:52px;height:52px;font-size:22px}}
 `);
 function ensureSlot() {
   if (!AB.slot && $('tools')) {

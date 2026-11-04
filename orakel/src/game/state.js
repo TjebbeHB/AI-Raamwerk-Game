@@ -90,6 +90,7 @@ export const SETTINGS = {bright: 1, cam: 'third', sens: 1, invert: false, fov: 7
   runToggle: false,        // Shift toggles running instead of holding
   autoAdvance: false,      // dialogue moves on by itself after a pause
   compactHud: 'auto',      // 'auto' | 'on' | 'off'
+  miniMap: true,           // the minimap can be folded away on small screens
 };
 export function loadSettings() {
   try { Object.assign(SETTINGS, JSON.parse(store()?.getItem(SETTINGS_KEY) || '{}')); } catch (e) { /* defaults */ }
