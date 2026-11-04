@@ -248,7 +248,11 @@ export class Npc extends Ent {
       }
     }
     this.model.root.rotation.y = this.yaw;
-    this.model.animate(dt, this.st);
+    // people far away are small on screen: pose them a few times a second, which keeps phones smooth
+    this.animDt = (this.animDt || 0) + dt;
+    if (!this.path && this.animDt < 0.1 && this.dist() > 22) return;
+    this.model.animate(this.animDt, this.st);
+    this.animDt = 0;
   }
 }
 

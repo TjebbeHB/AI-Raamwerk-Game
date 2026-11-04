@@ -13,7 +13,7 @@ export const CAST_DEFS = {
     build: 'average', height: 0.98, skin: 0xf5d3bd, eyes: 0x4a7a4a, brows: 'normal', nose: 'small', freckles: true,
     hair: 'ponytail', hairColor: 0x9a3e1e, headset: true,
     top: 'cardigan', topColor: 0x2a8a8a, top2: 0x8a8e94, bottom: 'trousers', bottomColor: 0x2a2e3a, shoes: 0x3a3a40,
-    lanyard: true, holdL: 'tea', idle: 'headset', mood: 'happy', lids: 0.3}},
+    lanyard: true, holdL: 'tea', idle: 'headset', mood: 'happy', lids: 0.2}},
   bakker: {name: 'Mevrouw Bakker', title: 'inwoner, 79 jaar', greet: 'nod', model: {
     build: 'average', height: 0.88, skin: 0xf4d4c0, age: 'old', eyes: 0x6a7a8a, brows: 'thick', nose: 'normal', blush: true,
     hair: 'bun', hairColor: 0xf2f2ee, glasses: 'half', glassesColor: 0x8a6a4a,
@@ -47,9 +47,9 @@ export const CAST_DEFS = {
     holdR: 'leash', idle: 'leash', mood: 'thinking'}},
   // ---- the Kelder der Beloften ----
   waarom: {name: 'Vrouwe Waarom', title: 'hoedster van de Bron', color: '#9fc3ff', reach: 3.6, r: 0.7, greet: 'nod', model: {
-    build: 'slim', height: 1.3, skin: 0xa8c4e8, eyes: 0x6ab8ff, brows: 'thin', nose: 'small',
-    hair: 'long', hairColor: 0xc4d8f4, top: 'robe', topColor: 0x6a7c9e, top2: 0xbcd0ee, shoes: 0x5a6a8a,
-    extras: ['glow', 'glowEyes'], idle: 'float'}},
+    build: 'slim', height: 1.3, skin: 0x9ab2dc, eyes: 0x5ab4ff, brows: 'thin', nose: 'small',
+    hair: 'long', hairColor: 0xe4ecf8, top: 'robe', topColor: 0x5e6f96, top2: 0xbcd0ee, shoes: 0x4a5a7a,
+    extras: ['glow', 'glowEyes'], idle: 'float', mouth: 'smile'}},
   // ---- the Hal der Fundamenten ----
   griffel: {name: 'Griffel', title: 'griffier van de Raadzaal van Niemand', greet: 'nod', model: {
     build: 'slim', height: 1.14, skin: 0xd8b090, eyes: 0x3a3a3a, brows: 'thin', nose: 'long',

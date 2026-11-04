@@ -44,7 +44,7 @@ function studio(bg = 0x2a2420) {
 function pose(m, t = 1.3, st = {}) { for (let i = 0; i < 12; i++) m.animate(1 / 60, {t: t + i / 60, walk: 0, ...st}); }
 function place(scene, spec, x, z, yaw = 0, st) {
   const m = makeModel({...spec, probe: PROBE()});
-  m.root.position.set(x, 0, z); m.root.rotation.y = yaw; scene.add(m.root);
+  m.root.position.set(x, spec.kind === 'pip' ? 1.3 : 0, z); m.root.rotation.y = yaw; scene.add(m.root);
   pose(m, 1.3, st);
   return m;
 }
@@ -119,7 +119,7 @@ const SCENES = {
   'heroes-3': () => lineup(HEROES.slice(16), {yaw: 0.25}),
   'hair-1': () => lineup(LOOK_ENUMS.hair.slice(0, 7).map(o => [o.label, {...BASE, hair: o.id, scarfColor: 0x8a3a5a}]), {yaw: 0.55}),
   'hair-2': () => lineup(LOOK_ENUMS.hair.slice(7).map(o => [o.label, {...BASE, hair: o.id, scarfColor: 0x8a3a5a}]), {yaw: 0.55}),
-  'hair-back': () => lineup(LOOK_ENUMS.hair.slice(4).map(o => [o.label, {...BASE, hair: o.id, scarfColor: 0x8a3a5a}]), {yaw: Math.PI * 0.8}),
+  'hair-back': () => lineup(LOOK_ENUMS.hair.filter(o => ['long', 'ponytail', 'bun', 'braids', 'headscarf', 'afro'].includes(o.id)).map(o => [o.label, {...BASE, hair: o.id, scarfColor: 0x8a3a5a}]), {yaw: Math.PI * 0.78, gap: 0.8}),
   'tops-1': () => lineup(LOOK_ENUMS.top.slice(0, 6).map(o => [o.label, {...BASE, top: o.id, topColor: 0x2a8a8a, top2: 0xf0e6d0, tie: o.id === 'shirt' ? 0xc0302a : null}]), {yaw: 0.35}),
   'tops-2': () => lineup(LOOK_ENUMS.top.slice(6).map(o => [o.label, {...BASE, top: o.id, topColor: 0x2a8a8a, top2: 0xf0e6d0}]), {yaw: 0.35}),
   builds: () => lineup([['slank klein', {...BASE, build: 'slim', height: 0.86}], ['slank lang', {...BASE, build: 'slim', height: 1.14}], ['gemiddeld', {...BASE}], ['breed', {...BASE, build: 'broad', height: 1.08}], ['rond', {...BASE, build: 'round', height: 0.94}], ['rond lang', {...BASE, build: 'round', height: 1.12}], ['jong', {...BASE, age: 'young', height: 0.9}], ['ouder', {...BASE, age: 'old', hairColor: 0xc8c8cc}]], {yaw: 0.4}),
@@ -127,7 +127,22 @@ const SCENES = {
   glasses: () => lineup(LOOK_ENUMS.glasses.map(o => ['bril ' + o.label, {...BASE, glasses: o.id, hair: 'bob'}]), {yaw: 0.2}),
 };
 pages(HUMANS, 7).forEach((pg, i) => { SCENES['cast-' + (i + 1)] = () => lineup(pg.map(([id, c]) => [c.name, c.model])); SCENES['cast34-' + (i + 1)] = () => lineup(pg.map(([id, c]) => [c.name, c.model]), {yaw: 0.65}); });
+// every mood on one face, close up (heads only)
+function moods(spec) {
+  clearLabels();
+  const scene = studio(0x3a302a), list = LOOK_ENUMS.mood, gap = 0.56, ms = [];
+  list.forEach((o, i) => { const m = place(scene, spec, ((i % 5) - 2) * gap, 0, 0.25, {mood: o.id}); m.root.position.y = i < 5 ? 0.7 : 0; ms.push([o.label, m]); });
+  const h = ms[0][1].height, cam = new THREE.PerspectiveCamera(26, innerWidth / innerHeight, 0.05, 50);
+  cam.position.set(0, h + 0.3, 4.4); cam.lookAt(0, h + 0.28, 0);
+  const res = shoot(scene, cam, ms.map(m => m[1]));
+  for (const [name, m] of ms) { const [x, y] = project(cam, m.root.position.clone().add(new THREE.Vector3(0, h * 0.76, 0.3))); label(name, x, y); }
+  return res;
+}
+SCENES['moods-ilse'] = () => moods(CAST_DEFS.ilse.model);
+SCENES['moods-hero'] = () => moods({...BASE, hair: 'curly', skin: 0x93603b, hairColor: 0x17120f});
 for (const [id, c] of HUMANS) SCENES['face-' + id] = () => face(c.model);
+// the folk of the Gewelf up close (the sparks float, so frame them by their height)
+for (const [id, c] of FOLK) SCENES['face-' + id] = () => { clearLabels(); const scene = studio(0x3a302a), m = place(scene, c.model, 0, 0, 0.3); const cam = new THREE.PerspectiveCamera(30, innerWidth / innerHeight, 0.05, 50), y = c.model.kind === 'pip' ? 1.3 : m.height * 0.72, d = c.model.kind === 'pip' ? 1.0 : 2.3; cam.position.set(0, y + 0.1, d); cam.lookAt(0, y, 0); return shoot(scene, cam, [m]); };
 SCENES['face-joop-talk'] = () => face(CAST_DEFS.joop.model, {st: {talk: true}, t: 2.1});
 SCENES['face-glans-moods'] = () => face(CAST_DEFS.glans.model, {st: {mood: 'surprised'}});
 SCENES['face-ilse-angry'] = () => face(CAST_DEFS.ilse.model, {st: {mood: 'angry'}});

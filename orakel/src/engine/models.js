@@ -118,7 +118,9 @@ class Vox {
     const rot = !!(o && (o.rx || o.ry || o.rz));
     if (rot) _q.setFromEuler(_e.set(o.rx || 0, o.ry || 0, o.rz || 0));
     const F = this.F, mir = !!F && F.sx < 0, hw = w / 2, hh = h / 2, hd = d / 2;
+    const skip = o?.skip ?? 0;
     for (let f = 0; f < 6; f++) {
+      if (skip & (1 << f)) continue;
       const nn = FACES[f][0], cs = FACES[f][1], base = this.n;
       _n.set(nn[0], nn[1], nn[2]);
       if (rot) _n.applyQuaternion(_q);
@@ -146,9 +148,10 @@ class Vox {
     for (let i = -nx; i <= nx; i++) for (let j = -ny; j <= ny; j++) for (let k = -nz; k <= nz; k++) {
       const x = cx + i * cell, y = cy + j * cell, z = cz + k * cell;
       if (!inside(x, y, z)) continue;
-      if (inside(x + cell, y, z) && inside(x - cell, y, z) && inside(x, y + cell, z) && inside(x, y - cell, z) && inside(x, y, z + cell) && inside(x, y, z - cell)) continue;
+      const skip = (inside(x + cell, y, z) ? 1 : 0) | (inside(x - cell, y, z) ? 2 : 0) | (inside(x, y + cell, z) ? 4 : 0) | (inside(x, y - cell, z) ? 8 : 0) | (inside(x, y, z + cell) ? 16 : 0) | (inside(x, y, z - cell) ? 32 : 0);
+      if (skip === 63) continue;
       const s = cell * (1 + hash3(x, y, z) * (o.bump ?? 0.25));
-      this.box(x, y, z, s, s, s, o.tint ? o.tint(x, y, z) : hex, {jit: o.jit ?? 0.14, glow: o.glow});
+      this.box(x, y, z, s, s, s, o.tint ? o.tint(x, y, z) : hex, {jit: o.jit ?? 0.14, glow: o.glow, skip});
     }
     return this;
   }
@@ -245,7 +248,7 @@ function buildHead(v, L, D, C, X, kind) {
   // eyes: white, iris, pupil, a highlight (both lit from the upper left), the lash line on top
   for (const s of [-1, 1]) {
     const x = s * f.ex, ew = f.ew, eh = f.eh, ey = f.ey, iw = ew * 0.6, ih = eh * 0.88, ix = x - s * ew * 0.1;
-    v.box(x, ey, zf + 0.001, ew, eh, 0.008, X.glowEyes ? 0xd8ecff : EYE_WHITE, {glow: X.glowEyes ? 0.6 : 0.05});
+    v.box(x, ey, zf + 0.001, ew, eh, 0.008, X.glowEyes ? 0xc8dcf4 : EYE_WHITE, {glow: X.glowEyes ? 0.15 : 0.05});
     v.box(ix, ey - eh * 0.03, zf + 0.004, iw, ih, 0.008, L.eyes, {glow: X.glowEyes ? 1 : 0.08});
     v.box(ix, ey - eh * 0.06, zf + 0.007, iw * 0.48, ih * 0.56, 0.008, X.glowEyes ? 0xf4fbff : PUPIL, {glow: X.glowEyes ? 1.2 : 0});
     v.box(ix - iw * 0.24, ey + ih * 0.2, zf + 0.0105, iw * 0.36, iw * 0.36, 0.006, 0xffffff, {glow: X.twinkle ? 1.4 : 0.75});
@@ -358,10 +361,10 @@ function buildStache(v, L, C, fx) {
 // ---------------------------------------------------------------- glasses
 function ring(v, x, y, z, w, h, t, c, round) {
   if (round) {
-    v.box(x, y + h / 2 - t / 2, z, w * 0.56, t, 0.01, c); v.box(x, y - h / 2 + t / 2, z, w * 0.56, t, 0.01, c);
+    v.box(x, y + h / 2 - t / 2, z, w * 0.58, t, 0.01, c); v.box(x, y - h / 2 + t / 2, z, w * 0.58, t, 0.01, c);
     for (const s of [-1, 1]) {
-      v.box(x + s * (w / 2 - t / 2), y, z, t, h * 0.56, 0.01, c);
-      for (const u of [-1, 1]) v.box(x + s * w * 0.36, y + u * h * 0.36, z, w * 0.3, t, 0.01, c, {rz: s * u * 0.78});
+      v.box(x + s * (w / 2 - t / 2), y, z, t, h * 0.58, 0.01, c);
+      for (const u of [-1, 1]) v.box(x + s * (w / 2 - t * 1.55), y + u * (h / 2 - t * 1.55), z, t * 1.5, t * 1.5, 0.01, c);
     }
   } else {
     v.box(x, y + h / 2 - t / 2, z, w, t * 1.15, 0.01, c); v.box(x, y - h / 2 + t / 2, z, w, t, 0.01, c);
@@ -396,7 +399,7 @@ function buildGlasses(v, L, D, X) {
 // Layered shapes over the skull. Returns {top, w}: the crown height and width (for hats and headsets).
 function buildHair(v, L, D, C, X) {
   const st = L.hair, W = D.headW, H = D.headH, hb = D.hb, ht = D.ht, zf = D.zf, zb = D.zb, zc = D.zc, fx = D.f.fx;
-  const c = C.hair, cd = C.hairD, J = {jit: 0.1}, hatOn = L.hat !== 'none' && L.hat !== 'hood';
+  const c = C.hair, cd = C.hairD, J = {jit: 0.1, glow: X.glow ? 0.16 : 0}, hatOn = L.hat !== 'none' && L.hat !== 'hood';
   const y = q => hb + q * H, line = D.f.hairline, backZ = Math.min(zb + 0.03, -D.td / 2 - 0.014);
   let top = ht, w = W;
   // a cap of hair over the skull: t = thickness on top, s = at the sides, the sides reach down to sideY,
@@ -443,8 +446,9 @@ function buildHair(v, L, D, C, X) {
       v.span(-W / 2 + 0.006, line, zf - 0.03, W / 2 - 0.006, ht + 0.05, zf + 0.026, c);   // the rolled front: a little quiff
       v.span(-W / 2 + 0.03, ht + 0.03, zf - 0.07, W / 2 - 0.03, ht + 0.066, zf + 0.016, c);
       top = Math.max(top, ht + 0.066);
-      if (!hatOn) for (const x of [-0.07, 0.03]) v.span(x * fx, ht + 0.03, zc - 0.13, (x + 0.04) * fx, ht + 0.036, zf + 0.026, mixHex(c, 0xffffff, 0.45), {glow: 0.4});
-      v.span(-0.04 * fx, ht + 0.004, zf + 0.026, 0.07 * fx, ht + 0.028, zf + 0.029, mixHex(c, 0xffffff, 0.45), {glow: 0.4});
+      const sheen = mixHex(c, 0x9ab0d8, lum(c) < 0.2 ? 0.32 : 0.25);
+      if (!hatOn) for (const x of [-0.08, 0.04]) v.span(x * fx, ht + 0.036, zc - 0.12, (x + 0.022) * fx, ht + 0.039, zf - 0.03, sheen, {glow: 0.2});
+      v.span(-0.05 * fx, ht + 0.014, zf + 0.026, 0.06 * fx, ht + 0.024, zf + 0.029, sheen, {glow: 0.2});
       sideburns(y(0.45));
       break;
     case 'curly': {
@@ -526,7 +530,7 @@ function buildHair(v, L, D, C, X) {
     case 'braids':
       shell(0.03, 0.014, line, y(0.52), y(0.28), zc + 0.03);
       if (!hatOn) for (let i = -2; i <= 2; i++) v.span(i * 0.05 * fx - 0.004, ht + 0.026, zb, i * 0.05 * fx + 0.004, ht + 0.034, zf + 0.006, cd);   // cornrow lines
-      for (const s of [-1, 1]) for (let k = 0; k < 2; k++) braid(v, s * (W / 2 - 0.02 - k * 0.04), line - 0.02, zf - 0.03 - k * 0.025, 0.48 + k * 0.08, c, cd, D.hb);
+      for (const s of [-1, 1]) for (let k = 0; k < 2; k++) braid(v, s * (W / 2 - 0.02 - k * 0.04), line - 0.02, zf - 0.03 - k * 0.025, 0.48 + k * 0.08, c, cd);
       fringeBits(6, line - 0.006);
       top = ht + 0.03; w = W + 0.03;
       break;
@@ -550,25 +554,24 @@ function buildHair(v, L, D, C, X) {
   }
   return {top, w};
 }
-// one braid: a zigzag of small cubes with a bead at the end
-function braid(v, x, y0, z, len, c, cd, hb) {
+// one braid: a zigzag of small cubes with a bead at the end (the faces where cubes touch are left out)
+function braid(v, x, y0, z, len, c, cd) {
   const n = Math.round(len / 0.032);
-  for (let i = 0; i < n; i++) v.box(x + (i % 2 ? 0.005 : -0.005), y0 - i * 0.032, z, 0.032, 0.036, 0.032, i % 2 ? cd : c);
+  for (let i = 0; i < n; i++) v.box(x + (i % 2 ? 0.005 : -0.005), y0 - i * 0.032, z, 0.032, 0.036, 0.032, i % 2 ? cd : c, {skip: (i ? 4 : 0) | 8});
   v.box(x, y0 - n * 0.032 - 0.004, z, 0.03, 0.03, 0.03, GOLD, {glow: 0.3});
-  void hb;
 }
 // ponytails and braids hang from their own pivot, so they swing
 function buildTail(v, L, D, C) {
   const c = C.hair, cd = C.hairD, J = {jit: 0.1};
   if (L.hair === 'ponytail') {
     v.box(0, 0, -0.012, 0.064, 0.044, 0.036, shadeHex(L.topColor, 1.0));                                        // hair tie in the colour of your clothes
-    const seg = [[0, -0.01, -0.05, 0.08, 0.075, 0.075], [0, -0.07, -0.085, 0.085, 0.085, 0.072], [0, -0.15, -0.1, 0.078, 0.09, 0.066], [0, -0.23, -0.103, 0.068, 0.09, 0.06], [0, -0.31, -0.098, 0.054, 0.08, 0.05], [0, -0.37, -0.09, 0.036, 0.05, 0.036]];
+    const seg = [[0, -0.01, -0.05, 0.08, 0.075, 0.075], [0, -0.07, -0.095, 0.088, 0.085, 0.074], [0, -0.15, -0.125, 0.082, 0.09, 0.07], [0, -0.23, -0.14, 0.074, 0.09, 0.064], [0, -0.31, -0.145, 0.064, 0.09, 0.058], [0, -0.39, -0.14, 0.052, 0.08, 0.05], [0, -0.45, -0.13, 0.036, 0.05, 0.036]];
     seg.forEach(([x, y, z, w, h, d], i) => v.box(x, y, z, w, h, d, i % 2 ? cd : c, J));
     return {x: 0, y: D.ht - 0.02, z: D.zb + 0.035};
   }
   if (L.hair === 'braids') {
     const W = D.headW, n = 7;
-    for (let i = 0; i < n; i++) { const a = -1.15 + i * 2.3 / (n - 1); braid(v, Math.sin(a) * (W / 2 - 0.01), 0, -0.02 - Math.cos(a) * 0.02, 0.5 + (i % 2) * 0.06, c, cd, 0); }
+    for (let i = 0; i < n; i++) { const a = -1.15 + i * 2.3 / (n - 1); braid(v, Math.sin(a) * (W / 2 - 0.01), 0, -0.02 - Math.cos(a) * 0.02, 0.5 + (i % 2) * 0.06, c, cd); }
     return {x: 0, y: D.hb + 0.5 * D.headH, z: Math.min(D.zb, -D.td / 2 - 0.035)};
   }
   return null;
@@ -1166,7 +1169,7 @@ const GEST = {
   tipcap: {dur: 1.9, fn: (p, k, u, t, S) => { S.reach(1, S.T.brim, k); p.hx += 0.16 * pulse(u, 0.3, 0.9) * k; S.mood = 'happy'; }},
   // Glans: straightens his tie, finger guns, checks his cuffs
   tie: {dur: 2.4, fn: (p, k, u, t, S) => { const w = Math.sin(t * 12) * 0.012; S.reach(1, S.T.tie, k, -0.02, w, 0); S.reach(0, S.T.tie, k, 0.03, -0.04 - w, 0); p.hx -= 0.14 * k; S.mood = 'smug'; }},
-  fingerguns: {dur: 2.3, fn: (p, k, u, t, S) => { const r = pulse(u, 0.35, 0.5) + pulse(u, 0.6, 0.75); for (const i of [0, 1]) { arm(p, i, (-1.35 + r * 0.35) * k, -0.05 * k, -0.15 * k); S.point[i] = k; } p.tx -= 0.05 * k; p.hz += 0.06 * k; S.wink = u > 0.38 && u < 0.85 ? k : 0; S.mouth = 'grin'; }},
+  fingerguns: {dur: 2.3, fn: (p, k, u, t, S) => { const r = pulse(u, 0.35, 0.5) + pulse(u, 0.6, 0.75); arm(p, 0, (-1.35 + r * 0.35) * k, -0.05 * k, -0.15 * k); arm(p, 1, (-1.35 + r * 0.35) * k, -0.05 * k, -0.15 * k); S.point[0] = S.point[1] = k; p.tx -= 0.05 * k; p.hz += 0.06 * k; S.wink = u > 0.38 && u < 0.85 ? k : 0; S.mouth = 'grin'; }},
   cuffs: {dur: 1.9, fn: (p, k, u, t, S) => { S.reach(0, S.T.front, k, 0.06, 0, 0); S.reach(1, S.T.front, k, 0.05, 0.03 + Math.sin(t * 14) * 0.01, 0.03); p.hx += 0.14 * k; p.hy += 0.12 * k; }},
   // Ilse: taps her headset, nods at a caller, sips her tea
   headset: {dur: 2.4, fn: (p, k, u, t, S) => { S.reach(1, S.T.earR, k, 0, (pulse(u, 0.3, 0.42) + pulse(u, 0.55, 0.67)) * 0.02, 0); p.hz += 0.12 * k; S.talk = u > 0.4 ? k : 0; }},
@@ -1220,7 +1223,7 @@ function solveArm(sx, sy, sz, tx, ty, tz, l1, l2, side, out) {
   _w.copy(_S).addScaledVector(dir, d).sub(_E).normalize();
   const cb = Math.max(-1, Math.min(1, _u.dot(_w)));
   _z.copy(_w).addScaledVector(_u, -cb);
-  if (_z.lengthSq() < 1e-8) _z.set(0, 0, 1);
+  if (_z.lengthSq() < 1e-8) { _z.set(0, 0, 1).addScaledVector(_u, -_u.z); if (_z.lengthSq() < 1e-6) _z.set(1, 0, 0).addScaledVector(_u, -_u.x); }
   _z.normalize();
   _u.negate();
   _x.crossVectors(_u, _z);
@@ -1301,7 +1304,7 @@ export function makeHuman(spec = {}) {
 
   const animate = (dt, st) => {
     const t = st.t ?? 0, w = Math.min(1.25, st.walk || 0), run = st.run ? 1 : 0, talking = !!st.talk;
-    for (const a of p.arm) a.ux = a.uy = a.uz = a.fx = a.fy = a.fz = 0;
+    for (let i = 0; i < 2; i++) { const a = p.arm[i]; a.ux = a.uy = a.uz = a.fx = a.fy = a.fz = 0; }
     p.thL = p.thR = p.shL = p.shR = p.hx = p.hy = p.hz = p.tx = p.ty = p.tz = p.py = p.pz = p.by = 0;
     S.mood = null; S.mouth = null; S.wink = 0; S.note = -1; S.pucker = 0; S.jingle = 0; S.talk = 0; S.shake[0] = S.shake[1] = 0; S.lidAdd = 0; S.point[0] = S.point[1] = 0;
     S.ik[0].k = S.ik[1].k = 0;
@@ -1345,8 +1348,9 @@ export function makeHuman(spec = {}) {
     } else if (canIdle && idleSet) { S.next -= dt; if (S.next <= 0) startGesture(idleSet[Math.floor(Math.random() * idleSet.length)], false); }
     // the old moves: attack, wave, extra arm swings, hurt
     if (st.wave) arm(p, 1, -0.15, 2.35, -0.45, Math.sin(t * 10) * 0.4);
-    if (st.armL) arm(p, 0, st.armL, 0, st.armL * 0.9);
-    if (st.armR) arm(p, 1, st.armR, 0, st.armR * 0.9);
+    // extra swings (the hero holds the lantern up and a little out to the side, where you can see it)
+    if (st.armL) arm(p, 0, st.armL * 0.75, -st.armL * 0.7, st.armL * 1.1);
+    if (st.armR) arm(p, 1, st.armR * 0.75, -st.armR * 0.7, st.armR * 1.1);
     if (st.attack) { const a = p.arm[1]; a.ux = -1.5 + st.attack * 1.0; a.fx = -0.45 + st.attack * 0.35; a.uz = -0.1; }
     // where the head looks
     S.look = dampTo(S.look, st.look ?? 0, 6, dt);
@@ -1357,7 +1361,7 @@ export function makeHuman(spec = {}) {
     S.browY = dampTo(S.browY, md.brow + (talking ? Math.max(0, Math.sin(t * 1.7)) * 0.005 : 0), 10, dt);
     S.tilt = dampTo(S.tilt, md.tilt + L.browTilt * 0.6, 8, dt);
     browL.position.y = f.browY + S.browY + (md.one || 0); browR.position.y = f.browY + S.browY;
-    browL.rotation.z = S.tilt * 0.4; browR.rotation.z = -S.tilt * 0.4;
+    browL.rotation.z = S.tilt * 0.55; browR.rotation.z = -S.tilt * 0.55;
     S.blink -= dt;
     if (S.blink <= 0) { S.blinkT = 0; S.blink = Math.random() < 0.15 ? 0.3 : 1.8 + Math.random() * 3.6; }
     let bl = 0;
@@ -1465,11 +1469,11 @@ function pip(spec) {
   const k = new Kit(spec.probe), root = new THREE.Group(), body = k.pivot(root, 0, 0, 0), m = k.vbasic();
   const core = k.vox(body, folkGeo('pip', v => {
     v.blob(0, 0, 0, 0.13, 0.14, 0.12, 0.036, 0xffcf6a, {bump: 0.2, jit: 0.1, tint: (x, y) => (y < -0.04 ? 0xffe9a8 : y > 0.06 ? 0xffb040 : 0xffcf6a)});
-    for (const s of [-1, 1]) v.box(s * 0.075, -0.035, 0.115, 0.03, 0.016, 0.006, 0xff8a5a);
+    for (const s of [-1, 1]) v.box(s * 0.075, -0.035, 0.162, 0.03, 0.016, 0.006, 0xff8a5a);
     for (const s of [-1, 1]) v.box(s * 0.14, -0.03, 0.0, 0.04, 0.04, 0.04, 0xffd88a);
   }), 0, 0, 0, m);
-  const face = k.vox(body, folkGeo('pipEyes', v => eyes(v, 0.045, 0, 0, 0.04, 0.05, 0xfffaf0, 0x2a1406)), 0, 0.015, 0.12, m);
-  const mouth = k.vox(body, folkGeo('pipMouth', v => { v.box(0, 0, 0, 0.04, 0.02, 0.008, 0x6a2a10); v.box(0, 0.005, 0.002, 0.03, 0.006, 0.008, 0xfff4e0); }), 0, -0.04, 0.122, m);
+  const face = k.vox(body, folkGeo('pipEyes', v => eyes(v, 0.045, 0, 0, 0.04, 0.05, 0xfffaf0, 0x2a1406)), 0, 0.015, 0.165, m);
+  const mouth = k.vox(body, folkGeo('pipMouth', v => { v.box(0, 0, 0, 0.04, 0.02, 0.008, 0x6a2a10); v.box(0, 0.005, 0.002, 0.03, 0.006, 0.008, 0xfff4e0); }), 0, -0.04, 0.166, m);
   const tip = k.vox(body, folkGeo('pipTip', v => { v.box(0, 0.03, 0, 0.1, 0.06, 0.09, 0xffa040); v.box(0.01, 0.08, 0, 0.065, 0.05, 0.06, 0xff8a2a); v.box(0.02, 0.12, 0, 0.035, 0.04, 0.035, 0xff6a1a); }), 0, 0.12, -0.01, m);
   const halo = glowSprite(0xffa040, 0.9, 0.55); body.add(halo);
   const S = {blink: 1, bt: -1};
@@ -1493,14 +1497,16 @@ function spark(spec) {
     v.blob(0, -0.02, 0, 0.27 * big, 0.3 * big, 0.24 * big, 0.06, c, {bump: 0.2, jit: 0.08, tint});
     v.blob(0, 0.26 * big, -0.01, 0.16 * big, 0.14 * big, 0.14 * big, 0.055, c, {bump: 0.2, jit: 0.08, tint});
     if (spec.glasses === 'half') { for (const s of [-1, 1]) { v.box(s * 0.08, 0.0, 0.265, 0.1, 0.012, 0.012, 0x2a2a2e); v.box(s * 0.08 + s * 0.045, 0.02, 0.265, 0.012, 0.04, 0.012, 0x2a2a2e); } v.box(0, 0.006, 0.265, 0.05, 0.01, 0.012, 0x2a2a2e); }
-    if (spec.sprout) { v.box(0, 0.44, 0, 0.018, 0.12, 0.018, 0x3a8a3a); v.box(0.05, 0.5, 0, 0.09, 0.02, 0.05, 0x5ac85a, {rz: 0.4}); v.box(-0.04, 0.48, 0, 0.07, 0.018, 0.045, 0x4ab04a, {rz: -0.5}); }
   }), 0, 0, 0, m);
-  const face = k.vox(body, folkGeo('sparkEyes', v => eyes(v, 0.08, 0, 0, 0.07, 0.08)), 0, 0.06 * big, 0.255 * big, m);
+  const face = k.vox(body, folkGeo('sparkEyes', v => eyes(v, 0.08, 0, 0, 0.07, 0.08)), 0, 0.06 * big, 0.3 * big, m);
   const mouth = k.vox(body, folkGeo(spec.grin ? 'sparkGrin' : 'sparkMouth', v => {
     if (spec.grin) { v.box(0, 0, 0, 0.15, 0.05, 0.008, 0x4a1a0a); v.box(0, 0.008, 0.003, 0.13, 0.022, 0.008, 0xfff8e8); for (const s of [-1, 1]) v.box(s * 0.08, 0.02, 0, 0.02, 0.02, 0.008, 0x4a1a0a); }
     else { v.box(0, 0, 0, 0.07, 0.025, 0.008, 0x4a1a0a); for (const s of [-1, 1]) v.box(s * 0.04, 0.01, 0, 0.018, 0.018, 0.008, 0x4a1a0a); }
-  }), 0, -0.07 * big, 0.262 * big, m);
-  const tip = k.vox(body, folkGeo(`sparkTip${c}|${spec.big}`, v => { v.box(0, 0.06, 0, 0.18 * big, 0.12, 0.16 * big, c); v.box(0.02, 0.16, 0, 0.12 * big, 0.1, 0.1 * big, edge); v.box(0.035, 0.25, 0, 0.06, 0.08 * big, 0.06, shadeHex(edge, 0.9)); }), 0, 0.36 * big, -0.02, m);
+  }), 0, -0.07 * big, 0.305 * big, m);
+  const tip = k.vox(body, folkGeo(`sparkTip${c}|${spec.big}|${spec.sprout}`, v => {
+    v.box(0, 0.06, 0, 0.18 * big, 0.12, 0.16 * big, c); v.box(0.02, 0.16, 0, 0.12 * big, 0.1, 0.1 * big, edge); v.box(0.035, 0.25, 0, 0.06, 0.08 * big, 0.06, shadeHex(edge, 0.9));
+    if (spec.sprout) { v.box(0.035, 0.33, 0, 0.022, 0.1, 0.022, 0x3a8a3a); v.box(0.1, 0.38, 0, 0.13, 0.026, 0.07, 0x6ad86a, {rz: 0.45}); v.box(-0.03, 0.37, 0, 0.11, 0.024, 0.06, 0x52c052, {rz: -0.5}); }
+  }), 0, 0.36 * big, -0.02, m);
   const hands = [1, -1].map(s => k.vox(body, folkGeo(`sparkHand${c}`, v => v.blob(0, 0, 0, 0.05, 0.05, 0.05, 0.035, light, {bump: 0.2})), s * 0.33 * big, -0.08, 0.06, m));
   let prop = null;
   if (spec.holdR === 'clipboard') { prop = k.vox(hands[1], folkGeo('sparkClip', v => { v.span(-0.1, -0.13, 0.03, 0.1, 0.13, 0.045, 0xa07a50); v.span(-0.085, -0.11, 0.045, 0.085, 0.1, 0.05, 0xf4f0e6); for (let i = 0; i < 4; i++) v.span(-0.06, -0.07 + i * 0.04, 0.05, 0.06, -0.064 + i * 0.04, 0.054, 0x8a8a90); v.span(-0.03, 0.1, 0.035, 0.03, 0.14, 0.06, 0xb8bcc4); }), 0.05, 0.0, 0.0, k.vmat()); }
