@@ -3,7 +3,7 @@
 // is checked against the known roles.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ROLES, ROLE, ROLE_NOTES, roleById, roleNote, DEAL_TIERS, dealOrder, nextRole, dealAll, tallyBallots, readSeats, readByRole} from '../src/content/roles.js';
+import {ROLES, ROLE, ROLE_NOTES, roleById, roleNote, DEAL_TIERS, dealOrder, nextRole, dealAll, returningRole, freshDeal, tallyBallots, talkPoint, readSeats, readByRole} from '../src/content/roles.js';
 import {CHAMBERS, CHAMBER, VERDICT} from '../src/content/framework.js';
 
 const KEYS = [...CHAMBERS.map(c => c.id), 'verdict'];
@@ -53,13 +53,16 @@ test('every chamber and the verdict have a note for every role, of one to three 
   }
 });
 
-test('notes give a perspective, not the answer: they never quote a measure', () => {
+test('notes give a perspective, not the answer: they never echo a measure or its explanation', () => {
+  // four words in a row that also stand in a measure or its feedback, and are more than small
+  // words like 'als het' or 'van de': that would be handing out the answer
+  const SMALL = new Set('de het een en of je jij die dat is van in op te om met voor niet wat wie als er dan ook bij aan naar hoe zijn wordt kan mag moet dit deze wel nog maar al tot uit over door we ze hij zij u'.split(' '));
   const words = s => s.toLowerCase().replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(Boolean);
-  const shingles = (s, k = 6) => { const w = words(s); return new Set(w.slice(0, Math.max(0, w.length - k + 1)).map((_, i) => w.slice(i, i + k).join(' '))); };
+  const grams = s => { const w = words(s), out = new Set(); for (let i = 0; i + 4 <= w.length; i++) { const g = w.slice(i, i + 4); if (g.some(x => !SMALL.has(x))) out.add(g.join(' ')); } return out; };
   for (const key of KEYS) {
-    const options = key === 'verdict' ? VERDICT.map(o => o.text) : CHAMBER[key].options.map(o => o.text);
-    const quoted = new Set(options.flatMap(o => [...shingles(o)]));
-    for (const r of ROLES) for (const s of shingles(roleNote(key, r.id))) assert.ok(!quoted.has(s), `${key}/${r.id} quotes a measure: "${s}"`);
+    const texts = key === 'verdict' ? VERDICT.flatMap(o => [o.title, o.text]) : CHAMBER[key].options.flatMap(o => [o.text, o.feedback || '']);
+    const quoted = new Set(texts.flatMap(t => [...grams(t)]));
+    for (const r of ROLES) for (const g of grams(roleNote(key, r.id))) assert.ok(!quoted.has(g), `${key}/${r.id} echoes a measure: "${g}"`);
   }
 });
 
@@ -105,6 +108,35 @@ test('a role that frees up is handed out again first', () => {
   assert.equal(nextRole(full, order), left, 'with a full table the newcomer takes the scarcest role');
 });
 
+test('someone who comes back keeps their role, unless a newcomer took it while others are free', () => {
+  const order = ['klantcontact', 'inwoner', 'bestuurder', 'privacy', 'data', 'jurist', 'beveiliger', 'ethicus'];
+  assert.equal(returningRole('klantcontact', ['inwoner'], order), 'klantcontact', 'still free: welcome back');
+  assert.equal(returningRole('klantcontact', ['inwoner', 'klantcontact'], order), 'bestuurder', 'taken over: a free role instead');
+  assert.equal(returningRole('data', order.filter(r => r !== 'data').concat(order), order), 'data', 'a big table: as rare as any role, so it stays');
+  assert.equal(returningRole('data', [...order, 'data'], order), 'klantcontact', 'a big table: no third data-analist while others have one');
+  for (const bad of [undefined, null, '__proto__', 'constructor']) assert.equal(returningRole(bad, ['klantcontact'], order), 'inwoner');
+  // what the host does with hi A, hi B, bye A, hi C, hi A: three people, three different roles
+  const past = new Map(), table = new Map();
+  const hi = id => { const role = returningRole(past.get(id), [...table.values()], order); past.set(id, role); table.set(id, role); };
+  hi('A'); hi('B'); table.delete('A'); hi('C'); hi('A');
+  assert.deepEqual([...table.values()], ['inwoner', 'klantcontact', 'bestuurder']);
+});
+
+test('dealing again always changes something, and with three or fewer at the table everything', () => {
+  for (let s = 1; s < 40; s++) {
+    const rnd = seeded(s);
+    for (let n = 1; n <= 12; n++) {
+      const current = dealAll(n, dealOrder(rnd));
+      const {roles, order, kept} = freshDeal(current, rnd);
+      assert.deepEqual(roles, dealAll(n, order), 'still an ordinary deal, so the roles stay spread');
+      assert.equal(kept, roles.filter((r, i) => r === current[i]).length);
+      assert.ok(kept < n, `${n} at the table: at least one new role`);
+      if (n <= 3) assert.equal(kept, 0, `${n} at the table: everyone gets a new role`);
+    }
+  }
+  assert.deepEqual(freshDeal([]).roles, []);
+});
+
 test('dealing again spreads the roles over everyone at the table', () => {
   const order = dealOrder(seeded(3));
   assert.deepEqual(dealAll(3, order), order.slice(0, 3));
@@ -129,6 +161,34 @@ test('votes are counted overall and per role', () => {
   assert.deepEqual(Object.keys(t.byRole), ['inwoner', 'jurist'], 'roles come in the order of ROLES');
   assert.equal(tallyBallots([{picks: [0], role: 'jurist'}], 2, false).byRole, undefined, 'without roles there is no breakdown');
   assert.deepEqual(tallyBallots([], 3), {counts: [0, 0, 0], ballots: 0, byRole: {}});
+});
+
+test('a talking point names a role that chose otherwise, and is stable for one phone and round', () => {
+  const byRole = {jurist: {counts: [1, 0, 1], ballots: 1}, inwoner: {counts: [1, 0, 0], ballots: 1}};
+  assert.equal(talkPoint({mine: [], byRole, me: 'data', multi: true}), null, 'nothing picked yet');
+  assert.equal(talkPoint({mine: [0], byRole: null, me: 'data', multi: true}), null, 'an old host sends no roles');
+  assert.equal(talkPoint({mine: [0], byRole: {jurist: byRole.jurist}, me: 'jurist', multi: true}), null, 'only your own role voted');
+  assert.deepEqual(talkPoint({mine: [0], byRole: {inwoner: byRole.inwoner}, me: 'data', multi: true}), {same: true});
+  assert.deepEqual(talkPoint({mine: [0], byRole, me: 'data', multi: true, seed: 'x'}), {role: 'jurist', option: 2, theirs: true});
+  assert.deepEqual(talkPoint({mine: [0, 1], byRole: {inwoner: byRole.inwoner}, me: 'data', multi: true}), {role: 'inwoner', option: 1, theirs: false});
+  // one choice (the verdict): only what the other role chose and you did not counts
+  assert.deepEqual(talkPoint({mine: [0], byRole: {inwoner: byRole.inwoner}, me: 'data', multi: false}), {same: true});
+  assert.equal(talkPoint({mine: [1], byRole, me: 'data', multi: false, seed: 'y'}).theirs, true);
+  const a = {mine: [1], byRole, me: 'data', multi: true, seed: 'k1|necessity#3'};
+  assert.deepEqual(talkPoint(a), talkPoint({...a}), 'the same phone and round: the same point on every render');
+});
+
+test('at a full table the talking points spread over all roles instead of naming the same one', () => {
+  const rnd = seeded(5), share = Object.fromEntries(ROLES.map(r => [r.id, 0])), pick = () => [0, 1, 2, 3, 4, 5].filter(() => rnd() < 0.5);
+  let n = 0;
+  for (let round = 0; round < 400; round++) {
+    const byRole = Object.fromEntries(ROLES.map(r => { const p = pick(); return [r.id, {counts: [0, 1, 2, 3, 4, 5].map(k => +p.includes(k)), ballots: 1}]; }));
+    for (const me of ROLES) {
+      const t = talkPoint({mine: pick(), byRole, me: me.id, multi: true, seed: `${(round * 31 + me.id.length).toString(36)}|necessity#${round}`});
+      if (t?.role) { share[t.role]++; n++; }
+    }
+  }
+  for (const r of ROLES) assert.ok(share[r.id] / n > 0.08 && share[r.id] / n < 0.18, `${r.id} is the talking point ${(100 * share[r.id] / n).toFixed(1)}% of the time`);
 });
 
 test('a phone only believes seats with sensible names and known roles', () => {

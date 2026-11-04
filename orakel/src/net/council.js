@@ -6,8 +6,8 @@
 // any MQTT broker with WebSockets, or orakel/relay/broker.mjs, via ?broker=wss://…
 //
 // Protocol (topic gewelf-orakel/v1/<code>/h, retained, from the game): {t: 'state', …, members,
-// seats: [{n: name, r: role id | null, k: seat tag, v?: 1 when voted}], vote: {key, question,
-// options, multi, n}, tally: {id, counts, ballots, byRole?}}. Topic …/a, from the phones:
+// seats: [{n: name, r: role id | null, k: seat tag, v?: 1 when voted}], max (seats at the table),
+// vote: {key, question, options, multi, n}, tally: {id, counts, ballots, byRole?}}. Topic …/a, from the phones:
 // {t: 'hi' | 'vote' | 'cheer' | 'bye', id, name, key?, picks?}. Fields a side does not know are
 // ignored, so phones and games of different versions still understand each other.
 import QRCode from 'qrcode';
@@ -20,7 +20,7 @@ import {healPlayer} from '../game/player.js';
 import {$, el, tileOf, hashString, addStyles} from '../core/util.js';
 import {GAME} from '../game/game.js';
 import {unlockForUi} from '../game/dialogue.js';
-import {ROLES, roleById, roleNote, dealOrder, nextRole, dealAll, tallyBallots, readSeats, readByRole} from '../content/roles.js';
+import {ROLES, roleById, roleNote, dealOrder, returningRole, freshDeal, tallyBallots, talkPoint, readSeats, readByRole} from '../content/roles.js';
 
 export const BROKERS = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt', 'wss://test.mosquitto.org:8081/mqtt'];
 const BASE = 'gewelf-orakel/v1';
@@ -33,6 +33,9 @@ export const seatTag = id => hashString(`zetel:${id}`).toString(36);
 const tint = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`; };
 const roleVars = r => (r ? `--role:${r.color};--role-soft:${tint(r.color, 0.13)};--role-line:${tint(r.color, 0.55)}` : '');
 const asRole = r => r.name.replace(/ \(.*\)$/, '').toLowerCase();       // 'Privacy-officer (FG)' -> 'privacy-officer'
+// Long compounds get a soft hyphen at the seam, so a narrow phone breaks the card title neatly.
+const SOFT = {beveiliger: 'Informatie\u00adbeveiliger'};
+const adviseurs = n => `${n} ${n === 1 ? 'adviseur' : 'adviseurs'}`;
 
 // What the decision panel and the debrief read: who is who (no agendas, those stay on the phones).
 // NET.seats: [{name, role: id | null, voted}] in joining order; NET.tallies.byRole: votes per role.
@@ -41,7 +44,9 @@ NET.seats = [];
 NET.rolesOn = true;
 
 // ---------------------------------------------------------------- host
-const H = {mq: null, code: null, broker: null, members: new Map(), votes: {}, vote: null, voteN: 0, lastCheer: {}, last: '', heartbeat: null, tick: null, status: 'uit',
+// Everything keyed by an advisor id is a Map: ids come from the network, and on a plain object
+// an id like '__proto__' or 'constructor' would find Object.prototype instead of a ballot.
+const H = {mq: null, code: null, broker: null, members: new Map(), votes: new Map(), vote: null, voteN: 0, lastCheer: new Map(), last: '', heartbeat: null, tick: null, status: 'uit',
   rolesOn: true, deck: dealOrder(), past: new Map(), shown: ''};
 
 export async function startCouncil() {
@@ -74,7 +79,7 @@ export function stopCouncil() {
   const mq = H.mq;
   setTimeout(() => mq.close(), 300);
   clearInterval(H.heartbeat); clearInterval(H.tick);
-  Object.assign(H, {mq: null, code: null, members: new Map(), votes: {}, vote: null, past: new Map(), status: 'uit'});
+  Object.assign(H, {mq: null, code: null, members: new Map(), votes: new Map(), vote: null, past: new Map(), lastCheer: new Map(), status: 'uit'});
   NET.active = false; NET.tallies = null;
   sync();
   refresh();
@@ -107,14 +112,14 @@ function fromAdvisor(m) {
     const n = H.vote.options.length;
     const picks = [...new Set(m.picks.filter(i => Number.isInteger(i) && i >= 0 && i < n))].slice(0, H.vote.multi ? n : 1);
     // the role is the one this advisor held when voting, so a later re-deal does not rewrite history
-    (H.votes[m.key] ||= {})[m.id] = {picks, role: H.rolesOn ? me.role : null};
+    H.votes.get(m.key)?.set(m.id, {picks, role: H.rolesOn ? me.role : null});
     NET.tallies = tally(m.key);
     sync(); soon();
   }
   if (m.t === 'cheer') {
     const now = Date.now();
-    if (now - (H.lastCheer[m.id] || 0) < 4000) return;
-    H.lastCheer[m.id] = now;
+    if (now - (H.lastCheer.get(m.id) || 0) < 4000) return;
+    H.lastCheer.set(m.id, now);
     NET.cheers = (NET.cheers || 0) + 1;
     if (W.L && G.hp > 0) { healPlayer(8); UI.number(P.x, P.y + 2.3, P.z, `+8 · ${name}`, '#8fe0a0', true); }
     UI.toast('Steun van de raad', `${name} gelooft in je.`, 'good');
@@ -131,11 +136,17 @@ function soon() {
   if (soonT) return;
   soonT = setTimeout(() => { soonT = 0; NET.onTally?.(); push(true); refresh(); }, 150);
 }
-// A newcomer gets back the role they had before a reconnect, otherwise the least-dealt one.
+// A newcomer gets the least-dealt role; someone who comes back gets their old one, if nobody
+// took it over in the meantime (see returningRole).
 function seatFor(id) {
-  const role = H.past.get(id) || nextRole([...H.members.values()].map(x => x.role), H.deck);
-  H.past.set(id, role);
+  const role = returningRole(H.past.get(id), [...H.members.values()].map(x => x.role), H.deck);
+  remember(id, role);
   return role;
+}
+// who had which role, for a reconnect: newest last, and capped, since ids are free to invent
+function remember(id, role) {
+  H.past.delete(id); H.past.set(id, role);
+  if (H.past.size > 200) H.past.delete(H.past.keys().next().value);
 }
 function sync() {
   const list = [...H.members.entries()];
@@ -143,12 +154,17 @@ function sync() {
   NET.seats = list.map(([id, x]) => ({name: x.name, role: H.rolesOn ? x.role : null, voted: hasVoted(id)}));
   NET.rolesOn = H.rolesOn;
 }
-function prune() { const now = Date.now(); for (const [id, x] of H.members) if (now - x.seen > 70000) H.members.delete(id); sync(); }
+function prune() {
+  const now = Date.now();
+  for (const [id, x] of H.members) if (now - x.seen > 70000) H.members.delete(id);
+  for (const [id, t] of H.lastCheer) if (now - t > 4000) H.lastCheer.delete(id);
+  sync();
+}
 function tally(key) {
   const n = H.vote?.key === key ? H.vote.options.length : 0;
-  return {id: key, ...tallyBallots(Object.values(H.votes[key] || {}), n, H.rolesOn)};
+  return {id: key, ...tallyBallots([...(H.votes.get(key)?.values() || [])], n, H.rolesOn)};
 }
-const hasVoted = id => !!(H.vote && H.votes[H.vote.key]?.[id]?.picks.length);
+const hasVoted = id => !!(H.vote && H.votes.get(H.vote.key)?.get(id)?.picks.length);
 function snapshot() {
   const zn = W.L ? W.L.zoneAt(tileOf(P.x), tileOf(P.z)) : null, q = W.L ? tracked() : null;
   return {
@@ -156,7 +172,7 @@ function snapshot() {
     place: zn?.name || W.L?.def.name || 'Het stadhuis', depth: W.L?.def.depth || '',
     hp: Math.max(0, Math.round(G.hp)), maxHp: G.maxHp, quest: q ? {title: q.title, text: q.text} : null,
     members: [...H.members.values()].map(x => x.name),
-    seats: [...H.members.entries()].map(([id, x]) => ({n: x.name, r: H.rolesOn ? x.role : null, k: x.tag, ...(hasVoted(id) ? {v: 1} : {})})),
+    seats: [...H.members.entries()].map(([id, x]) => ({n: x.name, r: H.rolesOn ? x.role : null, k: x.tag, ...(hasVoted(id) ? {v: 1} : {})})), max: MAX_MEMBERS,
     vote: H.vote ? {key: H.vote.key, question: H.vote.question, options: H.vote.options, multi: H.vote.multi, n: H.vote.n} : null,
     tally: H.vote ? tally(H.vote.key) : null,
     ended: G.verdict ? {title: G.verdict.title || null, choice: G.verdict.choice, judgement: G.verdict.judgement} : null,
@@ -171,7 +187,7 @@ function push(force) {
 }
 NET.openVote = (key, question, options, multi) => {
   H.vote = {key, question, options, multi, n: ++H.voteN, prev: G.council?.[key]};
-  H.votes[key] = {};
+  H.votes.set(key, new Map());
   NET.tallies = tally(key);
   sync(); push(true); refresh();
 };
@@ -187,20 +203,23 @@ NET.closeVote = () => {
     }
   }
   H.vote = null;
-  sync(); push(true); refresh();
+  sync(); refresh();
+  // The verdict panel seals G.verdict right after it closes the vote: publish once that has
+  // happened, so the phones go straight to the reveal instead of 'nothing to vote on' first.
+  queueMicrotask(() => push(true));
 };
 NET.publish = () => push(true);
 // Roles, from the host's council panel (or tests): a fresh deal, one seat, or no roles at all.
 NET.redeal = () => {
-  H.deck = dealOrder();
-  const ids = [...H.members.keys()], roles = dealAll(ids.length, H.deck);
-  ids.forEach((id, i) => { H.members.get(id).role = roles[i]; H.past.set(id, roles[i]); });
+  const ids = [...H.members.keys()], deal = freshDeal(ids.map(id => H.members.get(id).role));
+  H.deck = deal.order;
+  ids.forEach((id, i) => { H.members.get(id).role = deal.roles[i]; remember(id, deal.roles[i]); });
   sync(); push(true); refresh();
 };
 function setRoleOf(id, roleId) {
   const m = H.members.get(id), r = roleById(roleId);
   if (!m || !r) return false;
-  m.role = r.id; H.past.set(id, r.id);
+  m.role = r.id; remember(id, r.id);
   sync(); push(true); refresh();
   return true;
 }
@@ -236,7 +255,7 @@ function renderHost() {
   if (!H.mq) {
     body.append(el('div', {class: 'prose'},
       el('p', {text: 'Met de adviesraad spelen jullie samen: één persoon loopt door het Gewelf (bijvoorbeeld op het grote scherm), de anderen doen mee op hun telefoon. Bij elke afweging stemmen de adviseurs mee, en in gevechten kunnen ze steun sturen.'}),
-      el('p', {text: 'Iedere adviseur krijgt een rol aan tafel, zoals de inwoner, de jurist of de bestuurder: met een eigen invalshoek, een stopwoordje en een persoonlijke agenda die alleen zij kennen. Zo wordt stemmen een gesprek.'}),
+      el('p', {text: 'Iedere adviseur krijgt een rol aan tafel, zoals de inwoner, de jurist of de bestuurder: met een eigen invalshoek, een stopwoordje en een persoonlijke agenda die verder niemand kent. Zo wordt stemmen een gesprek.'}),
       el('div', {class: 'hcast', 'aria-hidden': 'true'}, ROLES.map(r => el('span', {style: roleVars(r)}, `${r.icon} ${r.name}`))),
       el('p', {html: '<small>Berichten gaan via een openbare MQTT-server, zonder account. Deel er geen persoonsgegevens in; gebruik een voornaam of bijnaam. Wil je organisatie een eigen server? Zie <code>orakel/relay</code> in de repository en start het spel met <code>?broker=wss://…</code>.</small>'}),
       el('div', {class: 'tbtns'}, el('button', {class: 'go', onclick: () => startCouncil()}, 'Start de adviesraad'), rolesToggle()),
@@ -263,6 +282,7 @@ function seatsPanel() {
       el('div', {class: 'label', text: `Aan tafel · ${ms.length}${voting !== null ? ` · ${voting} gestemd` : ''}`}),
       el('div', {class: 'tbtns'}, H.rolesOn && ms.length ? el('button', {class: 'btn', onclick: () => NET.redeal()}, 'Verdeel de rollen opnieuw') : null, rolesToggle())));
   if (!ms.length) { box.append(el('p', {class: 'hs-empty', text: H.rolesOn ? 'Nog niemand. Deel de code! Wie meedoet, krijgt vanzelf een rol: de eerste adviseurs allemaal een andere.' : 'Nog niemand. Deel de code!'})); return box; }
+  if (ms.length >= MAX_MEMBERS) box.append(el('p', {class: 'hs-full', text: `De raad zit vol: ${MAX_MEMBERS} adviseurs. Wie nu nog meedoet, kijkt mee op de telefoon en schuift aan zodra er een plek vrijkomt.`}));
   const grid = el('div', {class: 'hs-grid'});
   for (const [id, m] of ms) {
     const r = H.rolesOn ? roleById(m.role) : null;
@@ -291,12 +311,13 @@ export function startAdvisor(hash) {
   const root = document.getElementById('advisor');
   root.hidden = false;
   const A = {mq: null, state: null, picks: new Set(), votedKey: null, lastKey: null, cheerT: 0, id: null, name: '', tag: '',
-    seats: null, mine: null, role: null, deal: false, cardOpen: null, agendaOpen: false, seen: new Map(), reveal: null};
+    seats: null, mine: null, full: false, hiT: 0, role: null, deal: false, cardOpen: null, agendaOpen: false, seen: new Map(), reveal: null};
   try { A.id = sessionStorage.getItem('orakel-raad-id'); } catch (e) { /* none */ }
   if (!A.id) { A.id = 'a' + Math.random().toString(36).slice(2, 12); try { sessionStorage.setItem('orakel-raad-id', A.id); } catch (e) { /* none */ } }
   try { A.name = localStorage.getItem('orakel-raad-naam') || ''; } catch (e) { /* none */ }
   A.tag = seatTag(A.id);
   const send = m => A.mq?.publish(`${BASE}/${code}/a`, {...m, id: A.id, name: A.name});
+  const hello = () => { A.hiT = Date.now(); send({t: 'hi'}); };
 
   // Re-render only when something visible changed, and keep the scroll position, so a
   // state update never swallows a tap or jumps the page while someone is reading.
@@ -306,6 +327,11 @@ export function startAdvisor(hash) {
     A.state = m;
     A.seats = readSeats(m.seats);
     A.mine = A.seats?.find(s => s.tag === A.tag) || null;
+    // A full table (the host says how many seats it has) leaves you watching. When a seat frees up,
+    // say hello at once instead of waiting for the next 20-second hello.
+    const cap = Number.isInteger(m.max) && m.max > 0 ? m.max : 0;
+    A.full = !!(cap && A.seats && !A.mine && A.seats.length >= cap);
+    if (cap && A.seats && !A.mine && !A.full && Date.now() - A.hiT > 4000) hello();
     // everyone who held a role at this table, also after they left, for the reveal at the end
     for (const x of A.seats || []) if (x.role && (A.seen.has(x.tag || x.name) || A.seen.size < 60)) A.seen.set(x.tag || x.name, x);
     if (m.ended && !A.reveal && A.seen.size) A.reveal = [...A.seen.values()];
@@ -334,7 +360,7 @@ export function startAdvisor(hash) {
       if (A.seen.size) wrap.append(agendas(A.reveal || [...A.seen.values()]));
       return;
     }
-    wrap.append(el('h1', {text: String(s.place || 'Het Gewelf')}), el('div', {class: 'label', text: `${s.depth || ''} · raad ${code} · ${Array.isArray(s.members) ? s.members.length : 0} adviseurs`}));
+    wrap.append(el('h1', {text: String(s.place || 'Het Gewelf')}), el('div', {class: 'label', text: `${s.depth || ''} · raad ${code} · ${adviseurs(Array.isArray(s.members) ? s.members.length : 0)}`}));
     const hp = +s.hp || 0, max = +s.maxHp || 100;
     wrap.append(el('div', {class: 'trust'}, el('span', {class: 'ico', text: '❤'}), el('div', {class: 'bar'}, el('i', {style: `transform:scaleX(${Math.max(0, Math.min(1, hp / max))})`})), el('b', {text: `${Math.round(hp)}/${Math.round(max)}`})));
     const vote = s.vote && typeof s.vote === 'object' && Array.isArray(s.vote.options) ? s.vote : null;
@@ -344,13 +370,16 @@ export function startAdvisor(hash) {
       wrap.append(el('div', {class: 'verdictbox'}, el('h3', {text: 'Het besluit is bezegeld'}), el('p', {text: ['Niet met AI', 'Eerst verder onderzoeken', 'Een begrensde pilot', 'Invoeren met waarborgen'][s.ended.choice] || ''})));
       if (A.seen.size) wrap.append(agendas(A.reveal || [...A.seen.values()]));
     }
-    if (A.role || (A.seats && !A.mine && A.seats.some(x => x.role))) wrap.append(roleCard(!!vote || ended));
+    if (A.full) wrap.append(el('section', {class: 'rolecard waiting full', 'aria-live': 'polite'}, el('span', {class: 'role-ic', 'aria-hidden': 'true', text: '🪑'}),
+      el('p', {}, el('b', {text: 'De raad zit vol'}), el('br'), `Er zitten al ${adviseurs(A.seats.length)} aan tafel. Je kijkt mee, maar je stem telt nog niet mee. Komt er een plek vrij, dan schuif je vanzelf aan.`)));
+    else if (A.role || (A.seats && !A.mine && A.seats.some(x => x.role))) wrap.append(roleCard(!!vote || ended));
     if (s.quest && !vote && !ended) wrap.append(el('div', {class: 'quest'}, el('h4', {text: String(s.quest.title || '')}), el('p', {text: String(s.quest.text || '')})));
     if (vote) voteBlock(wrap, s, vote);
     else wrap.append(el('p', {class: 'prose', style: 'margin:0', text: ended ? 'Het besluit is genomen. Op het grote scherm zie je wat er een jaar later van terechtkwam.'
       : A.role ? 'Op dit moment is er niets om over te stemmen. Lees je rol alvast door: zodra de speler bij een hoeder een afweging maakt, verschijnt die hier, met waar jouw rol op let.'
         : 'Op dit moment is er niets om over te stemmen. Zodra de speler bij een hoeder een afweging maakt, verschijnt die hier.'}));
     if (A.seats?.length) wrap.append(table(!!vote));
+    if (A.full) return;     // the host does not hear you yet, so no support button either
     const wait = Math.max(0, 5 - (Date.now() - A.cheerT) / 1000);
     wrap.append(el('button', {class: 'btn cheer', disabled: wait > 0, onclick: () => { A.cheerT = Date.now(); send({t: 'cheer'}); view(); setTimeout(view, 5100); }}, wait > 0 ? 'Steun verstuurd ✓' : 'Stuur steun ❤'));
   };
@@ -370,9 +399,9 @@ export function startAdvisor(hash) {
       A.mq = mq;
       mq.subscribe(`${BASE}/${code}/h`);
       mq.onMessage = (t, m) => { if (!m || typeof m !== 'object') return; if (m.t === 'end') { A.state = {...(A.state || {}), closed: true}; shown = ''; view(); return; } if (m.t === 'state') update(m); };
-      mq.onReconnect = () => send({t: 'hi'});
-      send({t: 'hi'});
-      setInterval(() => send({t: 'hi'}), 20000);
+      mq.onReconnect = hello;
+      hello();
+      setInterval(hello, 20000);
       addEventListener('pagehide', () => send({t: 'bye'}));
       view();
     }}, 'Doe mee'), status, el('p', {html: '<small>Je naam en stemmen gaan via een openbare server naar het spel. Deel geen persoonsgegevens.</small>'}));
@@ -386,7 +415,7 @@ export function startAdvisor(hash) {
     const card = el('section', {class: `rolecard${A.deal ? ' dealt' : ''}`, style: roleVars(r), 'data-role': r.id, 'data-icon': r.icon, 'aria-label': `Jouw rol: ${r.name}`},
       el('button', {class: 'rc-head', 'aria-expanded': String(open), onclick: () => { A.cardOpen = !open; view(); }},
         el('span', {class: 'role-ic', 'aria-hidden': 'true', text: r.icon}),
-        el('span', {class: 'rc-t'}, el('small', {text: 'Jouw rol'}), el('b', {text: r.name})),
+        el('span', {class: 'rc-t'}, el('small', {text: 'Jouw rol'}), el('b', {text: SOFT[r.id] || r.name})),
         el('span', {class: 'chev', 'aria-hidden': 'true', text: open ? '▴' : '▾'})));
     A.deal = false;
     if (!open) return card;
@@ -415,36 +444,29 @@ export function startAdvisor(hash) {
     opts.forEach((o, i) => {
       const pickedBy = byRole ? ROLES.filter(x => byRole[x.id]?.counts[i]) : [];
       const who = pickedBy.map(x => `${x.icon}${byRole[x.id].counts[i] > 1 ? `×${byRole[x.id].counts[i]}` : ''}`).join(' ');
-      box.append(el('button', {class: 'optb', 'aria-pressed': String(A.picks.has(i)), onclick: () => { if (vote.multi) { A.picks.has(i) ? A.picks.delete(i) : A.picks.add(i); } else A.picks = new Set([i]); view(); }},
+      box.append(el('button', {class: 'optb', 'aria-pressed': String(A.picks.has(i)), disabled: A.full, onclick: () => { if (vote.multi) { A.picks.has(i) ? A.picks.delete(i) : A.picks.add(i); } else A.picks = new Set([i]); view(); }},
         el('span', {class: 'box', text: A.picks.has(i) ? '✓' : ''}),
         el('span', {}, o, who ? el('span', {class: 'who'}, el('span', {class: 'sr', text: `Gekozen door: ${pickedBy.map(x => x.name).join(', ')}.`}), el('span', {'aria-hidden': 'true', text: who})) : null),
         el('span', {class: 'votes', text: voted ? `${+counts[i] || 0}` : ''})));
     });
     const ballots = +s.tally?.ballots || 0, talk = voted && r ? talkingPoint(byRole, opts, vote.multi) : null;
+    if (A.full) { wrap.append(box, el('p', {class: 'label', style: 'margin:0', text: `Je kijkt mee · ${ballots} ${ballots === 1 ? 'stem' : 'stemmen'} binnen · stemmen kan zodra je aan tafel zit`})); return; }
     wrap.append(el('p', {class: 'label', style: 'margin:0', text: vote.multi ? 'Kies alle maatregelen die volgens jou passen.' : 'Kies één besluit.'}), box,
       el('button', {class: 'go', disabled: !A.picks.size, onclick: () => { send({t: 'vote', key: vote.key, picks: [...A.picks]}); A.votedKey = round; if (A.mine) A.mine.voted = true; SFX.play?.('pick'); view(); }}, voted ? 'Stem bijwerken' : 'Stem'),
       el('p', {class: 'label', style: 'margin:0', text: voted ? `Je stem is verstuurd · ${ballots} ${ballots === 1 ? 'stem' : 'stemmen'} binnen` : `${ballots} ${ballots === 1 ? 'stem' : 'stemmen'} binnen · stem eerst, dan zie je hoe de anderen kozen`}));
     // (native append would print a null, so optional parts are appended on their own)
     if (talk) wrap.append(el('p', {class: 'talk'}, el('span', {'aria-hidden': 'true', text: '💬 '}), talk));
   };
-  // After voting: one concrete difference with another role at the table, to talk about.
+  // After voting: one concrete difference with another role at the table, to talk about. Every
+  // phone picks its own role to point at (seeded by seat and round), so a big table spreads out.
   const talkingPoint = (byRole, opts, multi) => {
-    const others = ROLES.filter(x => x.id !== A.role && byRole?.[x.id]?.ballots);
-    if (!others.length || !A.picks.size) return null;
-    const quote = t => `‘${t.length > 46 ? `${t.slice(0, Math.max(20, t.lastIndexOf(' ', 44))).replace(/[\s,;:.]+$/, '')}…` : t}’`;
-    const mine = [...A.picks][0];
-    for (const x of others) {
-      const c = byRole[x.id].counts, them = `${x.icon}\u00a0de ${asRole(x)}`;
-      if (!multi) {
-        const j = c.findIndex((v, k) => v > 0 && !A.picks.has(k));
-        if (j >= 0) return `Gespreksstof: ${them} koos ${quote(opts[j])}, jij ${quote(opts[mine])}. Wie overtuigt wie?`;
-        continue;
-      }
-      const i = opts.findIndex((_, k) => (c[k] > 0) !== A.picks.has(k));
-      if (i < 0) continue;
-      return c[i] > 0 ? `Gespreksstof: ${them} koos ${quote(opts[i])}, jij niet. Vraag eens waarom!` : `Gespreksstof: jij koos ${quote(opts[i])}, ${them} niet. Leg eens uit waarom jij wel.`;
-    }
-    return 'Tot nu toe koos iedereen hetzelfde als jij. Eensgezind, of te snel klaar?';
+    const t = talkPoint({mine: [...A.picks], byRole, me: A.role, multi, seed: `${A.tag}|${A.lastKey}`});
+    if (!t) return null;
+    if (t.same) return 'Tot nu toe koos iedereen hetzelfde als jij. Eensgezind, of te snel klaar?';
+    const x = roleById(t.role), them = `${x.icon}\u00a0de ${asRole(x)}`;
+    const quote = s => `‘${s.length > 46 ? `${s.slice(0, Math.max(20, s.lastIndexOf(' ', 44))).replace(/[\s,;:.]+$/, '')}…` : s}’`;
+    if (!multi) return `Gespreksstof: ${them} koos ${quote(opts[t.option])}, jij ${quote(opts[[...A.picks][0]])}. Wie overtuigt wie?`;
+    return t.theirs ? `Gespreksstof: ${them} koos ${quote(opts[t.option])}, jij niet. Vraag eens waarom!` : `Gespreksstof: jij koos ${quote(opts[t.option])}, ${them} niet. Leg eens uit waarom jij wel.`;
   };
 
   // Who sits at the table, with their roles: handy when you want to ask the jurist something.
@@ -457,11 +479,18 @@ export function startAdvisor(hash) {
         x === A.mine ? el('small', {class: 'you', text: 'jij'}) : null, voting && x.voted ? el('span', {class: 'ok'}, el('span', {'aria-hidden': 'true', text: '✓'}), el('span', {class: 'sr', text: 'heeft gestemd'})) : null);
     })));
 
-  // After the verdict the secret agendas come out, which is half the fun of having had them.
-  const agendas = seats => el('section', {class: 'reveal', 'aria-label': 'De persoonlijke agenda’s'},
-    el('h3', {text: 'De persoonlijke agenda’s'}),
-    el('p', {class: 'rv-intro', text: 'Nu mag het gezegd worden: wie had er stiekem wat in gedachten?'}),
-    ...seats.filter(x => x.role).map(x => { const r = roleById(x.role); return el('div', {class: 'rv', style: roleVars(r)}, el('span', {class: 'role-ic', 'aria-hidden': 'true', text: r.icon}), el('p', {}, el('b', {text: `${x.name} · ${r.name}`}), el('br'), r.agenda)); }));
+  // After the verdict the secret agendas come out, which is half the fun of having had them: one
+  // card per role, quoted as it stood on the card, with everyone who held that role.
+  const agendas = seats => {
+    const by = new Map();
+    for (const x of seats) if (roleById(x.role)) { if (!by.has(x.role)) by.set(x.role, []); by.get(x.role).push(x.tag && x.tag === A.tag ? `${x.name} (jij)` : x.name); }
+    const names = a => (a.length > 1 ? `${a.slice(0, -1).join(', ')} en ${a.at(-1)}` : a[0]);
+    return el('section', {class: 'reveal', 'aria-label': 'De persoonlijke agenda’s'},
+      el('h3', {text: 'De persoonlijke agenda’s'}),
+      el('p', {class: 'rv-intro', text: 'Nu mag het gezegd worden. Dit stond er stiekem op de kaartjes:'}),
+      ...ROLES.filter(r => by.has(r.id)).map(r => el('div', {class: 'rv', style: roleVars(r), 'data-role': r.id}, el('span', {class: 'role-ic', 'aria-hidden': 'true', text: r.icon}),
+        el('div', {class: 'rv-t'}, el('b', {text: `${r.name} · ${names(by.get(r.id))}`}), el('q', {text: r.agenda})))));
+  };
 
   view();
 }
@@ -476,6 +505,7 @@ addStyles('council-roles', `
 .hseats .hs-head{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
 .hseats .hs-head .btn{padding:7px 11px;font-size:13px}
 .hseats .hs-empty{margin:0;font-size:13px;line-height:1.5;color:var(--dim)}
+.hseats .hs-full{margin:0;padding:8px 11px;border-radius:9px;border:1px solid var(--line-strong);background:rgba(0,0,0,.3);font-size:13px;line-height:1.45;color:var(--parch)}
 .hseats .hs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px}
 .hseats .hs-seat{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 10px;align-items:center;padding:9px 10px;border-radius:12px;border:1px solid var(--role-line,var(--line));background:linear-gradient(135deg,var(--role-soft,rgba(0,0,0,.2)),rgba(0,0,0,.18) 70%)}
 .hseats .hs-seat select{grid-column:1/-1}
@@ -502,13 +532,17 @@ addStyles('council-roles', `
 .adv .rolecard::after{content:attr(data-icon);position:absolute;z-index:-1;right:-18px;top:-26px;font-size:132px;line-height:1;opacity:.08;transform:rotate(14deg);pointer-events:none}
 .adv .rolecard.waiting{display:flex;gap:12px;align-items:center;padding:12px 14px;border-left-color:var(--line-strong)}
 .adv .rolecard.waiting p{margin:0;font-family:var(--f-body);font-size:17px;color:var(--dim)}
+.adv .rolecard.full{align-items:flex-start}
+.adv .rolecard.full p{font-size:16px;line-height:1.42}
+.adv .rolecard.full b{font-family:var(--f-display);font-size:19px;font-weight:400;color:var(--parch)}
+.adv .optb:disabled{cursor:default;opacity:.72}
 .adv .rolecard.dealt{animation:dealcard .7s cubic-bezier(.2,.9,.3,1.2)}
 @keyframes dealcard{0%{transform:perspective(600px) rotateY(80deg) scale(.92);opacity:0}100%{transform:none;opacity:1}}
 .adv .rc-head{width:100%;display:flex;align-items:center;gap:12px;padding:12px 14px;background:none;border:0;text-align:left;cursor:pointer;min-height:64px}
 .adv .rc-head .role-ic{width:46px;height:46px;font-size:25px}
 .adv .rc-t{flex:1;display:grid;gap:1px;min-width:0}
 .adv .rc-t small{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--role,var(--gold))}
-.adv .rc-t b{font-family:var(--f-display);font-size:20px;line-height:1.15;color:var(--parch)}
+.adv .rc-t b{font-family:var(--f-display);font-size:20px;line-height:1.15;color:var(--parch);overflow-wrap:break-word}
 .adv .chev{font-size:14px;color:var(--dim);padding:6px}
 .adv .rc-body{display:grid;gap:10px;padding:0 14px 14px}
 .adv .rc-mission{margin:0;font-family:var(--f-body);font-size:17px;line-height:1.42}
@@ -539,7 +573,9 @@ addStyles('council-roles', `
 .adv .reveal .rv-intro{margin:0 0 2px;font-size:13px;line-height:1.45;color:var(--dim)}
 .adv .verdictbox p{margin:2px 0 0;font-family:var(--f-display);font-size:20px;color:var(--gold-hi)}
 .adv .rv{display:flex;gap:10px;align-items:flex-start}
-.adv .rv p{margin:0;font-family:var(--f-body);font-size:16px;line-height:1.4}
-.adv .rv b{font-family:var(--f-ui);font-size:13px;color:var(--role)}
+.adv .rv-t{display:grid;gap:3px;min-width:0}
+.adv .rv b{font-family:var(--f-ui);font-size:13px;line-height:1.4;color:var(--role)}
+.adv .rv q{padding-left:9px;border-left:2px solid var(--role-line);font-family:var(--f-body);font-style:italic;font-size:16px;line-height:1.42;color:#f6ead2}
+.adv .rv q::before{content:'“'}.adv .rv q::after{content:'”'}
 @media (prefers-reduced-motion:reduce){.adv .rolecard.dealt{animation:none}}
 `);
