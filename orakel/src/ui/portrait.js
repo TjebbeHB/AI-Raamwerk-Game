@@ -303,6 +303,7 @@ export function normLook(spec) {
 }
 
 // Details the schema cannot say, by cast id: the things that make each one unforgettable.
+// A look may add its own as look.sig (for example {shadesUp: true, prop: 'mug'}).
 const SIG = {
   joop: {prop: 'mug', mugText: ['BESTE', 'CONCIËRGE'], twinkle: true, checks: true},
   wethouder: {brooch: true, pen: true},
@@ -470,6 +471,8 @@ function human(S, mood, mouth, blink) {
   const kind = S.kind, sig = {...(SIG[S.id] || {}), ...(L.sig || {})}, M = MOOD[mood];
   if (kind === 'gnome') L = {...L, nose: 'big', brows: L.brows === 'normal' ? 'bushy' : L.brows, blush: true, facialHair: L.facialHair === 'beard' || L.facialHair === 'none' ? 'full' : L.facialHair};
   if (kind === 'kobold') L = {...L, eyes: S.spec.eyes ?? 0xe8b830};
+  // sunglasses that live on the head (Glans, Henk) are not also worn over the eyes
+  if (sig.shadesUp && L.glasses === 'shades') L = {...L, glasses: 'none'};
   const g = geom(L, kind), t = g.top;
   const grey = L.age === 'old' && luma(L.hairColor) < 0.62;
   const hairC = grey ? mix(L.hairColor, 0xb8b8c0, 0.32) : L.hairColor, fhC = L.facialHairColor ?? hairC;
@@ -1630,10 +1633,10 @@ function newCanvas(w, h) {
 // a cached 96 x 96 canvas for one frame (mouth and blink snap to three steps)
 function frameCanvas(subject, mood, mouth, blink, o = {}) {
   const S = resolveSubject(subject), m = MOOD[mood] ? mood : 'neutral';
-  const key = `${S.key}|${m}|${q3(mouth)}|${q3(blink)}|${o.frame !== false ? 1 : 0}|${o.flip ? 1 : 0}`;
+  const key = `${S.key}|${m}|${q3(mouth)}|${q3(blink)}|${o.frame !== false ? 1 : 0}|${o.flip ? 1 : 0}|${o.badge !== false ? 1 : 0}`;
   return lru(FRAMES, key, () => {
     const t0 = typeof performance !== 'undefined' ? performance.now() : 0;
-    const img = renderPortrait(S, {mood: m, mouth: q3(mouth), blink: q3(blink), frame: o.frame, flip: o.flip});
+    const img = renderPortrait(S, {mood: m, mouth: q3(mouth), blink: q3(blink), frame: o.frame, flip: o.flip, badge: o.badge});
     const c = newCanvas(N, N);
     c.getContext('2d').putImageData(new ImageData(img.data, N, N), 0, 0);
     portraitStats.renders++;
@@ -1658,7 +1661,7 @@ export function drawPortrait(canvas, subject, o = {}) {
 // A cached data URL (PNG) for <img>: 192 px by default, crisp at 96 and 192 and fine at 288 with pixelated scaling.
 export function portraitURL(subject, mood = 'neutral', o = {}) {
   const S = resolveSubject(subject), scale = o.scale || 2;
-  return lru(URLS, `${S.key}|${mood}|${scale}|${o.frame !== false ? 1 : 0}|${o.flip ? 1 : 0}`, () => {
+  return lru(URLS, `${S.key}|${mood}|${scale}|${o.frame !== false ? 1 : 0}|${o.flip ? 1 : 0}|${o.badge !== false ? 1 : 0}`, () => {
     const src = frameCanvas(S, mood, 0, 0, o), c = document.createElement('canvas');
     blit(c, src, N * scale);
     portraitStats.urls++;

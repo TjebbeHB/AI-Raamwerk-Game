@@ -95,6 +95,12 @@ test('subjects: aliases follow the cast, the hero follows G.hero, unknowns fall 
   assert.equal(typeof UI.portraitURL, 'function');
 });
 
+test('sunglasses pushed up on the head are not worn over the eyes as well', () => {
+  const m = CAST.glans.model, plain = hash(renderPortrait('glans'));
+  CAST.glans.model = {...m, glasses: 'shades'};
+  try { assert.equal(hash(renderPortrait('glans')), plain); } finally { CAST.glans.model = m; }
+});
+
 test('options: deterministic, flip mirrors, frame false is transparent', () => {
   assert.equal(hash(renderPortrait('ilse', {mood: 'happy'})), hash(renderPortrait('ilse', {mood: 'happy'})));
   const a = renderPortrait('you'), b = renderPortrait('you', {flip: true});
