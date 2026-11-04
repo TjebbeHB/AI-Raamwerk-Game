@@ -11,6 +11,7 @@ import {FX} from '../engine/particles.js';
 import {revealAround} from './entities.js';
 import {PL, hurtPlayer, healPlayer} from './player.js';
 import {TILE, tileOf, clamp, damp, dampAngle} from '../core/util.js';
+import {mod} from './mods.js';
 
 export const TOOLS = {
   lamp: {key: 'Digit1', name: 'Toetslamp', icon: '🔦', color: 0xffd36b, css: '#ffd36b', cd: 0.34, attack: 'Toetsstraal: een lichtschot op afstand', text: 'Toetsen en meten. Werkt tegen beloftes zonder bewijs, verzonnen antwoorden en rommelige bronnen. Met R (of rechtermuisknop) laat je het licht openbarsten: wat niet echt is, verdwijnt.'},
@@ -45,7 +46,7 @@ export function aim() {
 // ---------------------------------------------------------------- tools
 export function useTool(tool) {
   if (!G.tools[tool] || C.cd[tool] > 0 || P.carry) return false;
-  C.cd[tool] = TOOLS[tool].cd;
+  C.cd[tool] = TOOLS[tool].cd * mod(`${tool}Cd`);
   PL.toolAnim = 1; PL.toolAnimKind = tool; P.aimLock = 0.5; PL.kick = 1;
   const a = aim();
   if (tool === 'lamp') {
@@ -54,7 +55,7 @@ export function useTool(tool) {
     shoot({x: from.x, y: from.y, z: from.z, dir, speed: 26, dmg: 10, tool, owner: 'player', color: 0xffd36b, r: 0.32, life: 1.4});
     SFX.play('lamp');
   } else if (tool === 'scale') {
-    shockwave(P.x, P.y, P.z, 3.8, 9, 'scale');
+    shockwave(P.x, P.y, P.z, 3.8 * mod('scaleRadius'), 9, 'scale');
     SFX.play('scale');
   } else if (tool === 'seal') {
     const fx = -Math.sin(P.yaw), fz = -Math.cos(P.yaw);
@@ -62,14 +63,14 @@ export function useTool(tool) {
     for (const e of C.enemies) {
       if (!e.alive) continue;
       const dx = e.x - P.x, dz = e.z - P.z, d = Math.hypot(dx, dz);
-      if (d > 2.4 + (e.def.r ?? 0.5) * 0.6) continue;
+      if (d > (2.4 + (e.def.r ?? 0.5) * 0.6) * mod('sealReach')) continue;
       if ((dx * fx + dz * fz) / (d || 1) < 0.25 && d > 1.0) continue;
       damage(e, 15, 'seal', {kx: dx / (d || 1) * 10, kz: dz / (d || 1) * 10, stun: 0.6});
       hitAny = true;
     }
     for (const o of W.ents) if (o.onHit && o.visible !== false) {
       const dx = o.x - P.x, dz = o.z - P.z, d = Math.hypot(dx, dz);
-      if (d < 2.6 && ((dx * fx + dz * fz) / (d || 1) > 0.3 || d < 1.2)) o.onHit('seal', 15);
+      if (d < 2.6 * mod('sealReach') && ((dx * fx + dz * fz) / (d || 1) > 0.3 || d < 1.2)) o.onHit('seal', 15);
     }
     const sx = P.x + fx * 1.4, sz = P.z + fz * 1.4;
     for (const fn of ON.sealSwing || []) fn(sx, sz);
@@ -82,8 +83,8 @@ export function useTool(tool) {
 
 export function revealPulse() {
   if (!G.tools.lamp || C.cd.reveal > 0) return false;
-  C.cd.reveal = REVEAL_CD;
-  const r = G.flags.lampBright ? 8.5 : 7;
+  C.cd.reveal = REVEAL_CD * mod('revealCd');
+  const r = (G.flags.lampBright ? 8.5 : 7) * mod('revealRadius');
   revealAround(P.x, P.z, r);
   for (const e of C.enemies) if (e.alive && Math.hypot(e.x - P.x, e.z - P.z) < r + 1) { e.exposed = 6; e.def.onReveal?.(e); }
   ringFx(P.x, P.y + 0.1, P.z, r, 0xffe8a8, 0.7, true);
@@ -184,7 +185,7 @@ export function damage(e, amount, tool, o = {}) {
   if (def.shielded && !e.exposed) { mult *= 0.1; if (!e.shieldHint) { e.shieldHint = true; UI.pip(def.shieldHint || 'Het glanst te veel. Laat eerst het licht openbarsten (R) om te zien wat er echt zit.'); } }
   if (def.damageFilter) mult = def.damageFilter(e, tool, mult, amount);
   if (SETTINGS.difficulty === 'story') mult *= 1.4;
-  const dmg = Math.round(amount * mult * (G.flags.sharp ? 1.15 : 1));
+  const dmg = Math.round(amount * mult * (G.flags.sharp ? 1.15 : 1) * mod(`${tool}Dmg`));
   e.hp -= dmg;
   e.hitT = 0.14; e.aware = true;
   if (o.kx !== undefined && !def.heavy) { e.vx += o.kx * (def.light ? 1.4 : 0.8); e.vz += o.kz * (def.light ? 1.4 : 0.8); }
@@ -217,7 +218,7 @@ export function kill(e, quiet = false) {
     UI.toast(`Les: ${e.def.name}`, e.def.lesson, 'good');
   }
   // drops: stroopwafels keep you going
-  if (!e.def.noDrop && Math.random() < (e.def.drop ?? 0.28)) dropSnack(e.x, e.z);
+  if (!e.def.noDrop && Math.random() < (e.def.drop ?? 0.28) + mod('lootLuck')) dropSnack(e.x, e.z);
   if (e.group) {
     const left = C.enemies.some(o => o !== e && o.alive && o.group === e.group);
     if (!left) { if (!e.def.respawn) G.cleared[e.group] = true; ON.cleared[e.group]?.(); saveGame(); }
@@ -425,5 +426,8 @@ export function updateCombat(dt, active) {
   for (const e of C.enemies) if (e.alive && e.aware && Math.hypot(e.x - P.x, e.z - P.z) < 22) alert += e.boss ? 3 : 1;
   C.alert = damp(C.alert, alert, 2, dt);
   SFX.intensity(Math.min(1, C.alert / 3));
+  // some archetypes and finds slowly restore trust outside fights
+  const regen = mod('regen');
+  if (active && regen > 0 && C.alert < 0.3 && G.hp > 0 && G.hp < G.maxHp) G.hp = Math.min(G.maxHp, G.hp + regen * dt);
 }
 export const enemiesAlive = group => C.enemies.some(e => e.alive && (!group || e.group === group));

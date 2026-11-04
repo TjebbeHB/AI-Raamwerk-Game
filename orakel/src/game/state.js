@@ -15,8 +15,17 @@ export function freshState() {
     opened: {},              // chests, revealed illusions, unlocked doors, solved puzzles
     coffee: [],              // coffee corners visited (fast travel)
     explored: {},            // floor id -> base64 bitset of seen tiles
-    stats: {time: 0, kills: 0, deaths: 0, steps: 0, shortcut: 0, revealed: 0},
+    stats: {time: 0, kills: 0, deaths: 0, steps: 0, shortcut: 0, revealed: 0, abilities: 0, talks: 0, distance: 0, damageTaken: 0, floorTime: {}},
     verdict: null,
+    // ---- v2: who you are, what you chose, what you found (see src/game/hero.js and the story systems)
+    hero: null,              // {name, pronouns, address, archetype, look}; null until the creator has run
+    rel: {},                 // npc id -> relationship score (negative cool, positive warm)
+    choices: [],             // impactful choices: [{id, npc, label, text, at}]
+    secrets: [],             // ids of secrets / easter eggs found
+    trinkets: [],            // ids of exploration rewards (Kantoorvondsten) found
+    bingo: [],               // ids of vergaderbingo squares found
+    achievements: [],        // ids of achievements earned
+    council: {},             // chamber id (or 'verdict') -> council tally at the moment you decided: {counts, ballots, byRole}
     started: Date.now(), saved: 0,
   };
 }
@@ -47,7 +56,8 @@ export function applySave(data) {
   resetState();
   const f = freshState();
   for (const [k, v] of Object.entries(data)) if (k in f) G[k] = v;
-  for (const k of ['flags', 'items', 'keys', 'chambers', 'cleared', 'opened', 'explored', 'stats', 'quests', 'tools']) G[k] = {...f[k], ...(G[k] || {})};
+  for (const k of ['flags', 'items', 'keys', 'chambers', 'cleared', 'opened', 'explored', 'stats', 'quests', 'tools', 'rel', 'council']) G[k] = {...f[k], ...(G[k] || {})};
+  for (const k of ['bronnen', 'hallucs', 'crystals', 'cards', 'coffee', 'choices', 'secrets', 'trinkets', 'bingo', 'achievements']) if (!Array.isArray(G[k])) G[k] = f[k];
   return true;
 }
 export function clearSave() { try { store()?.removeItem(SAVE_KEY); } catch (e) { /* ignore */ } }
@@ -67,7 +77,18 @@ export function readSaveCode(text) {
   } catch (e) { return null; }
 }
 
-export const SETTINGS = {bright: 1, cam: 'third', sens: 1, invert: false, fov: 72, music: 0.5, sfx: 0.8, difficulty: 'normal', quality: 'high', textSpeed: 1, shake: true, autoAim: true, camDist: 4.2};
+export const SETTINGS = {bright: 1, cam: 'third', sens: 1, invert: false, fov: 72, music: 0.5, sfx: 0.8, difficulty: 'normal', quality: 'high', textSpeed: 1, shake: true, autoAim: true, camDist: 4.2,
+  // ---- v2 (accessibility, dialogue, mobile): read with defaults, the options menu owns them
+  voice: true,             // character voice blips while text types
+  uiScale: 1,              // text and interface size: 0.9 .. 1.4
+  contrast: 'normal',      // 'normal' | 'high'
+  motion: 'full',          // 'full' | 'reduced': less camera bob, shake, flashes and bloom
+  font: 'default',         // 'default' | 'readable' (a plainer, very legible typeface)
+  keymap: {},              // action -> key code overrides, e.g. {ability: 'KeyG'}
+  runToggle: false,        // Shift toggles running instead of holding
+  autoAdvance: false,      // dialogue moves on by itself after a pause
+  compactHud: 'auto',      // 'auto' | 'on' | 'off'
+};
 export function loadSettings() {
   try { Object.assign(SETTINGS, JSON.parse(store()?.getItem(SETTINGS_KEY) || '{}')); } catch (e) { /* defaults */ }
   return SETTINGS;

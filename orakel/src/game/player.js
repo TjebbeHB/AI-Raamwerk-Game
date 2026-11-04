@@ -11,6 +11,7 @@ import {makeHuman, makeModel, glowSprite} from '../engine/models.js';
 import {FX} from '../engine/particles.js';
 import {Crate, dropCarry} from './entities.js';
 import {TILE, clamp, damp, dampAngle, tileOf, lerp} from '../core/util.js';
+import {mod} from './mods.js';
 import {T} from '../engine/level.js';
 
 const EYE = 1.62, WALK = 5.0, RUN = 7.4, DASH_V = 15, DASH_T = 0.2;
@@ -132,13 +133,13 @@ export function updatePlayer(dt, active) {
   const inWater = tileType(tileOf(P.x), tileOf(P.z)) === T.WATER;
   const running = down('ShiftLeft') || down('ShiftRight') || Math.hypot(Input.move.x, Input.move.y) > 0.92;
   P.inverted = Math.max(0, (P.inverted || 0) - dt); P.slowT = Math.max(0, (P.slowT || 0) - dt);
-  let speed = (running ? RUN : WALK) * (inWater ? 0.6 : 1) * (P.carry ? 0.9 : 1) * (P.slowT > 0 ? 0.5 : 1);
+  let speed = (running ? RUN : WALK) * mod('speed') * (inWater ? 0.6 : 1) * (P.carry ? 0.9 : 1) * (P.slowT > 0 ? 0.5 : 1);
   PL.dashCd -= dt;
   if (active && hit('Space') && PL.dashCd <= 0 && !P.falling && !P.frozen) {
     let dx = wx, dz = wz;
     if (Math.hypot(dx, dz) < 0.1) { dx = fx; dz = fz; }
     const l = Math.hypot(dx, dz); P.dashDir = {x: dx / l, z: dz / l};
-    P.dashT = DASH_T; PL.dashCd = 0.7; P.inv = Math.max(P.inv, 0.3);
+    P.dashT = DASH_T; PL.dashCd = 0.7 * mod('dashCd'); P.inv = Math.max(P.inv, 0.3);
     SFX.play('dash');
     for (let k = 0; k < 10; k++) FX.one({x: P.x, y: P.y + 0.3 + Math.random(), z: P.z, vx: -P.dashDir.x * 3 + (Math.random() - 0.5), vz: -P.dashDir.z * 3 + (Math.random() - 0.5), life: 0.4, s0: 0.15, color: 0xffd890});
   }
@@ -230,7 +231,9 @@ export function hurtPlayer(amount, fx, fz, ignoreInv = false) {
   const diff = SETTINGS.difficulty;
   if (diff === 'calm' && fx !== null) return;
   const mult = diff === 'story' ? 0.45 : diff === 'hard' ? 1.4 : 1;
-  G.hp = Math.max(0, G.hp - Math.round(amount * mult));
+  const taken = Math.round(amount * mult * mod('damageTaken'));
+  G.hp = Math.max(0, G.hp - taken);
+  G.stats.damageTaken = (G.stats.damageTaken || 0) + taken;
   P.inv = 0.55;
   if (fx !== null && fx !== undefined) {
     const dx = P.x - fx, dz = P.z - fz, d = Math.hypot(dx, dz) || 1;
@@ -241,7 +244,7 @@ export function hurtPlayer(amount, fx, fz, ignoreInv = false) {
   SFX.play('hurt');
   if (G.hp <= 0) PL.onDie?.();
 }
-export function healPlayer(n) { G.hp = Math.min(G.maxHp, G.hp + n); }
+export function healPlayer(n) { G.hp = Math.min(G.maxHp, G.hp + Math.round(n * mod('healMult'))); }
 
 // ---- carried puzzle pieces ----
 let carryShown = null;

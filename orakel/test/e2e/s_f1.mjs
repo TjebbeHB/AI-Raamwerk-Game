@@ -1,0 +1,17 @@
+const prep = `window.__orakel.autoDecide = 'best';`;
+export default [
+  {name: 'start', shot: false, js: `document.querySelector('#titleBtns .go').click(); 'started'`, wait: 1500},
+  {name: 'arrive', js: `(async()=>{const o=__orakel; ${prep} await o.run(1); o.setStage('main',2,true); o.G.keys.kelder=true; await o.travel('f1','from_f0'); await o.run(1.5); return JSON.stringify({floor:o.W.id, stage:o.G.quests.main, dlg:o.DLG.active})})()`, wait: 800},
+  {name: 'lamp', js: `(async()=>{const o=__orakel; o.teleport(24,30,0); await o.run(0.3); o.W.byId.get('tool:lamp').interact(); await o.run(6); return JSON.stringify({stage:o.G.quests.main, lamp:o.G.tools.lamp, pip:o.G.flags.pip, enemies:o.C.enemies.map(e=>e.type+':'+e.state).join(',')})})()`, wait: 800},
+  {name: 'fight', js: `(async()=>{const o=__orakel; for (let i=0;i<40;i++){ const e=o.C.enemies.find(e=>e.alive); if(!e) break; const dx=e.x-o.P.x, dz=e.z-o.P.z; o.P.yaw=Math.atan2(-dx,-dz); o.P.pitch=Math.atan2(e.y+1.3-1.6, Math.hypot(dx,dz)); o.C.cd.lamp=0; o.useTool('lamp'); await o.run(0.25);} return JSON.stringify({kills:o.G.stats.kills, hp:o.G.hp, alive:o.C.enemies.filter(e=>e.alive).length})})()`, wait: 600},
+  {name: 'reveal', js: `(async()=>{const o=__orakel; o.teleport(24,27,0); await o.run(0.3); o.C.cd.reveal=0; o.revealPulse(); await o.run(1.5); return JSON.stringify({stage:o.G.quests.main, revealed:o.G.stats.revealed})})()`, wait: 600},
+  {name: 'vraag', js: `(async()=>{const o=__orakel; o.teleport(24,15,0); await o.run(0.5); o.W.byId.get('waarom').interact(); await o.run(8); return JSON.stringify({stage:o.G.quests.main, zone:document.getElementById('placeName').textContent})})()`, wait: 800},
+  {name: 'witnesses', shot: false, js: `(async()=>{const o=__orakel; for(const e of o.C.enemies) if(e.group==='f1_wijn'){e.hp=0;} for(const e of o.C.enemies) if(e.group==='f1_wijn') {o.C.enemies.indexOf(e); } 
+     o.G.cleared.f1_wijn=true; o.teleport(39,30,0); await o.run(0.3); o.W.byId.get('bakker1').interact(); await o.run(6);
+     o.giveItem('brief:afvalpas'); o.teleport(39,16,Math.PI/2); await o.run(0.3); o.W.byId.get('ilse1').interact(); await o.run(6);
+     o.teleport(7,14,Math.PI); await o.run(0.5); o.C.cd.reveal=0; o.revealPulse(); await o.run(1); o.teleport(7,16,Math.PI); await o.run(0.3); o.W.byId.get('glans1').interact(); await o.run(6);
+     return JSON.stringify({stage:o.G.quests.main, heard:Object.keys(o.G.flags).filter(k=>k.startsWith('heard:')), trial:o.G.flags['trial:necessity']})})()`, wait: 300},
+  {name: 'decide', js: `(async()=>{const o=__orakel; o.teleport(24,15,0); await o.run(0.3); o.W.byId.get('waarom').interact(); await o.run(10); return JSON.stringify({stage:o.G.quests.main, scale:o.G.tools.scale, gate:o.G.flags.f1_gate, ch:o.G.chambers.necessity?.attempts?.length, bron:o.G.bronnen})})()`, wait: 800},
+  {name: 'showroom', js: `(async()=>{const o=__orakel; o.teleport(7,12,0); await o.run(2); o.teleport(9,9,0); await o.run(6); return JSON.stringify({stage:o.G.quests.main, boss:o.C.enemies.filter(e=>e.boss).map(e=>e.type+':'+e.state+':'+e.hp)})})()`, wait: 1200},
+  {name: 'boss', js: `(async()=>{const o=__orakel; o.G.flags.godmode=true; const b=o.C.enemies.find(e=>e.boss); for(let i=0;i<80 && b.alive;i++){ const dx=b.x-o.P.x, dz=b.z-o.P.z; o.P.yaw=Math.atan2(-dx,-dz); o.P.pitch=0.1; if(i%8===0){o.C.cd.reveal=0; o.revealPulse();} o.C.cd.lamp=0; o.useTool('lamp'); await o.run(0.2);} await o.run(4); return JSON.stringify({stage:o.G.quests.main, bossAlive:b.alive, hp:b.hp, flag:o.G.flags.boss_demo})})()`, wait: 1000},
+];

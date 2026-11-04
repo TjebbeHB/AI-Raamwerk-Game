@@ -50,3 +50,10 @@ export function el(tag, attrs = {}, ...kids) {
 export const esc = s => String(s).replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 export const fmtTime = s => { s = Math.floor(s); const h = Math.floor(s / 3600), m = Math.floor(s / 60) % 60; return h ? `${h} u ${m} min` : `${m} min`; };
 export const IS_TOUCH = typeof matchMedia === 'function' && matchMedia('(hover: none) and (pointer: coarse)').matches;
+// Feature modules bring their own styles: addStyles('creator', css) adds (or replaces) one <style> block.
+export function addStyles(id, css) {
+  if (typeof document === 'undefined') return;
+  let s = document.getElementById(`css-${id}`);
+  if (!s) { s = document.createElement('style'); s.id = `css-${id}`; document.head.append(s); }
+  s.textContent = css;
+}
