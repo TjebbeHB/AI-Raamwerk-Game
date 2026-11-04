@@ -4,6 +4,10 @@ Een Nederlandstalige 3D-afdaling door het AI-raamwerk. Een overheidsorganisatie 
 
 De vorige top-down voxelversie (The Golem Below 2.1) staat in [`backup/golem-below-2.1`](backup/golem-below-2.1/BACKUP.md).
 
+## Nieuw: Het Orakel van Dalwijk
+
+Een verhalende 3D-dungeon door hetzelfde raamwerk, als één HTML-bestand dat direct in de browser speelt: **[tjebbehb.github.io/AI-Raamwerk-Game](https://tjebbehb.github.io/AI-Raamwerk-Game/)**. Je eerste werkdag bij de gemeente Dalwijk voert je door vijf dieptes onder het stadhuis, met puzzels, gesprekken, vier eindbazen en alle vijftien kamers van het raamwerk; ongeveer een tot anderhalf uur spelen, in eerste of derde persoon. Anderen kunnen meedoen als adviesraad op hun telefoon. Zie [`orakel/README.md`](orakel/README.md) voor het verhaal, de besturing, de adviesraad en hoe je GitHub Pages aanzet.
+
 ## Drie verhalen
 
 | Verhaal | Organisatie | Voorstel | Kritische domeinen |
@@ -66,6 +70,7 @@ In de **Zegelkamer** zien speler en raad eerst het dossier, kiezen dan een beslu
 - 3D: `client/dungeon.js` met `client/world/` (`layout.js` rooster, `chambers.js` kamers en proeven, `combat.js` gevechten, `props.js` en `kit.js` bouwstenen). Pagina en telefoons: `client/descent.js`.
 - Lokale opslag: `data/gewelf-sessions.json` (of `GOLEM_DATA_FILE`). Sessies uit 3.0 werken door als ‘Het Loket’; sessies van de 2.x-versies worden netjes geweigerd.
 - `?debug` achter de URL zet `window.__gewelf` aan voor testen.
+- Het Orakel van Dalwijk: `npm run orakel` (ontwikkelen op `http://localhost:5180`), `npm run orakel:build` (bouwt `docs/index.html` voor GitHub Pages) en `npm run orakel:test`. `npm test` draait deze tests ook mee.
 
 ## Licentie
 

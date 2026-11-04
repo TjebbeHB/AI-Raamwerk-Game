@@ -7,7 +7,7 @@ import {Input, bindInput, endFrame, down, hit, lock, unlock, press} from '../cor
 import {G, SETTINGS, saveGame, loadGame, hasSave, resetState, loadSettings, saveSettings} from './state.js';
 import {W, loadFloor, FLOORS, parsed, saveExplored} from './world.js';
 import {spawnEntities, setTravel, setGiveItem, dropCarry, Npc} from './entities.js';
-import {P, UI, SFX, ON, ITEMS, cond} from './bus.js';
+import {P, UI, SFX, ON, ITEMS, NET, cond} from './bus.js';
 import {PL, initPlayer, placePlayer, updatePlayer, setCamMode, hurtPlayer, healPlayer, pipHint, savePosition} from './player.js';
 import {C, TOOLS, TOOL_ORDER, useTool, revealPulse, updateCombat, spawnFloorEnemies, clearEnemies, aim} from './combat.js';
 import {DLG, updateDialogue, talkTo, converse, say, choose, wait, scene, unlockForUi, relock} from './dialogue.js';
@@ -258,7 +258,7 @@ export function step(dt) {
 // ---------------------------------------------------------------- debug and test hooks
 export function exposeDebug(extra = {}) {
   window.__orakel = {
-    G, P, W, C, R, GAME, DLG, PL, QUESTS, SETTINGS, ON, THREE, stage, setStage, startQuest, travel, enterFloor, giveItem, useTool, revealPulse, newGame, continueGame, saveGame, say, choose, scene, press,
+    G, P, W, C, R, GAME, NET, DLG, PL, QUESTS, SETTINGS, ON, THREE, stage, setStage, startQuest, travel, enterFloor, giveItem, useTool, revealPulse, newGame, continueGame, saveGame, say, choose, scene, press,
     teleport(x, z, yaw) { placePlayer(x * TILE + 1, z * TILE + 1, yaw ?? P.yaw); },
     // run the world for n seconds of game time, quickly, with conversations on autopilot
     // async: conversations are promise chains, so give them a turn between frames
