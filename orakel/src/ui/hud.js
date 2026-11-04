@@ -1,14 +1,14 @@
 // The heads-up display and the dialogue box: trust, place, quest, tools, prompts, the faces and
 // voices of whoever is talking, and the accessibility settings that change how all of it looks.
 import * as THREE from 'three';
-import {$, el, esc, clamp, TILE, tileOf, IS_TOUCH} from '../core/util.js';
+import {$, el, esc, clamp, TILE, tileOf, IS_TOUCH, addStyles} from '../core/util.js';
 import {UI, P, SFX} from '../game/bus.js';
 import {G, SETTINGS, saveSettings} from '../game/state.js';
 import {W} from '../game/world.js';
 import {T} from '../engine/level.js';
 import {R, setReducedMotion} from '../engine/render.js';
 import {TOOLS, TOOL_ORDER, C, REVEAL_CD} from '../game/combat.js';
-import {DLG, advance, pick, moveSel} from '../game/dialogue.js';
+import {DLG, advance, pick, moveSel, leave, canLeave} from '../game/dialogue.js';
 import {PL} from '../game/player.js';
 import {Input, openModalEl} from '../core/input.js';
 import {codesFor, keyLabel} from '../core/keys.js';
@@ -169,6 +169,26 @@ function setTarget(e) {
 // syllable at a time (core/audio.js). With 'Vanzelf verder' the line moves on after a pause.
 let typing = null;
 const VOWEL = /[aeiouyàáâäèéêëìíîïòóôöùúûü]/i;
+// Esc stoppen (✕ on a phone): always visible in a conversation with someone, so nobody gets stuck
+function leaveButton() {
+  let b = $('dlgLeave');
+  if (!b) {
+    b = el('button', {id: 'dlgLeave', class: 'dlg-leave', type: 'button', title: 'Gesprek beëindigen (Esc)', onclick: e => { e.stopPropagation(); leave(); }});
+    $('dialog').append(b);
+    addStyles('dlg-leave', `#dlgLeave{position:absolute;top:10px;right:12px;display:flex;gap:6px;align-items:center;padding:4px 9px;border-radius:8px;border:1px solid var(--line);background:rgba(0,0,0,.3);color:var(--dim);font:13px var(--f-ui);cursor:pointer;pointer-events:auto}
+#dlgLeave:hover,#dlgLeave:focus-visible{color:var(--parch);border-color:var(--line-strong)}
+#dlgLeave kbd{font-size:11px}
+body.touch #dlgLeave,#dlgLeave.touch{padding:6px 12px;font-size:18px}
+#dlgChoices .dlg-leave-row{margin-top:4px}
+#dlgChoices .dlg-leave-opt{opacity:.8;font-style:italic}
+#dlgChoices .dlg-leave-opt:hover,#dlgChoices .dlg-leave-opt:focus-visible{opacity:1}`);
+  }
+  const show = canLeave();
+  b.hidden = !show;
+  if (!show) return;
+  b.classList.toggle('touch', IS_TOUCH);
+  b.replaceChildren(...(IS_TOUCH ? [el('span', {text: '✕'})] : [el('kbd', {text: 'Esc'}), el('span', {text: 'stoppen'})]));
+}
 function dlgOpen() { $('dialog').hidden = false; $('hud').classList.add('talking'); }
 function dlgClose() {
   $('dialog').hidden = true; $('dlgChoices').hidden = true; typing = null; DLG.typing = false; H.autoT = -1;
@@ -180,6 +200,7 @@ function dlgLine(sp, text, o = {}) {
   $('dlgName').textContent = sp.name; $('dlgTitle').textContent = sp.title || '';
   if (sp.color) $('dlgName').style.color = sp.color; else $('dlgName').style.color = '';
   $('dlgChoices').hidden = true; $('dlgMore').hidden = false;
+  leaveButton();
   // the face: the narrator and voices outside the cast have none
   const face = $('dlgFace');
   let has = false;
@@ -210,12 +231,15 @@ function dlgChoices(list) {
   dlgFinish();
   H.autoT = -1;
   list.forEach((c, i) => ol.append(el('li', {}, el('button', {class: i === 0 ? 'sel' : '', onclick: () => pick(i)}, el('kbd', {text: i + 1}), el('span', {text: c.t})))));
+  if (canLeave()) ol.append(el('li', {class: 'dlg-leave-row'}, el('button', {class: 'dlg-leave-opt', onclick: e => { e.stopPropagation(); leave(); }}, el('kbd', {text: IS_TOUCH ? '✕' : 'Esc'}), el('span', {text: 'Gesprek beëindigen'}))));
   ol.hidden = false; $('dlgMore').hidden = true;
+  leaveButton();
 }
 function dlgSelect(i) { [...$('dlgChoices').querySelectorAll('button')].forEach((b, k) => b.classList.toggle('sel', k === i)); }
 // keys in a conversation follow the key map: interact (and dash, Enter) moves on, forward and back move through the choices
 export function dialogueKey(code) {
   if (!DLG.active) return false;
+  if (code === 'Escape') { leave(); return true; }      // walk away, or skip a scene
   const is = a => codesFor(a).includes(code);
   if (DLG.choices) {
     const m = /^(?:Digit|Numpad)([1-9])$/.exec(code);

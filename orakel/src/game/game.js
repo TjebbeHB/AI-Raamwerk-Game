@@ -10,7 +10,7 @@ import {spawnEntities, setTravel, setGiveItem, dropCarry, Npc} from './entities.
 import {P, UI, SFX, ON, ITEMS, NET, CAST, cond} from './bus.js';
 import {PL, initPlayer, placePlayer, updatePlayer, setCamMode, hurtPlayer, healPlayer, pipHint, savePosition, rebuildHeroModel} from './player.js';
 import {C, TOOLS, TOOL_ORDER, useTool, revealPulse, updateCombat, spawnFloorEnemies, clearEnemies, aim} from './combat.js';
-import {DLG, updateDialogue, talkTo, converse, say, choose, wait, scene, unlockForUi, relock} from './dialogue.js';
+import {DLG, updateDialogue, talkTo, converse, say, choose, wait, scene, unlockForUi, relock, canInteract, leave} from './dialogue.js';
 import {tracked, QUESTS, stage, setStage, startQuest} from './quests.js';
 import {initHud, updateHud, dialogueKey} from '../ui/hud.js';
 import {TILE, tileOf, $, clamp} from '../core/util.js';
@@ -30,7 +30,12 @@ export function boot({onReady} = {}) {
   initPlayer();
   initHud();
   bindInput(R.renderer.domElement);
-  Input.onLockLost = () => { if (Input.expectUnlock) { Input.expectUnlock = false; return; } if (GAME.mode === 'play' && !GAME.modal && !DLG.active) UI.modal?.('menu'); };
+  Input.onLockLost = () => {
+    if (Input.expectUnlock) { Input.expectUnlock = false; return; }
+    if (GAME.mode !== 'play' || GAME.modal) return;
+    if (DLG.active) { if (document.hasFocus()) leave(); return; }      // Esc during a talk: walk away (not when you switch windows)
+    UI.modal?.('menu');
+  };
   Input.onKey = e => onKey(e);
   setTravel(travel);
   setGiveItem(giveItem);
@@ -193,10 +198,11 @@ function handleInput(dt) {
   const target = interactTarget();
   PL.target = target;
   // the prompt names the key you chose (core/keys.js); on a phone the E button shows the same text
-  if (target) UI.prompt(target.label?.() || 'Gebruik', keyLabel('interact'), 'interact', target);
+  const canUse = canInteract(target);      // not in the moment right after a conversation ends
+  if (target && canUse) UI.prompt(target.label?.() || 'Gebruik', keyLabel('interact'), 'interact', target);
   else if (P.carry) UI.prompt(`Je draagt iets · leg het terug met ${keyLabel('cycle')}`, keyLabel('cycle'), 'cycle');
   else UI.prompt(null);
-  if (actionHit('interact') && target) target.interact();
+  if (actionHit('interact') && target && canUse) target.interact();
   TOOL_ORDER.forEach((id, i) => { if (actionHit(`tool${i + 1}`)) selectTool(id); });
   if (actionHit('cycle')) { if (P.carry) dropCarry(); else cycleTool(1); }
   if (Input.wheel && PL.camMode === 'first') cycleTool(Input.wheel > 0 ? 1 : -1);

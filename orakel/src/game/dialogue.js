@@ -1,9 +1,12 @@
 // Conversations are async functions:  await say('pip', 'Hallo!');  const i = await choose(['Ja', 'Nee']);
 // Waits run on game time, so the automated playthrough can fast-forward them.
 import {UI, CAST, ON, P} from './bus.js';
-import {Input, lock, unlock} from '../core/input.js';
+import {Input, lock, unlock, down} from '../core/input.js';
+import {codesFor} from '../core/keys.js';
 
-export const DLG = {active: false, res: null, choices: null, sel: 0, auto: false, autoQ: [], log: [], who: null, typing: false, npc: null};
+export const DLG = {active: false, res: null, rej: null, choices: null, sel: 0, auto: false, autoQ: [], log: [], who: null, typing: false, npc: null, skipping: false, closedAt: 0, needRelease: false};
+// thrown into a conversation when the player walks away; converse() swallows it
+export const LEAVE = Symbol('leave');
 const WAITS = [];
 export const wait = sec => new Promise(r => WAITS.push({t: sec, r}));
 export function updateDialogue(dt) {
@@ -11,6 +14,11 @@ export function updateDialogue(dt) {
   if (DLG.auto) {
     if (DLG.typing) UI.dlgFinish();
     else if (DLG.choices) pick(DLG.autoQ.length ? DLG.autoQ.shift() : 0);
+    else if (DLG.res) advance();
+  } else if (DLG.skipping) {
+    // leaving: skip the remaining lines; at a choice you walk away (nothing is chosen for you)
+    if (DLG.typing) UI.dlgFinish();
+    else if (DLG.choices) { if (DLG.npc) abort(); else DLG.skipping = false; }
     else if (DLG.res) advance();
   }
 }
@@ -24,8 +32,8 @@ export function speaker(who) {
 }
 
 export function say(who, text, o = {}) {
-  return new Promise(res => {
-    DLG.res = res;
+  return new Promise((res, rej) => {
+    DLG.res = res; DLG.rej = rej;
     DLG.log.push(`${speaker(who).name || '~'}: ${text}`);
     if (DLG.log.length > 300) DLG.log.shift();
     DLG.who = who;
@@ -34,10 +42,10 @@ export function say(who, text, o = {}) {
   });
 }
 export function choose(opts) {
-  return new Promise(res => {
+  return new Promise((res, rej) => {
     const list = [], map = [];
     opts.forEach((o, i) => { const c = typeof o === 'string' ? {t: o} : o; if (c.if === undefined || c.if) { list.push(c); map.push(i); } });
-    DLG.choices = {list, res: i => res(map[i])}; DLG.sel = 0;
+    DLG.choices = {list, res: i => res(map[i])}; DLG.sel = 0; DLG.rej = rej;
     if (!DLG.auto) unlockForUi();
     UI.dlgChoices(list);
   });
@@ -57,6 +65,32 @@ export function pick(i) {
   DLG.log.push(`> ${c.list[i].t}`);
   c.res(i);
 }
+function abort() {
+  const r = DLG.rej;
+  DLG.rej = null; DLG.res = null; DLG.skipping = false;
+  if (DLG.choices) { DLG.choices = null; UI.dlgChoices(null); }
+  r?.(LEAVE);
+}
+// Walk away from a conversation (Esc, the 'Gesprek beëindigen' button, the ✕ on a phone). At a choice
+// you leave at once; during plain lines the rest is skipped up to the end or the next choice, so
+// whatever the conversation gives you still happens. Scenes without a person are only skipped.
+export function leave() {
+  if (!DLG.active || DLG.auto) return false;
+  if (DLG.choices) { if (!DLG.npc) return false; abort(); return true; }
+  DLG.skipping = true;
+  advance();
+  return true;
+}
+export const canLeave = () => DLG.active && !!DLG.npc;
+// The key press that ends a conversation must not start it again: wait until the key is released
+// and a moment has passed. Otherwise pressing E on the last line opens the same talk again.
+export function canInteract(target) {
+  if (DLG.active) return false;
+  if (DLG.needRelease) { if (codesFor('interact').some(down)) return false; DLG.needRelease = false; }
+  // the same person needs a longer pause, so mashing E does not loop through the same talk
+  const pause = target && target.id && target.id === DLG.lastWith ? 1200 : 450;
+  return performance.now() - DLG.closedAt > pause;
+}
 export function moveSel(d) { if (!DLG.choices) return; DLG.sel = (DLG.sel + d + DLG.choices.list.length) % DLG.choices.list.length; UI.dlgSelect(DLG.sel); }
 
 let relockAfter = false;
@@ -66,14 +100,15 @@ export function relock() { if (relockAfter && !Input.touch) { relockAfter = fals
 // Run a conversation. Only one at a time; the world pauses while it runs.
 export async function converse(npc, fn) {
   if (DLG.active || !fn) return false;
-  DLG.active = true; DLG.npc = npc && npc.st ? npc : null;
+  DLG.active = true; DLG.npc = npc && npc.st ? npc : null; DLG.skipping = false; DLG.rej = null;
   P.vx = P.vz = 0;
   if (DLG.npc) DLG.npc.talking = true;
   UI.dlgOpen();
   try { await fn(npc); }
-  catch (e) { console.error('conversation', e); }
+  catch (e) { if (e !== LEAVE) console.error('conversation', e); }
   finally {
-    DLG.active = false; DLG.res = null; DLG.choices = null;
+    DLG.active = false; DLG.res = null; DLG.rej = null; DLG.choices = null; DLG.skipping = false;
+    DLG.closedAt = performance.now(); DLG.needRelease = true; DLG.lastWith = DLG.npc?.id || null;
     if (DLG.npc) { DLG.npc.talking = false; DLG.npc.st.talk = false; DLG.npc = null; }
     UI.dlgClose();
     relock();
