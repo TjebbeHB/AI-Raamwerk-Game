@@ -8,7 +8,7 @@
 // subject: a cast id ('glans3' follows its alias to 'glans'), 'you' (the hero), a look object or {kind}.
 import {UI, CAST} from '../game/bus.js';
 import {SETTINGS} from '../game/state.js';
-import {DEFAULT_LOOK, heroLook} from '../game/hero.js';
+import {DEFAULT_LOOK, heroLook, archetype} from '../game/hero.js';
 import {addStyles} from '../core/util.js';
 
 export const PORTRAIT_SIZE = 96;
@@ -339,14 +339,14 @@ function canon(id) {
 }
 function fromSpec(m, id, tint) {
   const kind = m.kind && m.kind !== 'human' ? m.kind : 'human';
-  if (kind === 'human' || FOLK.has(kind)) return {R: 1, id, kind, look: normLook(m), spec: m, tint, key: `${id || 'look'}|${kind}|${stable(m)}`};
+  if (kind === 'human' || FOLK.has(kind)) return {R: 1, id, kind, look: normLook(m), spec: m, tint, arch: ARCH[m.archetype] ? m.archetype : null, key: `${id || 'look'}|${kind}|${stable(m)}`};
   if (CREATURES.has(kind)) return {R: 1, id, kind, spec: m, tint, key: `${id || 'c'}|${kind}|${stable(m)}`};
   return {R: 1, id, kind: 'unknown', spec: m, tint, key: `unknown|${id}|${stable(m)}`};
 }
 // subject -> {kind, look | spec, id (canonical cast id), tint, key}
 export function resolveSubject(subject) {
   if (subject && subject.R === 1) return subject;
-  if (subject === 'you' || subject === 'hero') { const look = heroLook(); return {R: 1, id: 'you', kind: 'human', look: normLook(look), spec: look, tint: null, key: `you|${stable(look)}`}; }
+  if (subject === 'you' || subject === 'hero') { const look = heroLook(), arch = archetype(); return {R: 1, id: 'you', kind: 'human', look: normLook(look), spec: look, tint: null, arch, key: `you|${arch}|${stable(look)}`}; }
   if (typeof subject === 'string' && subject) {
     const id = canon(subject), c = CAST[id], m = c?.model, tint = colorOf(c?.color, null);
     if (id === 'orakel' || id === 'fabulant') return {R: 1, id, kind: id, spec: m || {}, tint, key: `${id}|${stable(m || {})}`};
@@ -672,10 +672,15 @@ function garment(g, L, P, sig, topC, top2C, skinR) {
     for (const sx of [-1, 1]) { line(x + sx * 3.4, y + 2, x + sx * 4.2, y + 16, (a, b) => dot(a, b, cord)); dot(Math.round(x + sx * 4.2), y + 17, mix(cord, 0x000000, 0.35)); dot(Math.round(x + sx * 4.2), y + 18, mix(cord, 0x000000, 0.35)); }
     quad(x - 13, y + 24, x, y + 21, x + 13, y + 24, (a, b) => tone(a, b, SH, P.top));
   } else if (top === 'dress') {
-    const trim = part(L.top2 !== undefined ? t2R : ramp(mix(topC, 0xffffff, 0.35)), {soft: true});
-    ell(trim, x, y - 2, nw + 6.4, 8.6, LIT, (a, b) => b + 0.5 > y - 3);
-    ell(P.neck, x, y - 2.4, nw + 5, 7.2, (a) => (a < x - 2 ? BASE : SH), (a, b) => b + 0.5 > y - 3);
-    for (const by of [y + 9, y + 14]) dot(Math.round(x), by, t2R[SH2], P.top);
+    // a scoop neckline with a contrasting trim, puffed sleeves, little buttons, gathers below the yoke
+    const trimR = L.top2 !== undefined ? t2R : ramp(mix(topC, 0xffffff, 0.45));
+    const puff = part(topR, {soft: true});
+    for (const sx of [-1, 1]) ell(puff, cx + sx * (w - 5.5), g.shY + 6.5, 7.4, 6.6, ball(cx + sx * (w - 5.5) - 2, g.shY + 4, 7.4, 6.6));
+    const trim = part(trimR, {soft: true});
+    ell(trim, x, y - 2, nw + 8, 10, LIT, (a, b) => b + 0.5 > y - 3);
+    ell(P.neck, x, y - 2.4, nw + 6.6, 8.6, (a) => (a < x - 2 ? BASE : SH), (a, b) => b + 0.5 > y - 3);
+    for (const by of [y + 11, y + 15]) { dot(Math.round(x), by, trimR[BASE], P.top); dot(Math.round(x) + 1, by, trimR[SH2], P.top); }
+    for (const dx of [-9, -5, 5, 9]) line(x + dx, y + 13, x + dx * 1.2, 97, onPart(P.top, SH));
   } else if (top === 'robe') {
     poly(shirt, [x - nw - 1, y - 2, x + nw + 1, y - 2, x + 7, 97, x - 4, 97], SH);
     const flap = part(topR, {soft: true, cast: 1});
@@ -1271,7 +1276,7 @@ function drop(x, y, s = 1) {
   ell(p, x, y + 1.7 * s, 2.1 * s, 2.3 * s, (xx, yy) => (xx + 0.5 < x - 0.3 && yy + 0.5 < y + 1.7 * s ? HI : LIT));
   poly(p, [x - 1.5 * s, y + 1.2 * s, x + 1.5 * s, y + 1.2 * s, x + 0.3, y - 2 * s], LIT);
 }
-function puff(p, x, y, d, n = 3) { for (let k = 0; k < n; k++) { const r = [3, 3.6, 2.6][k]; ell(p, x + d * k * 3.2, y - k * 2.8, r, r * 0.86, ball(x + d * k * 3.2 - 1, y - k * 2.8 - 1, r, r)); } }
+function puff(p, x, y, d, n = 3) { for (let k = 0; k < n; k++) { const r = [3.4, 4, 3][k], px = x + d * k * 3.6, py = y - k * 3; ell(p, px, py, r, r * 0.92, ball(px - 1, py - 1.2, r, r)); } }
 function moodFx(g, L, M, mood, sig, P) {
   const fx = M.fx || [], t = g.top;
   if (fx.includes('sweat')) drop(g.X(0.2) + g.fw - 1, t + 12, 1.35);
@@ -1299,6 +1304,18 @@ function moodFx(g, L, M, mood, sig, P) {
 }
 
 // ---------------------------------------------------------------- creatures
+// the same mood effects for the folk: (x, y) the middle of the face, w its half width, top the top of the head
+function folkFx(mood, x, y, w, top) {
+  const fx = MOOD[mood].fx || [];
+  if (fx.includes('sweat')) drop(x + w - 1, top + 6, 1.3);
+  if (fx.includes('tear')) drop(x - w * 0.45, y + 6, 1);
+  if (fx.includes('joy')) { drop(x - w * 0.7, y - 1, 0.95); drop(x + w * 0.7, y - 1, 0.95); }
+  if (fx.includes('steam')) { const p = part(ramp(0xeeeef4), {rim: false, recv: false, soft: true, ink: 0x6a6a7c}); puff(p, x - w - 3, top + 7, -1); puff(p, x + w + 3, top + 5, 1); }
+  if (fx.includes('shock')) for (const [x0, y0, x1, y1] of [[x + w - 2, top - 1, x + w + 2, top - 6], [x + w + 3, top + 5, x + w + 9, top + 2], [x + w - 9, top - 4, x + w - 8, top - 9]]) line(x0, y0, x1, y1, (a, b) => dot(a, b, 0xfff4d0, i => !PART[i]));
+  if (fx.includes('think')) { const p = part(ramp(0xf4f0e8), {rim: false, recv: false, soft: true, ink: 0x4a4250}), bx = Math.min(83, x + w + 12), by = Math.max(12, top); ell(p, x + w + 2, by + 15, 1.6, 1.6, LIT); ell(p, x + w + 6, by + 9, 2.4, 2.2, LIT); ell(p, bx, by, 8.4, 6, ball(bx - 2, by - 2, 8, 6)); for (const k of [-4, 0, 4]) { dot(bx + k - 1, by, 0x4a4250); dot(bx + k, by, 0x4a4250); } }
+  if (fx.includes('sparkle')) sparkle(Math.round(Math.min(84, x + w + 6)), Math.round(Math.max(10, top + 2)));
+  if (fx.includes('sigh')) { const p = part(ramp(0xe8eef4), {rim: false, recv: false}); ell(p, x + w * 0.6 + 4, y + 10, 2.4, 1.8, LIT); ell(p, x + w * 0.6 + 7, y + 8.5, 1.8, 1.5, LIT); }
+}
 // a simple face for the folk without human features
 const halfMask = (M, blink) => M.eye === 'half' || M.eye === 'tired' || (blink >= 0.3 && blink < 0.75);
 function toonFace(x, y, s, mood, mouth, blink, o = {}) {
@@ -1326,7 +1343,7 @@ function toonFace(x, y, s, mood, mouth, blink, o = {}) {
   const d = (a, b, c) => dot(mx + a, my + b, c, m), dark = o.mouthCol ?? 0x5a1410;
   const open = mouth > 0.15 ? (mouth > 0.66 ? 3 : 2) : 0;
   const shape = o.grin && (M.mouth === 'flat' || M.mouth === 'smile') ? 'laugh' : M.mouth;
-  if (shape === 'laugh' || open) { const h = shape === 'laugh' ? 3 + (open ? 1 : 0) : open; for (let r = 0; r < h; r++) { const hw = (shape === 'laugh' || shape === 'smile' ? 3.5 : 2.2) - r * 0.8; for (let a = -Math.round(hw); a <= Math.round(hw); a++) d(a, r, r === 0 && shape === 'laugh' ? 0xffffff : r === h - 1 && h > 2 ? 0xd85a62 : dark); } return; }
+  if (shape === 'laugh' || open) { const h = shape === 'laugh' ? 3 + (open ? 1 : 0) : open; for (let r = 0; r < h; r++) { const hw = (o.grin ? 5 : shape === 'laugh' || shape === 'smile' ? 3.5 : 2.2) - r * (o.grin ? 1.3 : 0.8); for (let a = -Math.round(hw); a <= Math.round(hw); a++) d(a, r, r === 0 && shape === 'laugh' ? 0xffffff : r === h - 1 && h > 2 ? 0xd85a62 : dark); } return; }
   const shapes = {flat: [[-2, 0], [-1, 0], [0, 0], [1, 0], [2, 0]], smile: [[-3, -1], [-2, 0], [-1, 1], [0, 1], [1, 1], [2, 0], [3, -1]], frown: [[-2, 1], [-1, 0], [0, 0], [1, 0], [2, 1]], wavy: [[-3, 0], [-2, -1], [-1, 0], [0, 1], [1, 0], [2, -1], [3, 0]], smirk: [[-2, 0], [-1, 0], [0, 0], [1, 0], [2, -1], [3, -2]], side: [[1, 0], [2, 0], [3, 0], [4, -1]], tired: [[-2, 0], [-1, 0], [0, 0], [1, 1], [2, 1]], grit: [[-3, 0], [-2, -1], [-1, 0], [0, -1], [1, 0], [2, -1], [3, 0]], o: [[0, -1], [-1, 0], [1, 0], [0, 1], [0, 0]]};
   for (const [a, b] of shapes[shape] || shapes.flat) d(a, b, ink);
 }
@@ -1346,7 +1363,7 @@ function creature(S, mood, mouth, blink) {
     aura(0xffb040, 7, 0.55);
     for (const sx of [-1, 1]) paintEll(48 + sx * 13, 66, 3.2, 1.6, mix(R[BASE], 0xff5a5a, 0.35), p);
     toonFace(48, 58, 1.15, mood, mouth, blink, {mask: p});
-    if (MOOD[mood].fx?.includes('sweat')) { const q = part(ramp(0x9ad4ff)); ell(q, 68, 44, 2, 2.6, LIT); }
+    folkFx(mood, 48, 58, 19, 34);
     return;
   }
   if (k === 'spark') {
@@ -1366,6 +1383,7 @@ function creature(S, mood, mouth, blink) {
     }
     if (id === 'joris' || sp.sprout) { const sp2 = part(ramp(0x5ab04a)); rect(sp2, 47, 8, 48, 18, BASE); ell(sp2, 43, 9, 4.4, 2.4, LIT); ell(sp2, 53, 7, 4.4, 2.4, BASE); }
     if (id === 'fatma' || sp.clipboard) { const b = part(ramp(0xa07a50)); rect(b, 54, 70, 70, 92, BASE); const f = part(ramp(0xf6f2ea)); rect(f, 56, 72, 68, 92, LIT); for (let r = 0; r < 4; r++) for (let x = 58; x < 66; x++) dot(x, 76 + r * 3, r === 0 && x < 61 ? 0x3a9a4a : 0x8a8aa0, f); rect(part(ramp(0xb8bec8)), 59, 68, 65, 71, LIT); ell(part(R), 55, 80, 3, 3, LIT); }
+    folkFx(mood, 48, 63, 19, 42);
     return;
   }
   if (k === 'cloud') {
@@ -1379,6 +1397,7 @@ function creature(S, mood, mouth, blink) {
     rect(tp, 47, 70, 49, 72, LIT); poly(tp, [47.2, 72.6, 48.8, 72.6, 50.6, 84, 48, 86.4, 45.4, 84], BASE);
     if (mood === 'sad') for (const [x, y] of [[30, 90], [44, 93], [60, 91]]) { const q = part(ramp(0x7ab4ff)); ell(q, x, y, 1.4, 2, LIT); }
     if (mood === 'angry') { const q = part(ramp(0xffe050)); poly(q, [78, 66, 84, 66, 80, 74, 85, 74, 74, 90, 77, 78, 73, 78], LIT); }
+    folkFx(mood, 48, 54, 20, 30);
     return;
   }
   if (k === 'owl') {
@@ -1395,14 +1414,23 @@ function creature(S, mood, mouth, blink) {
     for (const sx of [-1, 1]) {
       const ex = 48 + sx * 10.5, ey = 46;
       if (closed) { for (let a = -5; a <= 5; a++) dot(Math.round(ex + a), ey + (Math.abs(a) > 3 ? (M.eye === 'arc' ? 1 : -1) : 0), 0x2a1a0a, disc); continue; }
-      const cut = M.eye === 'half' || M.eye === 'tired' || blink >= 0.3 ? -1 : M.eye === 'angry' ? -99 : -9;
-      eachEll(ex, ey, 6.4, 6.4, (x, y) => { if (y + 0.5 - ey < cut * 1.2) return; if (M.eye === 'angry' && y + 0.5 - ey < -4 + (x + 0.5 - ex) * sx * -0.8) return; dot(x, y, eyeC, disc); });
-      const pr = M.eye === 'wide' ? 1.6 : 3.2, lx = M.look[0] * 1.5, ly = M.look[1] * 1.5;
-      paintEll(ex + lx, ey + ly + 0.5, pr, pr, 0x1a1008, disc);
-      dot(Math.round(ex + lx - pr * 0.5), Math.round(ey + ly - pr * 0.5), 0xffffff, disc);
+      // the lids cut the round eye: flat (half), slanted in (angry) or out (sad), pushed up by the cheeks (happy)
+      const half = M.eye === 'half' || M.eye === 'tired' || (blink >= 0.3 && blink < 0.75);
+      eachEll(ex, ey, 6.4, 6.4, (x, y) => {
+        const dy = y + 0.5 - ey, dx = (x + 0.5 - ex) * sx;
+        if (half && dy < -0.5) return;
+        if (M.eye === 'angry' && dy < -3 - dx * 0.8) return;
+        if (M.eye === 'sad' && dy < -3.6 + dx * 0.8) return;
+        if (M.eye === 'smile' && dy > 2.2 - Math.abs(dx) * 0.35) return;
+        dot(x, y, eyeC, disc);
+      });
+      const pr = M.eye === 'wide' ? 1.6 : half ? 2.6 : 3.2, lx = M.look[0] * 1.5, ly = M.look[1] * 1.5 + (half ? 1.5 : 0);
+      eachEll(ex + lx, ey + ly + 0.5, pr, pr, (x, y) => { const i = y * N + x; if (OVER[i] === eyeC) OVER[i] = 0x1a1008; });
+      dot(Math.round(ex + lx - pr * 0.5), Math.round(ey + ly - pr * 0.5), 0xffffff, i => OVER[i] === 0x1a1008);
       if (sp.glasses) eachEll(ex, ey, 7.6, 7.6, (x, y) => { const d = Math.hypot(x + 0.5 - ex, y + 0.5 - ey); if (d > 6.4 && d <= 7.6) dot(x, y, d > 7 ? 0x2a2228 : 0x5a4a50); });
-      const tilt = M.brow[sx < 0 ? 0 : 1][1];
-      for (let a = -5; a <= 5; a++) dot(Math.round(ex + a), Math.round(ey - 10 - M.brow[0][0] - (a * -sx / 5) * tilt * 0.8), R[SH2], head);
+      // feather tufts for brows
+      const [raise, tilt] = M.brow[sx < 0 ? 0 : 1];
+      for (let a = -5; a <= 5; a++) { const y = Math.round(ey - 10 - raise - (a * -sx / 5) * tilt * 0.9); dot(Math.round(ex + a), y, R[LINE], head); dot(Math.round(ex + a), y - 1, Math.abs(a) < 4 ? R[SH2] : R[LINE], head); }
     }
     if (sp.glasses) for (let x = 45; x <= 51; x++) dot(x, 44, 0x2a2228);
     const beak = part(ramp(0xe8a040), {cast: 1}), open = mouth > 0.15 ? 2 : M.mouth === 'laugh' || M.mouth === 'o' ? 2 : 0;
@@ -1411,6 +1439,7 @@ function creature(S, mood, mouth, blink) {
     const wing = part(ramp(mix(col, 0x000000, 0.12)), {soft: true, cast: 1});
     poly(wing, [70, 70, 82, 76, 84, 97, 66, 97, 64, 84], ball(72, 76, 12, 18));
     if (sp.stamp !== false) { rect(part(ramp(0x7a5230), {cast: 1}), 70, 76, 72, 84, LIT); rect(part(ramp(0xc03020), {cast: 1}), 66, 84, 76, 88, BASE); }
+    folkFx(mood, 48, 46, 22, 24);
     return;
   }
   if (k === 'padlock') {
@@ -1421,6 +1450,7 @@ function creature(S, mood, mouth, blink) {
     toonFace(48, 64, 1.05, mood, mouth, blink, {mask: p, ink: 0x2a1a08});
     const kh = part(ramp(0x2a1a0a));
     ell(kh, 48, 80, 2.6, 2.6, BASE); poly(kh, [46.4, 81, 49.6, 81, 50.6, 88, 45.4, 88], BASE);
+    folkFx(mood, 48, 64, 20, 46);
     return;
   }
   if (k === 'orakel') {
@@ -1515,6 +1545,22 @@ function creature(S, mood, mouth, blink) {
   text('?', 47, 38, mix(tint, 0xffffff, 0.6), p);
 }
 
+
+// The hero's archetype as a small badge on the frame: a stamp, a spark, a binder or a heart.
+const ARCH = {
+  handhaver: [0xc0442c, ['..XXX..', '..XXX..', '...X...', '.XXXXX.', 'XXXXXXX', 'XXXXXXX']],
+  datatovenaar: [0x3a64d0, ['...X...', '..XXX..', 'XXXXXXX', '..XXX..', '...X...', 'X.....X']],
+  archivaris: [0x3a8a4a, ['XXX....', 'XXXXXXX', 'X.....X', 'X.XXX.X', 'X.....X', 'XXXXXXX']],
+  verbinder: [0xd89a2a, ['.XX.XX.', 'XXXXXXX', 'XXXXXXX', '.XXXXX.', '..XXX..', '...X...']],
+};
+function badge(out, arch) {
+  const a = ARCH[arch];
+  if (!a) return;
+  const [col, icon] = a, ring = [12, 8, 6], fill = [cr(col), cg(col), cb(col)], lc = mix(col, 0xffffff, 0.35), hi = [cr(lc), cg(lc), cb(lc)], ink = [255, 246, 222];
+  const set = (x, y, c) => { const j = (y * N + x) * 4; out[j] = c[0]; out[j + 1] = c[1]; out[j + 2] = c[2]; out[j + 3] = 255; };
+  for (let y = 0; y < 17; y++) for (let x = 0; x < 17; x++) { const d = Math.hypot(x - 8, y - 8); if (d <= 8.2) set(x + 1, y + 1, d > 7.1 ? ring : d > 6.2 ? [212, 169, 92] : x + y < 13 ? hi : fill); }
+  icon.forEach((row, r) => [...row].forEach((ch, c) => { if (ch === 'X') set(6 + c, 6 + r, ink); }));
+}
 // ---------------------------------------------------------------- render, draw, cache
 function panelTint(S, mood) {
   const base = S.tint ?? (S.look ? S.look.topColor : colorOf(S.spec?.color, null)) ?? 0x7a6a5a;
@@ -1540,6 +1586,7 @@ export function renderPortrait(subject, o = {}) {
   const out = new Uint8ClampedArray(NN * 4);
   compose(out, rim, !framed);
   if (framed) frame(out);
+  if (framed && S.arch && o.badge !== false) badge(out, S.arch);
   FLIP = false;
   return {width: N, height: N, data: out};
 }

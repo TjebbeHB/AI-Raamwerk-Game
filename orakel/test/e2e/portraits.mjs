@@ -118,12 +118,33 @@ async function main() {
   await shot('talk', `<h2>Praten en knipperen</h2>${['joop', 'glans', 'ilse', 'you', 'wethouder', 'pip'].map(w => `<div class="row" data-w="${w}">${[0, 1, 2, 3, 4].map(() => `<figure class="mid"><canvas></canvas><figcaption></figcaption></figure>`).join('')}</div>`).join('')}`, `
     const F = [[0, 0, 'mond dicht'], [0.5, 0, 'half open'], [1, 0, 'open'], [0, 0.5, 'knipper half'], [0, 1, 'ogen dicht']];
     for (const row of document.querySelectorAll('[data-w]')) [...row.querySelectorAll('canvas')].forEach((c, i) => { window.PT.drawPortrait(c, row.dataset.w, {mouth: F[i][0], blink: F[i][1], size: 96}); c.nextElementSibling.textContent = row.dataset.w + ' · ' + F[i][2]; });`);
-  // 4. player looks
+  // 4. you, with each archetype (the badge on the frame) and a few creator looks
+  await shot('hero', `<h2>Jij, per archetype</h2><div class="row">${'x'.repeat(5).split('').map(() => `<figure class="mid"><canvas></canvas><figcaption></figcaption></figure>`).join('')}</div>`, `
+    const A = [[null, {}], ['handhaver', {build: 'broad', hair: 'buzz', skin: 0x8a5430, top: 'hivis', topColor: 0xffa020, top2: 0x3a3a44}], ['datatovenaar', {hair: 'long', hairColor: 0x2a1a10, glasses: 'round', top: 'robe', topColor: 0x2a3a8a, top2: 0xd8b050}], ['archivaris', {hair: 'bun', hairColor: 0xb0482a, top: 'cardigan', topColor: 0x3a6a4a, freckles: true}], ['verbinder', {hair: 'curly', hairColor: 0xd8b060, top: 'dress', topColor: 0xd04a5a, top2: 0xf2e8d8, skin: 0xc9915f}]];
+    [...document.querySelectorAll('canvas')].forEach((c, i) => { window.G.hero = {name: 'Sam', pronouns: 'die', address: 'neutraal', archetype: A[i][0], look: A[i][1]}; window.PT.drawPortrait(c, 'you', {size: 96}); c.nextElementSibling.textContent = A[i][0] || 'geen archetype'; });
+    window.G.hero = null;`);
+  // 5. player looks
   for (let k = 0; k < LOOK_GRID.length; k += 14) {
     await shot(`looks-${k / 14 + 1}`, `<h2>Spelerslooks</h2><div class="row">${LOOK_GRID.slice(k, k + 14).map(() => `<figure class="mid"><canvas></canvas><figcaption></figcaption></figure>`).join('')}</div>`, `
       [...document.querySelectorAll('canvas')].forEach((c, i) => { const L = arg[i]; window.PT.drawPortrait(c, L, {size: 96}); c.nextElementSibling.textContent = L.label; });`, LOOK_GRID.slice(k, k + 14));
   }
-  // 5. cost: one portrait, a cached frame, URL reuse, the alias, the animator
+  // 6. the animator: while talking the mouth flaps and the eyes blink, after stopTalking it rests
+  const anim = await page.evaluate(async () => {
+    const PT = window.PT, c = document.createElement('canvas');
+    c.style.cssText = 'width:192px;height:192px'; document.body.append(c);
+    const seen = new Set(), sample = () => seen.add(c.toDataURL());
+    PT.startTalking(c, 'joop', 'happy', {size: 96});
+    for (let i = 0; i < 40; i++) { await new Promise(r => setTimeout(r, 50)); sample(); }
+    const talking = seen.size;
+    PT.stopTalking(c); await new Promise(r => setTimeout(r, 120));
+    seen.clear();
+    for (let i = 0; i < 10; i++) { await new Promise(r => setTimeout(r, 30)); sample(); }
+    const resting = seen.size;
+    PT.hidePortrait(c); c.remove();
+    return {talkingFrames: talking, restingFrames: resting};
+  });
+  console.log('[portraits animator]', JSON.stringify(anim));
+  // 7. cost: one portrait, a cached frame, URL reuse, the alias, the animator
   const perf = await page.evaluate(([s, al]) => {
     const PT = window.PT;
     Object.assign(window.CAST, s);
