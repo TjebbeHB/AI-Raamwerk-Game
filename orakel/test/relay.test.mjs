@@ -7,6 +7,8 @@ import {once} from 'node:events';
 process.env.PORT = '0';
 const {server} = await import('../relay/broker.mjs');
 const {Mqtt} = await import('../src/net/mqtt.js');
+const {ROLES, dealAll, tallyBallots, readSeats, readByRole} = await import('../src/content/roles.js');
+const {CHAMBERS} = await import('../src/content/framework.js');
 if (!server.listening) await once(server, 'listening');
 const url = `ws://127.0.0.1:${server.address().port}`;
 const clients = [];
@@ -86,4 +88,31 @@ test('oversized messages are dropped instead of relayed', {skip: typeof WebSocke
   const inbox = await received(phone);
   await settle();
   assert.deepEqual(inbox.map(m => m.data), [{ok: true}]);
+});
+
+test('a full council with roles still fits in one state message, with room to spare', {skip: typeof WebSocket === 'undefined' && 'no global WebSocket'}, async () => {
+  // the worst case: thirty advisors with the longest names, the chamber with the longest options,
+  // everyone voted for everything, and a tally per role
+  const c = CHAMBERS.reduce((a, b) => (JSON.stringify(b.options).length > JSON.stringify(a.options).length ? b : a));
+  const roles = dealAll(30), n = c.options.length;
+  const seats = roles.map((r, i) => ({n: `Adviseur met een lange ${String(i).padStart(2, '0')}`.slice(0, 24), r, k: (1e9 + i * 7919).toString(36), v: 1}));
+  const ballots = roles.map(role => ({picks: c.options.map((_, i) => i), role}));
+  const state = {t: 'state', v: 1, code: 'ABCDEF', place: 'De Kamer van de Vraag', depth: 'Diepte 1', hp: 100, maxHp: 130,
+    quest: {title: 'Een opdracht met een titel', text: 'x'.repeat(200)}, members: seats.map(s => s.n), seats,
+    vote: {key: c.id, question: c.question, options: c.options.map(o => o.text), multi: true, n: 99},
+    tally: {id: c.id, ...tallyBallots(ballots, n)}, ended: null, at: Date.now()};
+  const size = Buffer.byteLength(JSON.stringify(state));
+  assert.ok(size < 12 * 1024, `state is ${size} bytes`);
+  assert.equal(Object.keys(state.tally.byRole).length, ROLES.length);
+  const phone = await client(), game = await client();
+  phone.subscribe('orakel-test/ROOM7/h');
+  await settle();
+  game.publish('orakel-test/ROOM7/h', state, true);
+  const [got] = await received(phone);
+  assert.deepEqual(got.data, state);
+  // and what the phone makes of it
+  const read = readSeats(got.data.seats);
+  assert.equal(read.length, 30);
+  assert.deepEqual(read.map(s => s.role), roles);
+  assert.deepEqual(readByRole(got.data.tally.byRole, n), state.tally.byRole);
 });
