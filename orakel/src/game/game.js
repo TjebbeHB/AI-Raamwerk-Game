@@ -7,7 +7,7 @@ import {Input, bindInput, endFrame, down, hit, lock, unlock, press} from '../cor
 import {G, SETTINGS, saveGame, loadGame, hasSave, resetState, loadSettings, saveSettings} from './state.js';
 import {W, loadFloor, FLOORS, parsed, saveExplored} from './world.js';
 import {spawnEntities, setTravel, setGiveItem, dropCarry, Npc} from './entities.js';
-import {P, UI, SFX, ON, ITEMS, NET, cond} from './bus.js';
+import {P, UI, SFX, ON, ITEMS, NET, CAST, cond} from './bus.js';
 import {PL, initPlayer, placePlayer, updatePlayer, setCamMode, hurtPlayer, healPlayer, pipHint, savePosition} from './player.js';
 import {C, TOOLS, TOOL_ORDER, useTool, revealPulse, updateCombat, spawnFloorEnemies, clearEnemies, aim} from './combat.js';
 import {DLG, updateDialogue, talkTo, converse, say, choose, wait, scene, unlockForUi, relock} from './dialogue.js';
@@ -32,7 +32,7 @@ export function boot({onReady} = {}) {
   setTravel(travel);
   setGiveItem(giveItem);
   ON.give = giveItem;
-  UI.talk = npc => talkTo(npc);
+  UI.talk = npc => { countTalk(npc); talkTo(npc); };
   UI.selectTool = id => selectTool(id);
   UI.reveal = () => revealPulse();
   PL.onDie = () => onDeath();
@@ -223,6 +223,26 @@ function checkZone() {
   if (zn.music) SFX.music(zn.music); else SFX.music(W.L.def.music || W.id);
 }
 
+// ---------------------------------------------------------------- stats for the end summary
+// Time per depth (including conversations and decisions, not the pause menu), distance walked
+// (teleports, fast travel and respawns are skipped) and conversations per person.
+const track = {x: 0, z: 0, floor: null};
+function trackStats(dt) {
+  const s = G.stats;
+  if (GAME.modal !== 'menu' && GAME.modal !== 'options') { const ft = s.floorTime || (s.floorTime = {}); ft[W.id] = (ft[W.id] || 0) + dt; }
+  if (track.floor === W.id) { const d = Math.hypot(P.x - track.x, P.z - track.z); if (d > 0.001 && d < 1.5) s.distance = (s.distance || 0) + d; }
+  track.floor = W.id; track.x = P.x; track.z = P.z;
+}
+function countTalk(npc) {
+  if (!npc || DLG.active || !ON.talk[npc.id]) return;
+  const s = G.stats, c = CAST[npc.id];
+  s.talks = (s.talks || 0) + 1;
+  // aliases (bakker1, glans3...) share one cast entry: count them as one person
+  const id = (c && Object.keys(CAST).find(k => CAST[k] === c)) || npc.id;
+  const met = s.met || (s.met = {});
+  met[id] = (met[id] || 0) + 1;
+}
+
 // ---------------------------------------------------------------- the frame
 const clock = {last: performance.now()};
 function frame(now) {
@@ -242,6 +262,7 @@ export function step(dt) {
     if (active) { G.stats.time += dt; handleInput(dt); }
     else UI.prompt(null);
     updatePlayer(dt, active);
+    trackStats(dt);
     for (const e of W.ents) e.update(dt);
     updateCombat(dt, active || (playing && DLG.active && DLG.combatOn));
     if (active) { checkZone(); for (const fn of ON.tick) fn(dt); }
