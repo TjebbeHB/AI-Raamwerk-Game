@@ -24,7 +24,10 @@ export function bakedMaterial(params = {}) {
 }
 
 // Dynamic things (people, monsters, doors) sample the baked light where they stand.
-export function probedMaterial(params = {}, probe) {
+// Opt-in {glow: true}: the geometry carries a float attribute aGlow (0..1) that lets single
+// voxels shine in their own vertex colour (eye highlights, gold, hi-vis stripes), so a whole
+// merged figure stays one draw call. Use it together with params.vertexColors.
+export function probedMaterial(params = {}, probe, {glow = false} = {}) {
   const m = new THREE.MeshLambertMaterial(params);
   m.userData.probe = probe;
   m.onBeforeCompile = sh => {
@@ -32,8 +35,16 @@ export function probedMaterial(params = {}, probe) {
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', '#include <common>\nuniform vec3 uProbe;')
       .replace('#include <lights_fragment_maps>', '#include <lights_fragment_maps>\nirradiance += uProbe;');
+    if (glow) {
+      sh.vertexShader = sh.vertexShader
+        .replace('#include <common>', '#include <common>\nattribute float aGlow;\nvarying float vGlow;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGlow = aGlow;');
+      sh.fragmentShader = sh.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying float vGlow;')
+        .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb * vGlow;');
+    }
   };
-  m.customProgramCacheKey = () => 'probed-lambert';
+  m.customProgramCacheKey = () => (glow ? 'probed-lambert-glow' : 'probed-lambert');
   return m;
 }
 

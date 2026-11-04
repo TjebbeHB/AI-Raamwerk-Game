@@ -7,7 +7,8 @@ import {Input, down, hit} from '../core/input.js';
 import {W, collide, surfaceAt, isChasm, ceilAt, solidTile, markExplored, saveExplored, inBounds, tileType} from './world.js';
 import {G, SETTINGS} from './state.js';
 import {R} from '../engine/render.js';
-import {makeHuman, makeModel, glowSprite} from '../engine/models.js';
+import {makeHuman, makeModel, glowSprite, disposeModel, viewArmGeometry, Kit} from '../engine/models.js';
+import {heroLook} from './hero.js';
 import {FX} from '../engine/particles.js';
 import {Crate, dropCarry} from './entities.js';
 import {TILE, clamp, damp, dampAngle, tileOf, lerp} from '../core/util.js';
@@ -52,29 +53,58 @@ function toolMesh(kind, k, parent) {
   return g;
 }
 
-export function initPlayer() {
-  // third-person body
-  const m = makeHuman({coat: 0x2f4f7a, pants: 0x2a2a34, skin: 0xe2b490, hair: 0x4a3222, hairStyle: 'short', badge: true, shirt: 0xe8e4dc});
+// ---- your body: the third-person figure is built from your look (game/hero.js) and stands in
+// the baked light where you are; the first-person hands wear the same skin and sleeves.
+function buildHeroBody() {
+  const m = makeHuman({...heroLook(), probe: PL.probe});
   PL.model = m; R.scene.add(m.root);
-  const hand = new THREE.Group(); hand.position.set(0, -0.66, 0.08); m.parts.armL.add(hand);
-  PL.lantern3 = lanternMesh(m.kit, hand); PL.lantern3.g.scale.setScalar(1.15);
-  const rhand = new THREE.Group(); rhand.position.set(0, -0.66, 0.06); m.parts.armR.add(rhand);
-  PL.tool3 = {scale: toolMesh('scale', m.kit, rhand), seal: toolMesh('seal', m.kit, rhand)};
+  // the lantern hangs upright from your left hand, the tools sit in your right
+  PL.lantern3 = lanternMesh(m.kit, m.parts.hangL); PL.lantern3.g.scale.setScalar(1.1); PL.lantern3.g.position.set(0, -0.2, 0.02);
+  PL.tool3 = {scale: toolMesh('scale', m.kit, m.parts.handR), seal: toolMesh('seal', m.kit, m.parts.handR)};
+  PL.tool3.seal.position.y = -0.04;
   PL.carry3 = new THREE.Group(); PL.carry3.position.set(0, 1.0, 0.42); m.root.add(PL.carry3);
+  // sample the baked light every few frames, so you sit in the same light as the walls and everyone else
+  const animate = m.animate;
+  let tick = 0;
+  m.animate = (dt, st) => { if (W.probeAt && (tick++ & 7) === 0) W.probeAt(P.x, P.z, PL.probe.value); animate(dt, st); };
+}
+function buildViewArms() {
+  const look = heroLook();
+  PL.viewArms?.forEach(a => { a.parent?.remove(a); a.geometry.dispose(); });
+  PL.viewArms = [[PL.armL, 1], [PL.armR, -1]].map(([arm, side]) => { const a = new THREE.Mesh(viewArmGeometry(look, side), PL.viewMat); arm.add(a); return a; });
+}
+// Call after G.hero.look changes (the character creator does): rebuilds your body and your hands.
+export function rebuildHeroModel() {
+  const old = PL.model, oldLantern = PL.lantern3?.g;
+  buildHeroBody();
+  if (old) {
+    PL.model.root.position.copy(old.root.position); PL.model.root.rotation.copy(old.root.rotation); PL.model.root.visible = old.root.visible;
+    // the old lantern was made for the old body; the body's own geometry stays cached per look, the tools use shared boxes
+    oldLantern?.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } else if (o.isSprite) o.material.dispose(); });
+    disposeModel(old);
+  }
+  carryShown = undefined;
+  if (PL.armL) buildViewArms();
+}
+
+export function initPlayer() {
+  PL.probe = {value: new THREE.Color(0.3, 0.26, 0.22)};
+  PL.rebuildHero = rebuildHeroModel;   // also reachable through PL (and so through the debug API)
+  buildHeroBody();
   // first-person view model, attached to the camera
   const view = new THREE.Group(); R.viewCamera.add(view); PL.view = view;
-  const vk = new (m.kit.constructor)({value: new THREE.Color(0, 0, 0)});
+  const vk = new Kit({value: new THREE.Color(0, 0, 0)});
   vk.mat = (hex, o = {}) => o.basic ? new THREE.MeshBasicMaterial({color: hex, toneMapped: o.toneMapped ?? true}) : new THREE.MeshLambertMaterial({color: hex, flatShading: true, emissive: o.em ?? 0, emissiveIntensity: o.ei ?? 1});
+  PL.viewMat = new THREE.MeshLambertMaterial({vertexColors: true, flatShading: true});
   const armL = new THREE.Group(); armL.position.set(-0.34, -0.3, -0.72); view.add(armL);
-  vk.box(armL, 0.08, 0.08, 0.36, 0x2f4f7a, 0.02, -0.04, 0.2); vk.box(armL, 0.08, 0.08, 0.08, 0xe2b490, 0, -0.02, -0.0);
   PL.lanternV = lanternMesh(vk, armL); PL.lanternV.g.position.set(0, -0.2, -0.02); PL.lanternV.g.scale.setScalar(0.9);
   PL.armL = armL;
   const armR = new THREE.Group(); armR.position.set(0.34, -0.32, -0.74); view.add(armR);
-  vk.box(armR, 0.08, 0.08, 0.36, 0x2f4f7a, -0.02, -0.04, 0.2); vk.box(armR, 0.08, 0.08, 0.08, 0xe2b490, 0, -0.02, -0.0);
   PL.toolV = {scale: toolMesh('scale', vk, armR), seal: toolMesh('seal', vk, armR)};
   for (const t of Object.values(PL.toolV)) t.position.set(0, 0.06, -0.06);
   PL.carryV = new THREE.Group(); PL.carryV.position.set(0, 0.02, -0.08); armR.add(PL.carryV);
   PL.armR = armR;
+  buildViewArms();
   // Pip, the lantern spirit
   PL.pip = makeModel({kind: 'pip'}); R.scene.add(PL.pip.root); PL.pip.root.visible = false;
   PL.camMode = SETTINGS.cam; PL.camDist = PL.camCur = SETTINGS.camDist ?? 4.2;
