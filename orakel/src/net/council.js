@@ -307,7 +307,7 @@ export function startAdvisor(hash) {
     A.seats = readSeats(m.seats);
     A.mine = A.seats?.find(s => s.tag === A.tag) || null;
     // everyone who held a role at this table, also after they left, for the reveal at the end
-    for (const x of A.seats || []) if (x.role) A.seen.set(x.tag || x.name, x);
+    for (const x of A.seats || []) if (x.role && (A.seen.has(x.tag || x.name) || A.seen.size < 60)) A.seen.set(x.tag || x.name, x);
     if (m.ended && !A.reveal && A.seen.size) A.reveal = [...A.seen.values()];
     // a new question: fresh picks, and the role card folds again so the question is in view
     const round = m.vote && typeof m.vote === 'object' ? `${m.vote.key}#${m.vote.n ?? ''}` : null;
@@ -423,8 +423,9 @@ export function startAdvisor(hash) {
     const ballots = +s.tally?.ballots || 0, talk = voted && r ? talkingPoint(byRole, opts, vote.multi) : null;
     wrap.append(el('p', {class: 'label', style: 'margin:0', text: vote.multi ? 'Kies alle maatregelen die volgens jou passen.' : 'Kies één besluit.'}), box,
       el('button', {class: 'go', disabled: !A.picks.size, onclick: () => { send({t: 'vote', key: vote.key, picks: [...A.picks]}); A.votedKey = round; if (A.mine) A.mine.voted = true; SFX.play?.('pick'); view(); }}, voted ? 'Stem bijwerken' : 'Stem'),
-      el('p', {class: 'label', style: 'margin:0', text: voted ? `Je stem is verstuurd · ${ballots} ${ballots === 1 ? 'stem' : 'stemmen'} binnen` : `${ballots} ${ballots === 1 ? 'stem' : 'stemmen'} binnen · stem eerst, dan zie je hoe de anderen kozen`}),
-      talk ? el('p', {class: 'talk'}, el('span', {'aria-hidden': 'true', text: '💬 '}), talk) : null);
+      el('p', {class: 'label', style: 'margin:0', text: voted ? `Je stem is verstuurd · ${ballots} ${ballots === 1 ? 'stem' : 'stemmen'} binnen` : `${ballots} ${ballots === 1 ? 'stem' : 'stemmen'} binnen · stem eerst, dan zie je hoe de anderen kozen`}));
+    // (native append would print a null, so optional parts are appended on their own)
+    if (talk) wrap.append(el('p', {class: 'talk'}, el('span', {'aria-hidden': 'true', text: '💬 '}), talk));
   };
   // After voting: one concrete difference with another role at the table, to talk about.
   const talkingPoint = (byRole, opts, multi) => {

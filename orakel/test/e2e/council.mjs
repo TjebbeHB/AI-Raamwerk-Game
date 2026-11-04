@@ -47,6 +47,8 @@ const shut = async () => { for (const mq of sockets) mq.close(); await browser.c
 async function shot(p, name) {
   try { await p.screenshot({path: SH + name, timeout: 90000}); } catch (e) { console.log(`[warn] no screenshot ${name}: ${e.message.split('\n')[0]}`); }
 }
+// no stray 'null', 'undefined', 'NaN' or '[object Object]' in what a phone shows
+const clean = p => p.evaluate(() => !/\b(null|undefined|NaN)\b|\[object /.test(document.getElementById('advisor').innerText));
 const roleOf = p => p.evaluate(() => document.querySelector('#advisor .rolecard')?.dataset.role || null);
 const advisorTop = (p, y) => p.evaluate(v => { document.getElementById('advisor').scrollTop = v; }, y);
 // the phone app scrolls inside #advisor, so a tall shot needs a tall viewport
@@ -106,6 +108,7 @@ try {
   check('the phone lists everyone at the table', await p1.evaluate(() => [...document.querySelectorAll('#advisor .chip')].map(c => c.textContent).join(' | ')).then(t => t.includes('Fatima') && t.includes('Sem')));
   await shot(host, 'council-host-panel.png');
   await shot(p1, 'council-phone-role.png');
+  check('no stray null or undefined on the phone: the role card', await clean(p1));
   // the secret agenda opens on a tap
   await p1.tap('#advisor .rc-agenda');
   const agenda = await p1.evaluate(() => document.querySelector('#advisor .rc-a-t')?.textContent);
@@ -154,6 +157,7 @@ try {
   check('the role card folds during a vote', await p1.evaluate(() => document.querySelector('#advisor .rc-head').getAttribute('aria-expanded')) === 'false');
   check('before voting a phone does not see the others', await p1.evaluate(() => [...document.querySelectorAll('#advisor .optb .votes')].every(v => v.textContent === '')));
   await shot(p1, 'council-phone-vote.png');
+  check('no stray null or undefined on the phone: a vote', await clean(p1));
   await p1.locator('#advisor .optb').nth(0).tap();
   await p1.locator('#advisor .optb').nth(2).tap();
   await p1.tap('#advisor .go');
@@ -173,6 +177,7 @@ try {
   const talk1 = await p1.evaluate(() => document.querySelector('#advisor .talk')?.textContent || ''), talk2 = await p2.evaluate(() => document.querySelector('#advisor .talk')?.textContent || '');
   check('after voting a phone suggests what to talk about', /^💬 Gespreksstof: jij koos ‘Breng het probleem in kaart met cijfers en…’, .+ niet\. Leg eens uit waarom jij wel\.$/.test(talk1) && /^💬 Gespreksstof: .+ koos ‘[^’]+…’, jij niet\. Vraag eens waarom!$/.test(talk2), `${talk1} | ${talk2}`);
   await shot(p1, 'council-phone-voted.png');
+  check('no stray null or undefined on the phone: after voting', await clean(p1));
   await tallShot(p1, 'council-phone-voted-full.png', 2100);
   await shot(host, 'council-host-decision.png');
   // the decision closes (skipped): the council's advice is kept for the debrief
@@ -191,6 +196,7 @@ try {
   check('the verdict takes one choice', await p2.evaluate(() => document.querySelectorAll('#advisor .optb[aria-pressed="true"]').length) === 1);
   await p2.tap('#advisor .go');
   await shot(p2, 'council-phone-verdict.png');
+  check('no stray null or undefined on the phone: the verdict', await clean(p2));
   await sleep(800);
   await host.evaluate(() => { __orakel.G.verdict = {choice: 2, ceiling: 1, judgement: 'beyond', at: Date.now()}; __orakel.NET.closeVote(); });
   await p1.waitForSelector('#advisor .reveal', {timeout: 8000});
@@ -198,6 +204,7 @@ try {
   check('after the verdict every agenda is revealed', [d1, d2].every(r => reveal.includes(ROLES.find(x => x.id === r).agenda)));
   await advisorTop(p1, 0);
   await shot(p1, 'council-phone-end.png');
+  check('no stray null or undefined on the phone: the end', await clean(p1));
 
   // ---------------------------------------------------------------- support, leaving and stopping
   await p1.tap('#advisor .cheer');
@@ -217,6 +224,7 @@ try {
   check('the reveal still shows those who already left', await p1.evaluate(() => document.querySelectorAll('#advisor .reveal .rv').length) === 3);
   check('the host council is off', await host.evaluate(() => !__orakel.NET.active && __orakel.NET.seats.length === 0));
   await shot(p1, 'council-phone-closed.png');
+  check('no stray null or undefined on the phone: a closed council', await clean(p1));
 
   // ---------------------------------------------------------------- a new phone with an old host (no seats, no notes)
   const fake = await bareClient();
@@ -244,6 +252,7 @@ try {
   await p3.waitForSelector('#advisor .rolecard[data-role="ethicus"]', {timeout: 5000}).catch(() => {});
   check('the phone finds its own seat by its tag', await roleOf(p3) === 'ethicus');
   await shot(p3, 'council-phone-oldhost.png');
+  check('no stray null or undefined on the phone: an old host', await clean(p3));
   fake.publish('gewelf-orakel/v1/OUDHST/h', null, true);
 } catch (e) {
   check('the run completes', false, e.stack || e.message);
