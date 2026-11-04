@@ -9,10 +9,11 @@
 // 'padlock' | 'gnome' | 'kobold' | 'orakel' | 'fabulant', color}. mood: one of MOODS.
 //   drawPortrait(canvas, subject, {mood, mouth 0..1, blink 0..1, size, frame, flip, badge})
 //   portraitURL(subject, mood, {scale = 2}) -> cached PNG data URL (also UI.portraitURL)
-//   portraitImg(subject, mood, {size}) -> <img class="portrait">
+//   portraitImg(subject, mood, {size}) -> <img class="pt-face">
 //   startTalking(canvas, subject, mood) / stopTalking(canvas) / showPortrait / hidePortrait(canvas)
 //   preloadPortraits(subjects, moods), hasPortrait(subject), renderPortrait (pure, no DOM: tests)
-// Show canvases and images with class "portrait" (image-rendering: pixelated) at 96, 192 or 288 px.
+// Canvases and images get the class "pt-face" (image-rendering: pixelated; not "portrait": index.html has an old
+// 44 px rule by that name). Show them at 96, 192 or 288 CSS px, without a border: the frame is in the picture.
 import {UI, CAST} from '../game/bus.js';
 import {SETTINGS} from '../game/state.js';
 import {DEFAULT_LOOK, heroLook, archetype} from '../game/hero.js';
@@ -49,7 +50,7 @@ const hueTo = (h, t, k, max = 180) => { const d = ((((t - h) % 360) + 540) % 360
 export const luma = c => (cr(c) * 0.299 + cg(c) * 0.587 + cb(c) * 0.114) / 255;
 // Six hue-shifted tones per colour: shadows lean cool (skin: rosy, metal: brown), lights lean warm.
 // [0 line, 1 deep shadow, 2 shadow, 3 base, 4 light, 5 highlight]
-const RAMPS = new Map();
+const RAMPS = new Map(), MAX_RAMPS = 600;
 function ramp(hex, kind = 0) {           // kind: 0 cloth, 1 skin, 2 hair, 3 glowing, 4 metal
   const key = hex * 8 + kind;
   let r = RAMPS.get(key);
@@ -57,24 +58,33 @@ function ramp(hex, kind = 0) {           // kind: 0 cloth, 1 skin, 2 hair, 3 glo
   const [h, s, l] = toHsl(hex), grey = s < 0.07;
   const cool = kind === 1 ? 350 : kind === 4 ? 28 : 246, warm = kind === 1 ? 36 : 52, hc = grey ? cool : h, hw = grey ? warm : h, add = grey ? 0.05 : kind === 3 ? 0.04 : 0.1;
   const dk = kind === 3 ? [0.55, 0.72, 0.86] : kind === 4 ? [0.3, 0.56, 0.78] : [0.34, 0.6, 0.8];
+  // dark skin and hair take small light steps (black hair stays black, deep skin keeps its tone), hair even
+  // smaller ones; cloth, metal and glow keep their bold steps (folds, lapels, the Orakel's screen)
+  const capped = kind === 1 || kind === 2, hk = kind === 2 ? 0.8 : 1, k1 = kind === 3 ? 0.35 : 0.2, k2 = kind === 3 ? 0.7 : kind === 4 ? 0.6 : 0.46;
+  const up1 = capped ? Math.min((1 - l) * k1, (0.035 + l * 0.3) * hk) : (1 - l) * k1, up2 = capped ? Math.min((1 - l) * k2, (0.09 + l * 0.75) * hk) : (1 - l) * k2;
+  // and their highlights lose some colour, so a black sheen reads cool grey instead of brown or violet
+  const sd = !capped || l > 0.3 ? 1 : 0.55 + l * 1.5;
   r = [
     fromHsl(hueTo(hc, cool, 0.32, 24), s + add * 1.3, l * dk[0] + 0.012),
     fromHsl(hueTo(hc, cool, 0.2, 16), s + add, l * dk[1]),
     fromHsl(hueTo(hc, cool, 0.1, 9), s + add * 0.5, l * dk[2]),
     hex,
-    fromHsl(hueTo(hw, warm, 0.08, 6), s * 0.96, l + (1 - l) * (kind === 3 ? 0.35 : 0.2)),
-    fromHsl(hueTo(hw, warm, 0.16, 10), s * (kind === 4 ? 0.7 : 0.85), l + (1 - l) * (kind === 3 ? 0.7 : kind === 4 ? 0.6 : 0.46)),
+    fromHsl(hueTo(hw, warm, 0.08, 6), s * 0.96 * (sd < 1 ? (1 + sd) / 2 : 1), l + up1),
+    fromHsl(hueTo(hw, warm, 0.16, 10), s * (kind === 4 ? 0.7 : 0.85) * sd, l + up2),
   ];
+  if (RAMPS.size >= MAX_RAMPS) RAMPS.clear();       // a creator slider makes a new colour per step
   RAMPS.set(key, r);
   return r;
 }
 
 // ---------------------------------------------------------------- raster core
 // Every pixel has a part (0 = background), a tone into that part's ramp, or an override colour.
-const PART = new Uint8Array(NN), TONE = new Uint8Array(NN), OVER = new Int32Array(NN), FLAG = new Uint8Array(NN);
+// Background pixels painted after the panel (steam, sparkles, auras) keep an alpha (BGA) and, for an aura,
+// its own colour (AUR), so they survive frame:false (a transparent background).
+const PART = new Uint8Array(NN), TONE = new Uint8Array(NN), OVER = new Int32Array(NN), FLAG = new Uint8Array(NN), BGA = new Uint8Array(NN), AUR = new Int32Array(NN);
 const XS = new Float64Array(96);
 let PARTS = [null], FLIP = false;
-function begin() { PART.fill(0); TONE.fill(BASE); OVER.fill(0x1a120c); FLAG.fill(0); PARTS = [null]; }
+function begin() { PART.fill(0); TONE.fill(BASE); OVER.fill(0x1a120c); FLAG.fill(0); BGA.fill(0); AUR.fill(-1); PARTS = [null]; }
 // a part: its ramp and how it takes outlines (line), soft inner lines, rim light, the shadow it casts below (cast)
 function part(r, o = {}) { PARTS.push({r, line: true, soft: false, rim: true, cast: 0, recv: true, ink: null, ...o}); return PARTS.length - 1; }
 const sh0 = (sh, x, y) => (typeof sh === 'number' ? sh : sh(x, y));
@@ -114,7 +124,7 @@ const poly = (p, pts, sh = BASE, clip) => eachPoly(pts, plotter(p, sh, clip));
 function rect(p, x0, y0, x1, y1, sh = BASE, clip) { const f = plotter(p, sh, clip); for (let y = Math.max(0, y0); y <= Math.min(N - 1, y1); y++) for (let x = Math.max(0, x0); x <= Math.min(N - 1, x1); x++) f(x, y); }
 // masks: undefined = anywhere, -1 = any figure pixel, a part id, an array of ids, or a function of the index
 const inMask = (i, m) => (m === undefined ? true : m === -1 ? PART[i] > 0 : typeof m === 'number' ? PART[i] === m : Array.isArray(m) ? m.includes(PART[i]) : m(i));
-function dot(x, y, col, m) { x |= 0; y |= 0; if (x < 0 || y < 0 || x >= N || y >= N) return; const i = y * N + x; if (inMask(i, m)) OVER[i] = col; }
+function dot(x, y, col, m) { x |= 0; y |= 0; if (x < 0 || y < 0 || x >= N || y >= N) return; const i = y * N + x; if (inMask(i, m)) { OVER[i] = col; if (!PART[i]) { BGA[i] = 255; AUR[i] = -1; } } }
 function tone(x, y, t, m) { x |= 0; y |= 0; if (x < 0 || y < 0 || x >= N || y >= N) return; const i = y * N + x; if (inMask(i, m) && PART[i]) { TONE[i] = t; OVER[i] = -1; } }
 const toneMin = (x, y, t, m) => { x |= 0; y |= 0; if (x < 0 || y < 0 || x >= N || y >= N) return; const i = y * N + x; if (inMask(i, m) && PART[i] && OVER[i] < 0 && TONE[i] > t) TONE[i] = t; };
 // a plotter that sets a tone on one part only (lines drawn over hair, cloth)
@@ -153,15 +163,22 @@ function ball(cx, cy, rx, ry, bias = 0, top = LIT) {
     return l > 0.86 ? Math.min(HI, top + 1) : l > 0.56 ? top : l > 0.06 ? BASE : l > -0.32 ? SH : SH2;
   };
 }
-// 3 x 5 pixel letters for the mug and the tickets; under FLIP they are drawn mirrored so the final flip reads right
-const FONT = {A: '010101111101101', B: '110101110101110', C: '011100100100011', D: '110101101101110', E: '111100110100111', G: '011100101101011', I: '111010010010111', K: '101101110101101', L: '100100100100111', M: '101111111101101', N: '110101101101101', O: '010101101101010', P: '110101110100100', R: '110101110101101', S: '011100010001110', T: '111010010010010', U: '101101101101111', W: '101101111111101', 0: '111101101101111', 1: '010110010010111', 2: '111001111100111', 3: '111001011001111', 4: '101101111001001', 5: '111100111001111', 6: '111100111101111', 7: '111001001001001', 8: '111101111101111', 9: '111101111001111', '!': '010010010000010', '?': '110001010000010', '.': '000000000000010'};
+// 5 pixel high letters for the mug and the tickets: 3 wide, I and the punctuation narrower so a long word fits a mug.
+const FONT = {A: '010101111101101', B: '110101110101110', C: '011100100100011', D: '110101101101110', E: '111100110100111', G: '011100101101011', K: '101101110101101', L: '100100100100111', M: '101111111101101', N: '110101101101101', O: '010101101101010', P: '110101110100100', R: '110101110101101', S: '011100010001110', T: '111010010010010', U: '101101101101111', W: '101101111111101', 0: '111101101101111', 1: '010110010010111', 2: '111001111100111', 3: '111001011001111', 4: '101101111001001', 5: '111100111001111', 6: '111100111101111', 7: '111001001001001', 8: '111101111101111', 9: '111101111001111', '?': '110001010000010'};
+const GLYPH = {I: ['1', '1', '1', '1', '1'], '-': ['00', '00', '11', '00', '00'], '.': ['0', '0', '0', '0', '1'], '!': ['1', '1', '1', '0', '1'], ' ': ['0', '0', '0', '0', '0']};
+for (const [k, g] of Object.entries(FONT)) GLYPH[k] = [0, 3, 6, 9, 12].map(i => g.slice(i, i + 3));
+const glyph = ch => GLYPH[ch === 'Ë' ? 'E' : ch];
+// the width of a line of text in pixels (1 px between letters)
+export function textWidth(str) { let w = -1; for (const ch of String(str).toUpperCase()) w += (glyph(ch)?.[0].length ?? 3) + 1; return Math.max(0, w); }
+// Under FLIP a line is drawn mirrored within its own width, so after the final flip it reads the right way round.
 function text(str, x, y, col, m) {
+  const W = textWidth(str), X = a => (FLIP ? 2 * x + W - 1 - a : a);
   let cx = x;
-  for (const ch of str.toUpperCase()) {
-    const base = ch === 'Ë' ? 'E' : ch, g = FONT[base];
-    if (g) for (let r = 0; r < 5; r++) for (let c = 0; c < 3; c++) if (g[r * 3 + c] === '1') dot(FLIP ? 2 * x + str.length * 4 - 2 - (cx + c) : cx + c, y + r, col, m);
-    if (ch === 'Ë') { dot(FLIP ? 2 * x + str.length * 4 - 2 - cx : cx, y - 2, col, m); dot(FLIP ? 2 * x + str.length * 4 - 2 - (cx + 2) : cx + 2, y - 2, col, m); }
-    cx += 4;
+  for (const ch of String(str).toUpperCase()) {
+    const g = glyph(ch), gw = g ? g[0].length : 3;
+    if (g) for (let r = 0; r < 5; r++) for (let c = 0; c < gw; c++) if (g[r][c] === '1') dot(X(cx + c), y + r, col, m);
+    if (ch === 'Ë') { dot(X(cx), y - 2, col, m); dot(X(cx + 2), y - 2, col, m); }
+    cx += gw + 1;
   }
 }
 
@@ -200,7 +217,7 @@ function compose(out, rimCol, transparent) {
   for (let i = 0; i < NN; i++) {
     const p = PART[i], f = FLAG[i];
     let c, a = 255;
-    if (!p) { c = OVER[i]; if (transparent) a = 0; }
+    if (!p) { c = OVER[i]; if (transparent) { a = BGA[i]; if (a && AUR[i] >= 0) c = AUR[i]; } }
     else {
       const P = PARTS[p];
       if (f === 2) c = P.ink ?? mix(P.r[LINE], 0x120a0e, 0.5);
@@ -250,7 +267,11 @@ function aura(col, rings = 5, k = 0.55) {
       if (cur[i - 1] || cur[i + 1] || cur[i - N] || cur[i + N]) {
         nxt[i] = 1;
         const a = k * (1 - (r - 1) / rings);
-        if (a * 16 > BAYER[(y & 3) * 4 + (x & 3)] * 0.9) OVER[i] = mix(OVER[i], col, a);
+        if (a * 16 > BAYER[(y & 3) * 4 + (x & 3)] * 0.9) {
+          OVER[i] = mix(OVER[i], col, a);
+          // without a panel the glow is the aura colour at that strength (a solid paint stays solid)
+          if (BGA[i] < 255) { BGA[i] = Math.max(BGA[i], Math.round(a * 255)); AUR[i] = col; }
+        }
       }
     }
     cur = nxt;
@@ -305,33 +326,40 @@ export function normLook(spec) {
 // Details the schema cannot say, by cast id: the things that make each one unforgettable.
 // A look may add its own as look.sig (for example {shadesUp: true, prop: 'mug'}).
 const SIG = {
-  joop: {prop: 'mug', mugText: ['BESTE', 'CONCIËRGE'], twinkle: true, checks: true},
-  wethouder: {brooch: true, pen: true},
+  // 'conciërge' split at the trema loses it, as Dutch hyphenation does: conci-erge
+  joop: {prop: 'mug', mugText: ['BESTE', 'CONCI-', 'ERGE'], twinkle: true, checks: true},
+  wethouder: {brooch: true, pen: true, eye: 'sharp'},
   ilse: {prop: 'tea', tired: true},
   bakker: {chain: true, bag: true, determined: true},
-  glans: {shadesUp: true, grin: true, shiny: true, prop: 'folder', tan: true},
-  burger1: {bread: true, ticket: '388'},
-  burger2: {prop: 'form'},
+  glans: {shadesUp: true, grin: true, shiny: true, prop: 'folder', tan: true, eye: 'almond'},
+  burger1: {bread: true, ticket: '388', eye: 'kind'},
+  burger2: {prop: 'form', eye: 'almond'},
   burger3: {prop: 'leash'},
-  waarom: {glowEyes: true, aura: 0x9fc8ff, flow: true},
-  griffel: {prop: 'book', ink: true},
-  mallow: {tools: true},
-  henk: {shadesUp: true, sunburn: true},
-  mira: {bangs: true, tape: true, prop: 'ruler'},
+  waarom: {glowEyes: true, aura: 0x9fc8ff, flow: true, eye: 'almond'},
+  griffel: {prop: 'book', ink: true, eye: 'sharp'},
+  mallow: {tools: true, eye: 'round'},
+  henk: {shadesUp: true, sunburn: true, eye: 'round'},
+  wouter: {eye: 'kind'},
+  mira: {bangs: true, tape: true, prop: 'ruler', eye: 'almond'},
   bep: {pencil: true, cateye: true, prop: 'book', bookColor: 0x3a5a7a},
   kees: {loupe: true, watch: true},
-  sien: {soot: true, messy: true, prop: 'coffee', mitt: true},
-  linde: {prop: 'horn'},
-  bram: {postal: true, bag: true, letters: true},
+  sien: {soot: true, messy: true, prop: 'coffee', mitt: true, eye: 'round'},
+  linde: {prop: 'horn', eye: 'almond'},
+  noor: {eye: 'kind'},
+  bram: {postal: true, bag: true, letters: true, eye: 'round'},
 };
+export const MUG_BLUE = 0x2a4a8a, MUG_RED = 0xb83a2a;
 const PROPS = new Set(['mug', 'tea', 'coffee', 'folder', 'book', 'clipboard', 'ruler', 'horn', 'leash', 'form', 'stamp', 'keys']);
 
 // ---------------------------------------------------------------- subjects
 const CREATURES = new Set(['pip', 'spark', 'cloud', 'owl', 'padlock', 'orakel', 'fabulant', 'wisp']);
 const FOLK = new Set(['gnome', 'kobold', 'scribe']);
-function stable(o) {
+// a cache key for a look: plain data only (a look never holds scene objects, but never recurse into one)
+function stable(o, depth = 0) {
   if (!o || typeof o !== 'object') return JSON.stringify(o);
-  return '{' + Object.keys(o).filter(k => k !== 'probe' && typeof o[k] !== 'function').sort().map(k => `${k}:${typeof o[k] === 'object' ? stable(o[k]) : JSON.stringify(o[k])}`).join(',') + '}';
+  const proto = Object.getPrototypeOf(o);
+  if (depth > 3 || (proto !== Object.prototype && proto !== null && !Array.isArray(o))) return '#';
+  return '{' + Object.keys(o).filter(k => k !== 'probe' && typeof o[k] !== 'function').sort().map(k => `${k}:${typeof o[k] === 'object' ? stable(o[k], depth + 1) : JSON.stringify(o[k])}`).join(',') + '}';
 }
 const canonCache = new Map();
 function canon(id) {
@@ -349,7 +377,9 @@ function fromSpec(m, id, tint) {
   if (CREATURES.has(kind)) return {R: 1, id, kind, spec: m, tint, key: `${id || 'c'}|${kind}|${stable(m)}`};
   return {R: 1, id, kind: 'unknown', spec: m, tint, key: `unknown|${id}|${stable(m)}`};
 }
-// A speaker from dialogue.js ({cls, id}) or a cast entry itself points at a cast id ('' = the narrator).
+// A speaker from dialogue.js ({name, title, cls, id}), an Npc entity ({def, id}) or a cast entry points at a
+// cast id ('' = the narrator). null: no cast id. speakerLike: it names someone, it is not a look.
+const speakerLike = s => 'cls' in s || 'def' in s;
 function subjectId(s) {
   if (s.cls === 'you') return 'you';
   if (s.cls === 'nar') return '';
@@ -357,24 +387,34 @@ function subjectId(s) {
   for (const k of Object.keys(CAST)) if (CAST[k] === s) return k;
   return null;
 }
-// subject -> {kind, look | spec, id (canonical cast id), tint, key}
+const NOBODY = {R: 1, id: null, kind: 'unknown', none: true, spec: {}, tint: null, key: 'unknown|'};
+// subject -> {kind, look | spec, id (canonical cast id), tint, key, none: true when there is no face to show}
 export function resolveSubject(subject) {
   if (subject && subject.R === 1) return subject;
-  if (subject && typeof subject === 'object') { const id = subjectId(subject); if (id !== null) subject = id; }
+  if (subject && typeof subject === 'object') {
+    const id = subjectId(subject);
+    if (id !== null) subject = id;
+    // a voice that is not in the cast ('Stem 1 · ...', a one-off speaker) gets no face, certainly not yours
+    else if (speakerLike(subject)) return {...NOBODY, key: `unknown|${typeof subject.id === 'string' ? subject.id : ''}`};
+    // a cast entry that is not (yet) in CAST: {name, model, color}
+    else if (subject.model && typeof subject.model === 'object') return fromSpec(subject.model, typeof subject.id === 'string' ? subject.id : null, colorOf(subject.color, null));
+  }
   if (subject === 'you' || subject === 'hero') { const look = heroLook(), arch = archetype(); return {R: 1, id: 'you', kind: 'human', look: normLook(look), spec: look, tint: null, arch, key: `you|${arch}|${stable(look)}`}; }
-  if (typeof subject === 'string' && subject) {
+  if (typeof subject === 'string' && subject && subject !== 'nar') {
     const id = canon(subject), c = CAST[id], m = c?.model, tint = colorOf(c?.color, null);
     if (id === 'orakel' || id === 'fabulant') return {R: 1, id, kind: id, spec: m || {}, tint, key: `${id}|${stable(m || {})}`};
-    if (!m) return {R: 1, id, kind: 'unknown', spec: {}, tint, key: `unknown|${id}`};
+    if (!m || typeof m !== 'object') return {...NOBODY, id, tint, key: `unknown|${id}`};
     return fromSpec(m, id, tint);
   }
   if (subject && typeof subject === 'object') return fromSpec(subject, typeof subject.id === 'string' ? subject.id : null, colorOf(subject.tint, null));
-  return {R: 1, id: null, kind: 'unknown', spec: {}, tint: null, key: 'unknown|'};
+  return NOBODY;
 }
-// the narrator and empty speakers have no face
+// The narrator, voices outside the cast and cast entries without a model have no face. An unknown kind in a
+// model or a look still does: it gets the '?' silhouette.
 export function hasPortrait(s) {
-  if (s && typeof s === 'object') { if (s.R === 1) return true; const id = subjectId(s); if (id === null) return true; s = id; }
-  return !!s && s !== 'nar' && (s === 'you' || s === 'hero' || !!CAST[s]);
+  if (!s || s === 'nar') return false;
+  if (typeof s !== 'string' && typeof s !== 'object') return false;
+  return !resolveSubject(s).none;
 }
 
 // ---------------------------------------------------------------- moods
@@ -405,6 +445,28 @@ const EYES = {
   arc: {arc: [6, 5, 4, 3, 3, 3, 4, 5, 6]},
   closed: {arc: [4, 5, 6, 6, 6, 6, 6, 5, 4], down: 1},
 };
+// Eye shapes, so not everyone has the same eyes: they reshape every open mood template.
+//   soft: a plain lash corner (default) · round: taller, bigger irises (young) · kind: smaller and softer (old)
+//   sharp: narrow, heavy outer lashes and a wing · almond: the soft eye with a wing
+// Pick one with look.eyeShape (optional, portrait only), else per cast id (SIG eye), else by age.
+const EYE_SHAPES = {
+  soft: {}, almond: {wing: 1},
+  round: {taller: 1, iris: [0.35, 0.45], thin: 1},
+  kind: {shorter: 1, iris: [-0.25, -0.3]},
+  sharp: {narrow: 1, wing: 1},
+};
+function shapeEye(tpl, S) {
+  if (tpl.arc) return tpl;
+  const t = [...tpl.t], h = [...tpl.h], b = [...tpl.b];
+  for (let i = 0; i < 9; i++) {
+    if (S.taller && i >= 2 && i <= 6) b[i] += 1;
+    if (S.thin && i < 2) h[i] = 1;
+    if (S.shorter && b[i] - 1 >= t[i] + h[i]) b[i] -= 1;
+    if (S.narrow && (i < 2 || i > 6) && b[i] - 1 >= t[i] + h[i]) b[i] -= 1;
+    if (S.narrow && i < 3) h[i] += 1;
+  }
+  return {...tpl, t, h, b, wing: !!S.wing, iris: tpl.small ? null : S.iris};
+}
 
 // ---------------------------------------------------------------- people
 function geom(L, kind) {
@@ -799,8 +861,9 @@ function face(g, L, p) {
 // ---- eyes, brows, nose, mouth, cheeks
 function eyeCols(tpl, far) {
   const sel = a => (far ? a.filter((v, i) => i !== 4) : a);
-  return tpl.arc ? {arc: sel(tpl.arc), down: tpl.down} : {t: sel(tpl.t), h: sel(tpl.h), b: sel(tpl.b), flick: tpl.flick, lower: tpl.lower, small: tpl.small};
+  return tpl.arc ? {arc: sel(tpl.arc), down: tpl.down} : {t: sel(tpl.t), h: sel(tpl.h), b: sel(tpl.b), flick: tpl.flick, lower: tpl.lower, small: tpl.small, wing: tpl.wing, iris: tpl.iris};
 }
+const eyeShape = (L, sig) => (EYE_SHAPES[L.eyeShape] ? L.eyeShape : EYE_SHAPES[sig.eye] ? sig.eye : L.age === 'young' ? 'round' : L.age === 'old' ? 'kind' : 'soft');
 function features(g, L, P, M, mood, mouth, blink, sig, skinR, hairR, kind) {
   // glowing eyes (Vrouwe Waarom): light instead of whites, a bright core instead of a pupil
   const glow = !!sig.glowEyes, lash = glow ? 0x2a4a8a : mix(0x1c1216, hairR[LINE], 0.25), white = glow ? 0xd4ecff : 0xf4f0ea, whiteSh = glow ? 0x9cc8f4 : 0xd4cacd;
@@ -808,6 +871,7 @@ function features(g, L, P, M, mood, mouth, blink, sig, skinR, hairR, kind) {
   const shades = L.glasses === 'shades';
   let tpl = EYES[M.eye];
   if (blink >= 0.75 && !tpl.arc) tpl = EYES.closed;
+  tpl = shapeEye(tpl, EYE_SHAPES[eyeShape(L, sig)]);
   // older eyes: the upper lid hoods the outer corner
   if (L.age === 'old' && !tpl.arc && !tpl.small) tpl = {...tpl, t: tpl.t.map((v, i) => (i < 3 ? v + 1 : v)), h: tpl.h.map((v, i) => (i === 0 ? 1 : v))};
   const half = blink >= 0.3 && blink < 0.75 && !tpl.arc;
@@ -824,7 +888,7 @@ function features(g, L, P, M, mood, mouth, blink, sig, skinR, hairR, kind) {
         dot(col(-1), y0 + E.arc[0] + (E.down ? 1 : 0), lash, P.face);
       } else {
         // the iris and its pupil, in screen space: the look moves both eyes the same way
-        const irx = E.small ? 1.7 : far ? 2.3 : 2.5, iry = E.small ? 2.3 : 3.1;
+        const irx = (E.small ? 1.7 : far ? 2.3 : 2.5) + (E.iris ? E.iris[0] : 0), iry = (E.small ? 2.3 : 3.1) + (E.iris ? E.iris[1] : 0);
         const icx = x0 + (w - 1) / 2 + lx * (E.small ? 0.5 : 1) + (far ? -0.2 : 0.2), icy = 4.6 + ly;
         const tops = [];
         for (let i = 0; i < w; i++) {
@@ -846,7 +910,8 @@ function features(g, L, P, M, mood, mouth, blink, sig, skinR, hairR, kind) {
           if (E.lower && i > 0 && i < w - 1) dot(xx, y0 + bot + 1, skinR[SH2], P.face);
           else if (i > 1 && i < w - 2) dot(xx, y0 + bot + 1, skinR[SH], P.face);
         }
-        if (E.flick !== undefined) { dot(col(-1), y0 + E.flick, lash, P.face); if (!half && E.flick < 3) dot(col(-2), y0 + E.flick - 1, lash, P.face); }
+        // the lash runs on past the outer corner; a winged eye (sharp, almond) flicks up once more
+        if (E.flick !== undefined) { dot(col(-1), y0 + E.flick, lash, P.face); if (E.wing && !half && E.flick < 3) dot(col(-2), y0 + E.flick - 1, lash, P.face); }
         // the sparkle: upper left of the iris (the light comes from there)
         if (!half) {
           const hx = Math.round(icx - 1.3), top = tops[hx - x0] ?? 2, hy = Math.max(Math.round(icy - 1.7), top);
@@ -1227,13 +1292,15 @@ function heldProp(g, L, P, sig, prop, skinR, topC, top2C, under) {
   };
   const holdAt = (x, y) => { sleeve(x - s * 1.2, y + 4); return () => fist(x, y); };
   if (prop === 'mug' || prop === 'tea' || prop === 'coffee') {
-    const big = !!sig.mugText, w = big ? 22 : 12, h = big ? 18 : 12, x0 = Math.round(hx - w / 2 + s * 3), y0 = Math.round(hy - h + 4);
+    // a mug with text grows to fit it: 1 px of outline and 1 px of margin on each side, 6 rows per line
+    const lines = sig.mugText || [], big = lines.length > 0, tw = Math.max(0, ...lines.map(textWidth));
+    const w = big ? Math.max(22, tw + 4) : 12, h = big ? lines.length * 6 + 4 : 12, x0 = Math.round(hx - w / 2 + s * 3), y0 = Math.round(hy - h + 4);
     const mc = prop === 'tea' ? 0xe8945a : 0xf2ede4, m = part(ramp(mc), {cast: 1}), hxs = s < 0 ? x0 - 3 : x0 + w + 3;
     const grip = holdAt(hxs + s * 0.5, y0 + h / 2 + 1);
     poly(m, [x0, y0, x0 + w, y0, x0 + w, y0 + h - 2, x0 + w - 2, y0 + h, x0 + 2, y0 + h, x0, y0 + h - 2], (x) => (x < x0 + 3 ? LIT : x > x0 + w - 4 ? SH : BASE));
     ell(m, hxs, y0 + h / 2 - 1, 3.6, 4.4, BASE, (x, y) => { const a = (x + 0.5 - hxs) / 2, b = (y + 0.5 - (y0 + h / 2 - 1)) / 2.6; return a * a + b * b > 1; });
     ell(part(ramp(prop === 'coffee' || big ? 0x5a3418 : 0xb8742a)), x0 + w / 2, y0 + 0.6, w / 2 - 1, 1.6, BASE);
-    if (big) { text(sig.mugText[0], x0 + 2, y0 + 4, 0x2a4a8a, m); text(sig.mugText[1], x0 + 2, y0 + 11, 0xb83a2a, m); }
+    lines.forEach((ln, k) => text(ln, x0 + 1 + Math.floor((w - 2 - textWidth(ln)) / 2), y0 + 3 + k * 6, k ? MUG_RED : MUG_BLUE, m));
     if (prop === 'tea') { line(x0 + w - 3, y0, x0 + w - 2, y0 + 5, (x, y) => dot(x, y, 0xf4f0e8)); rect(part(ramp(0xf2c838)), x0 + w - 4, y0 + 5, x0 + w - 1, y0 + 8, LIT); }
     for (const k of [0, 1]) { const sx = x0 + w / 2 - 3 + k * 5; quad(sx, y0 - 2, sx + 2, y0 - 5, sx, y0 - 8, (x, y) => dot(x, y, mix(OVER[y * N + x] >= 0 ? OVER[y * N + x] : 0x403020, 0xffffff, 0.45), i => !PART[i])); }
     grip();
@@ -1495,8 +1562,9 @@ function creature(S, mood, mouth, blink) {
       if (M.eye === 'arc' || M.eye === 'smile') for (let a = -3; a <= 3; a++) { px(ex + a, ey + Math.round(Math.abs(a) * 0.8) - 1); px(ex + a, ey + Math.round(Math.abs(a) * 0.8)); }
       else if (blinkC) for (let a = -3; a <= 3; a++) px(ex + a, ey + 1);
       else if (M.eye === 'wide') { for (let a = -4; a <= 4; a++) for (let b = -4; b <= 4; b++) { const d = Math.hypot(a, b); if (d > 2.6 && d < 3.9) px(ex + a, ey + b); } px(ex, ey); }
-      else if (M.eye === 'angry') for (let a = -3; a <= 3; a++) { px(ex + a, ey + Math.round(a * sx * 0.6)); px(ex + a, ey + Math.round(a * sx * 0.6) + 1); }
-      else if (M.eye === 'sad') { for (let a = -3; a <= 3; a++) { px(ex + a, ey - Math.round(a * sx * 0.5)); px(ex + a, ey - Math.round(a * sx * 0.5) + 1); } for (const b of [4, 5, 7]) px(ex - sx * 2, ey + b, gl2); }
+      // a = -3 .. 3 runs left to right, so a * -sx grows toward the middle: angry eyes dip at the inner end, sad ones rise
+      else if (M.eye === 'angry') for (let a = -3; a <= 3; a++) { const d = Math.round(a * -sx * 0.6); px(ex + a, ey + d); px(ex + a, ey + d + 1); }
+      else if (M.eye === 'sad') { for (let a = -3; a <= 3; a++) { const d = -Math.round(a * -sx * 0.5); px(ex + a, ey + d); px(ex + a, ey + d + 1); } for (const b of [4, 5, 7]) px(ex - sx * 2, ey + b, gl2); }
       else if (halfE) for (let a = -2; a <= 2; a++) for (let b = 0; b <= 2; b++) px(ex + a, ey + b);
       else if (mood === 'thinking') for (let a = 0; a <= 1; a++) for (let b = 0; b <= 1; b++) px(ex + 1 + a, ey - 2 + b);
       else { const lx = mood === 'worried' ? -1 : 0; for (let a = -2; a <= 1; a++) for (let b = -3; b <= 3; b++) if (!((a === -2 || a === 1) && Math.abs(b) === 3)) px(ex + a + lx, ey + b); px(ex - 1 + lx, ey - 2, 0xffffff); }
@@ -1655,7 +1723,7 @@ const sizeOf = (canvas, o) => o.size || (canvas.width === canvas.height && canva
 // Draw a portrait onto a canvas. size: the canvas resolution (use whole multiples of 96 for crisp pixels).
 export function drawPortrait(canvas, subject, o = {}) {
   blit(canvas, frameCanvas(subject, o.mood, o.mouth, o.blink, o), sizeOf(canvas, o));
-  canvas.classList?.add('portrait');
+  canvas.classList?.add('pt-face');
   return canvas;
 }
 // A cached data URL (PNG) for <img>: 192 px by default, crisp at 96 and 192 and fine at 288 with pixelated scaling.
@@ -1671,34 +1739,43 @@ export function portraitURL(subject, mood = 'neutral', o = {}) {
 // An <img> for menus, the journal and the summary.
 export function portraitImg(subject, mood = 'neutral', {size = 96, alt = ''} = {}) {
   const img = document.createElement('img');
-  img.className = 'portrait'; img.width = size; img.height = size; img.alt = alt; img.src = portraitURL(subject, mood, {scale: size > 96 ? 3 : 2});
+  img.className = 'pt-face'; img.width = size; img.height = size; img.alt = alt; img.src = portraitURL(subject, mood, {scale: size > 96 ? 3 : 2});
   return img;
 }
 
 // ---------------------------------------------------------------- talking
 // One animator per canvas: the mouth flaps while text types and the eyes blink now and then.
-// Frames are pre-rendered per mood and cached, so a frame change is one drawImage.
+// The nine frames of a mood (mouth and blink in three steps each) are kept on the animator, so a frame
+// change is one drawImage and a tick allocates nothing.
 const ANIMS = new Map();
 const FLAP = [0.5, 1, 0.5, 0, 1, 0.5, 1, 1, 0.5, 0, 0.5, 1, 0, 1, 0.5, 0];
+const step3 = v => (v >= 0.66 ? 2 : v >= 0.15 ? 1 : 0);
 class Animator {
-  constructor(canvas) { this.canvas = canvas; this.subject = null; this.mood = 'neutral'; this.talking = false; this.raf = 0; this.t = 0; this.last = 0; this.nextBlink = 2 + Math.random() * 2; this.blinkT = 0; this.flapI = 0; this.flapT = 0; this.key = ''; this.size = 0; this.opts = {}; }
+  constructor(canvas) {
+    this.canvas = canvas; this.subject = null; this.mood = 'neutral'; this.talking = false; this.raf = 0; this.t = 0; this.last = 0;
+    this.nextBlink = 2 + Math.random() * 2; this.blinkT = 0; this.flapI = 0; this.flapT = 0; this.cur = -1; this.size = 0; this.opts = {};
+    this.frames = new Array(9).fill(null); this.tickB = t => this.tick(t);
+  }
   set(subject, mood, o = {}) {
     this.subject = resolveSubject(subject); this.mood = MOOD[mood] ? mood : 'neutral'; this.opts = o; this.size = o.size || sizeOf(this.canvas, {});
+    this.frames.fill(null);
     // warm the cache for this mood so the first flaps do not stutter
-    for (const m of [0, 0.5, 1]) frameCanvas(this.subject, this.mood, m, 0, o);
-    this.key = ''; this.draw(0, 0); this.start();
+    for (const m of [0, 1, 2]) this.frame(m, 0);
+    this.cur = -1; this.draw(0, 0); this.start();
   }
-  start() { if (!this.raf && typeof requestAnimationFrame === 'function') { this.last = 0; this.raf = requestAnimationFrame(t => this.tick(t)); } }
+  frame(m, b) { const k = m * 3 + b; return this.frames[k] || (this.frames[k] = frameCanvas(this.subject, this.mood, m / 2, b / 2, this.opts)); }
+  start() { if (!this.raf && typeof requestAnimationFrame === 'function') { this.last = 0; this.raf = requestAnimationFrame(this.tickB); } }
   stop() { if (this.raf) cancelAnimationFrame(this.raf); this.raf = 0; this.talking = false; }
   draw(mouth, blink) {
-    const key = `${mouth}|${blink}`;
-    if (key === this.key || !this.subject) return;
-    this.key = key;
-    blit(this.canvas, frameCanvas(this.subject, this.mood, mouth, blink, this.opts), this.size);
+    const m = step3(mouth), b = step3(blink), k = m * 3 + b;
+    if (k === this.cur || !this.subject) return;
+    this.cur = k;
+    blit(this.canvas, this.frame(m, b), this.size);
   }
   tick(now) {
     this.raf = 0;
-    if (!this.canvas.isConnected && this.canvas.ownerDocument) { this.stop(); return; }
+    // a canvas that left the page without hidePortrait: stop, and forget it
+    if (!this.canvas.isConnected && this.canvas.ownerDocument) { this.stop(); if (ANIMS.get(this.canvas) === this) ANIMS.delete(this.canvas); return; }
     const dt = this.last ? Math.min(0.1, (now - this.last) / 1000) : 0;
     this.last = now; this.t += dt;
     let blink = 0;
@@ -1713,7 +1790,7 @@ class Animator {
       mouth = reduced ? Math.min(0.5, FLAP[this.flapI]) : FLAP[this.flapI];
     }
     this.draw(mouth, blink);
-    this.raf = requestAnimationFrame(t => this.tick(t));
+    this.raf = requestAnimationFrame(this.tickB);
   }
 }
 function animator(canvas) { let a = ANIMS.get(canvas); if (!a) { a = new Animator(canvas); ANIMS.set(canvas, a); } return a; }
@@ -1729,13 +1806,15 @@ export function startTalking(canvas, subject, mood = 'neutral', o = {}) {
 // mouth closed, eyes keep blinking; without a canvas: every talking face stops
 export function stopTalking(canvas) { for (const [c, a] of ANIMS) if (!canvas || c === canvas) a.talking = false; }
 export function hidePortrait(canvas) { for (const [c, a] of [...ANIMS]) if (!canvas || c === canvas) { a.stop(); ANIMS.delete(c); } }
-export function clearPortraitCache() { FRAMES.clear(); URLS.clear(); canonCache.clear(); }
+export function clearPortraitCache() { FRAMES.clear(); URLS.clear(); canonCache.clear(); RAMPS.clear(); }
 // Render resting faces in idle time (for example everyone on a floor that just loaded),
 // so the first line of a conversation never waits for a portrait.
 export function preloadPortraits(subjects, moods = ['neutral']) {
   const queue = [];
   for (const s of subjects || []) if (hasPortrait(s)) for (const m of moods) queue.push([s, m]);
-  const idle = typeof requestIdleCallback === 'function' ? requestIdleCallback : f => setTimeout(() => f({timeRemaining: () => 8}), 40);
+  // Safari (so every iPhone) has no requestIdleCallback: give each timeout slice a real 8 ms budget
+  const now = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  const idle = typeof requestIdleCallback === 'function' ? requestIdleCallback : f => setTimeout(() => { const t0 = now(); f({timeRemaining: () => Math.max(0, 8 - (now() - t0))}); }, 40);
   const step = deadline => {
     while (queue.length && deadline.timeRemaining() > 3) { const [s, m] = queue.shift(); try { frameCanvas(s, m, 0, 0); } catch (e) { /* no canvas here: skip */ } }
     if (queue.length) idle(step);
@@ -1744,5 +1823,5 @@ export function preloadPortraits(subjects, moods = ['neutral']) {
   return queue.length;
 }
 
-addStyles('portrait', '.portrait{image-rendering:crisp-edges;image-rendering:pixelated}');
+addStyles('pt-face', '.pt-face{image-rendering:crisp-edges;image-rendering:pixelated}');
 UI.portraitURL = portraitURL;
