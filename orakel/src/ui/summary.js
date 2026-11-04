@@ -19,12 +19,12 @@ export function initials(name) {
 export function portraitOf(id, mood) {
   try { const u = UI.portraitURL?.(id, mood); return typeof u === 'string' && u ? u : null; } catch (e) { return null; }
 }
-export function face(id, {size = 44, mood = 'neutral', name} = {}) {
+export function face(id, {size = 44, mood = 'neutral', name, glyph} = {}) {
   name ||= CAST[id]?.name || String(id || '?');
   const url = portraitOf(id, mood);
   // golden-angle hues, so neighbours in a list rarely share a colour
   const box = el('span', {class: `face${url ? ' img' : ''}`, style: `--s:${size}px;--fh:${Math.round((hashString(String(id)) % 97) * 137.508) % 360}`, title: name});
-  box.append(url ? el('img', {src: url, alt: '', draggable: 'false', decoding: 'async'}) : el('span', {class: 'ini', 'aria-hidden': 'true', text: initials(name)}));
+  box.append(url ? el('img', {src: url, alt: '', draggable: 'false', decoding: 'async'}) : el('span', {class: 'ini', 'aria-hidden': 'true', text: glyph || initials(name)}));
   return box;
 }
 const castName = id => CAST[id]?.name || String(id || '');
@@ -54,7 +54,7 @@ export function renderSummary(p) {
 function heroCard(f, style) {
   const h = G.hero || {}, arch = ARCHETYPES[h.archetype], name = (h.name || '').trim();
   return el('div', {class: 'sumhero'},
-    el('div', {class: 'sumface'}, face('you', {size: 112, mood: f.shortcut ? 'worried' : 'happy', name: name || 'Jij'})),
+    el('div', {class: 'sumface'}, face('you', {size: 112, mood: f.shortcut ? 'worried' : 'happy', name: name || 'Jij', glyph: name ? null : '✦'})),
     el('div', {class: 'sumwho'},
       el('div', {class: 'eyebrow', text: f.shortcut ? 'Jouw korte afdaling' : 'Jouw afdaling'}),
       el('div', {class: 'sumname'}, el('span', {text: name || 'De nieuwe adviseur'}), arch ? el('span', {class: 'archpill', title: arch.line, text: `${arch.name} · ${arch.kind}`}) : null),
@@ -72,8 +72,8 @@ function numbers(f) {
     [f.deaths, 'keer terug naar de koffie'],
     f.abilities || G.hero?.archetype ? [f.abilities, 'keer je vaardigheid gebruikt'] : null,
     [f.damageTaken, 'vertrouwen verloren in gevechten'],
-    [fmtDist(f.distance), 'gelopen'],
-    [f.talks, f.met ? `gesprekken, met ${f.met} ${f.met === 1 ? 'persoon' : 'mensen'}` : 'gesprekken'],
+    f.distance >= 1 ? [fmtDist(f.distance), 'gelopen'] : null,
+    f.talks ? [f.talks, f.met ? `gesprekken, met ${f.met} ${f.met === 1 ? 'persoon' : 'mensen'}` : 'gesprekken'] : null,
     f.choices ? [f.choices, f.choices === 1 ? 'keuze die ertoe deed' : 'keuzes die ertoe deden'] : null,
   ].filter(Boolean);
   return section('In cijfers', null, el('div', {class: 'stats sumstats'}, tiles.map(([b, s]) => el('div', {class: 'stat'}, el('b', {text: String(b)}), el('span', {text: s})))));
@@ -323,6 +323,8 @@ addStyles('summary', `
  .sumtitle{text-shadow:none!important}
  .find,.mini,.ch,.rel,.ach,.fw,.sumtitles{background:#fff!important;break-inside:avoid}
  .sumtitles{display:none}
+ .sumh,.sumg{break-after:avoid}
+ .sumhero,.drow,.dcell{break-inside:avoid}
  .dbar,.meter,.relm{background:#e9e3d8!important;border-color:#d6cec0!important}
  .archpill{color:#55389a!important}
  .bw{color:#4d433a}

@@ -4,12 +4,12 @@
 // is stored with each decision, the three ending tabs (keyboard, sticky header, no overflow) at
 // 1280x800 and on a phone, the Markdown export, the print view and the Snelle Lift ending.
 // Screenshots: shots/ending-*.png. Every check prints one line; the exit code is 1 when one fails.
-// Env: ONLY=desktop,phone,shortcut (default all), Q (query, default ?q=low).
+// Env: ONLY=desktop,print,phone,plain,shortcut (default all), Q (query, default ?q=low).
 import fs from 'node:fs';
 import {devices, GAME_URL, SHOTS, launch} from './_env.mjs';
 
 const Q = process.env.Q ?? '?q=low';
-const ONLY = (process.env.ONLY || 'desktop,phone,shortcut').split(',');
+const ONLY = (process.env.ONLY || 'desktop,print,phone,plain,shortcut').split(',');
 const results = [];
 const check = (name, ok, info) => {
   results.push({name, ok: !!ok});
@@ -280,21 +280,52 @@ async function desktop(browser) {
   fs.writeFileSync(`${SHOTS}ending-report.md`, md);
   check('report: summary, council and questions', ['## Jouw afdaling', '**Speelstijl:', '## Nabespreking', '### Over het besluit', 'Gespreksvragen:', 'Voor je eigen organisatie:', 'Adviesraad (7 stemmen)', 'Jurist', '### Jouw keuzes', '### Relaties'].every(s => md.includes(s)), {bytes: md.length, file: dl.suggestedFilename()});
 
-  // print: only the open tab, on white
-  await page.click('#endtab-debrief');
-  await page.emulateMedia({media: 'print'});
-  await page.pdf({path: `${SHOTS}ending-debrief.pdf`, format: 'A4', printBackground: true});
-  await page.setViewportSize({width: 900, height: 1400});
-  await page.screenshot({path: `${SHOTS}ending-print.png`});
-  const pr = await page.evaluate(() => ({bg: getComputedStyle(document.body).backgroundColor, head: getComputedStyle(document.querySelector('.endhead')).display, stage: getComputedStyle(document.getElementById('stage')).display}));
-  check('print: white page without the game and the header', pr.head === 'none' && pr.stage === 'none' && /255, 255, 255/.test(pr.bg), pr);
-  await page.emulateMedia({media: 'screen'});
-  await page.setViewportSize({width: 1280, height: 800});
   check('desktop: no page errors', !errs.length, errs.slice(0, 5));
   await ctx.close();
 }
 
-// ---------------------------------------------------------------- 2. phone
+// ---------------------------------------------------------------- 2. print: only the open tab, on white, as A4
+async function print(browser) {
+  const ctx = await browser.newContext({viewport: {width: 1280, height: 800}, deviceScaleFactor: 1});
+  const page = await ctx.newPage();
+  const errs = [];
+  page.on('pageerror', e => errs.push(e.message));
+  await boot(page);
+  await page.evaluate(fakeRich);
+  await page.evaluate(t => { window.__orakel.G.council.verdict = {...t, roles: window.__orakel.NET.roles}; }, VERDICT_TALLY);
+  await autoVerdict(page, 2);
+  await page.click('#endtab-debrief');
+  await page.emulateMedia({media: 'print'});
+  const pr = await page.evaluate(() => ({bg: getComputedStyle(document.body).backgroundColor, head: getComputedStyle(document.querySelector('.endhead')).display, stage: getComputedStyle(document.getElementById('stage')).display,
+    filters: getComputedStyle(document.querySelector('.dbfilters')).display, scheme: getComputedStyle(document.documentElement).colorScheme}));
+  check('print: white page without the game, the header or the filters', pr.head === 'none' && pr.stage === 'none' && pr.filters === 'none' && /255, 255, 255/.test(pr.bg), pr);
+  await page.pdf({path: `${SHOTS}ending-debrief.pdf`, format: 'A4', printBackground: true});
+  await page.emulateMedia({media: 'screen'});
+  await page.click('#endtab-summary');
+  await page.emulateMedia({media: 'print'});
+  await page.pdf({path: `${SHOTS}ending-summary.pdf`, format: 'A4', printBackground: true});
+  await page.emulateMedia({media: 'screen'});
+  check('print: no page errors', !errs.length, errs.slice(0, 5));
+  await ctx.close();
+}
+async function autoVerdict(page, choice) {
+  await page.evaluate(async c => {
+    const o = window.__orakel;
+    o.autoVerdict = c;
+    Object.assign(o.G.flags, {pip: true, godmode: true, fabulant_down: true, zegel_intro: true});
+    o.setStage('main', 19, true);
+    await o.travel('f4', 'from_f3');
+    await new Promise(r => setTimeout(r, 1200));
+    const t = o.W.byId.get('sealtable');
+    o.teleport(t.tx, t.tz + 2, 0);
+    await o.run(1);
+    t.interact();
+  }, choice);
+  await page.waitForSelector('#ending:not([hidden])', {timeout: 20000});
+  await wait(1500);
+}
+
+// ---------------------------------------------------------------- 3. phone
 async function phone(browser) {
   const ctx = await browser.newContext({...devices['iPhone 13'], deviceScaleFactor: 2, acceptDownloads: true});
   const page = await ctx.newPage();
@@ -316,7 +347,40 @@ async function phone(browser) {
   await ctx.close();
 }
 
-// ---------------------------------------------------------------- 3. the Snelle Lift
+// ---------------------------------------------------------------- 4. an old save: no council, no registries, no hero
+async function plain(browser) {
+  const ctx = await browser.newContext({viewport: {width: 1280, height: 800}, deviceScaleFactor: 1});
+  const page = await ctx.newPage();
+  const errs = [];
+  page.on('pageerror', e => errs.push(e.message));
+  await boot(page);
+  await page.evaluate(async () => {
+    const o = window.__orakel;
+    o.autoDecide = 'best';
+    for (const id of ['necessity', 'governance', 'culture', 'capacity', 'infrastructure', 'evaluation', 'ethics']) await o.decide(id);
+    o.autoDecide = 'mixed';
+    for (const id of ['quality', 'interaction']) await o.decide(id);
+    o.autoDecide = null;
+    o.G.stats = {time: 2400, kills: 12, deaths: 1, steps: 300, shortcut: 0, revealed: 4};   // a save from before this version
+  });
+  await autoVerdict(page, 'ceiling');
+  await tabShots(page, 'ending-plain', {scrolls: 3});
+  const st = await page.evaluate(() => ({
+    sections: [...document.querySelectorAll('#endpanel-summary .sumh')].map(h => h.textContent),
+    chips: document.querySelectorAll('#ending .rchip').length, council: document.querySelectorAll('#endpanel-debrief .oc, #endpanel-debrief .vcouncil').length,
+    rest: !!document.querySelector('.drow.rest'), title: document.querySelector('.sumtitle')?.textContent,
+  }));
+  check('plain: sections only when there is something to show', !st.sections.includes('Mensen') && !st.sections.includes('Prestaties') && !st.sections.includes('Jouw keuzes') && st.sections.includes('Het dossier'), st);
+  check('plain: no council anywhere', st.chips === 0 && st.council === 0, st);
+  await page.click('#endtab-debrief');
+  await page.click('.dbf[data-f=differ]');
+  const msg = await page.evaluate(() => document.querySelector('.dbempty')?.textContent || '');
+  check('plain: the council filter explains that nobody voted', /geen adviesraad/i.test(msg), msg.slice(0, 60));
+  check('plain: no page errors', !errs.length, errs.slice(0, 5));
+  await ctx.close();
+}
+
+// ---------------------------------------------------------------- 5. the Snelle Lift
 async function shortcut(browser) {
   const ctx = await browser.newContext({viewport: {width: 1280, height: 800}, deviceScaleFactor: 1, acceptDownloads: true});
   const page = await ctx.newPage();
@@ -354,7 +418,9 @@ async function shortcut(browser) {
 const browser = await launch();
 try {
   if (ONLY.includes('desktop')) await desktop(browser);
+  if (ONLY.includes('print')) await print(browser);
   if (ONLY.includes('phone')) await phone(browser);
+  if (ONLY.includes('plain')) await plain(browser);
   if (ONLY.includes('shortcut')) await shortcut(browser);
 } catch (e) {
   check('script ran to the end', false, e.message);

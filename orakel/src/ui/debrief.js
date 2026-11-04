@@ -141,7 +141,7 @@ function chamberCard(r) {
   ch.options.forEach((o, i) => {
     const chosen = sel.has(i);
     const kind = !last ? 'none' : chosen ? (o.status === 'incorrect' ? 'bad' : o.status === 'correct' ? 'good' : 'plus') : o.status === 'correct' ? 'miss' : o.status === 'incorrect' ? 'avoid' : 'skip';
-    const mark = {good: '✓', plus: '✓', bad: '✕', miss: '○'}[kind] || '';
+    const mark = {good: '✓', plus: '✓', bad: '✕'}[kind] || '';
     const verdict = {good: 'Gekozen · past', plus: 'Gekozen · goede aanvulling', bad: 'Gekozen · werkt averechts', miss: 'Gemist · past wel',
       avoid: 'Terecht niet gekozen · werkt averechts', skip: 'Niet gekozen · goede aanvulling', none: STATUS[o.status]}[kind];
     const learn = kind === 'bad' || kind === 'miss' || (kind === 'none' && o.status === 'correct');
@@ -311,11 +311,24 @@ addStyles('debrief', `
  .vb{background:#e9e3d8!important}.vb i{min-width:0}
  .dbfilters,.dbactions{display:none!important}
  .facil,.dbverdict,.dbc,.vbox,.vcouncil,.steps li,.dbtrial,.own,.dbo{background:#fff!important;backdrop-filter:none!important}
- .dbc{break-inside:avoid-page;border:1px solid #bbb;border-left-width:4px}
+ .dbc{border:1px solid #bbb;border-left-width:4px;padding:10px 12px 12px;margin-bottom:4px}
+ .dbch,.dbo,.qs,.own,.dbtrial,.vote{break-inside:avoid}
+ .dbch,.dbsh,.qs h4,.own h4{break-after:avoid}
  .dbverdict,.facil{break-inside:avoid}
+ .dblist{gap:10px}
  .end .dbh1{font-size:22pt}
- .qs ol,.ot p,.own p{font-size:11.5pt}
- .ofb{font-size:10pt!important}
+ .dbch{margin-bottom:6px}.dbch .face{--s:36px!important}
+ .dbct h3{font-size:14pt}
+ .dbopts{gap:3px}
+ .dbo{padding:4px 8px;gap:8px}
+ .withc .dbo,.dboh{grid-template-columns:22px 1fr 170px}
+ .dbo .mk{width:18px;height:18px;font-size:11px}
+ .ot p{font-size:10.5pt;line-height:1.3}
+ .ofb{font-size:9.5pt!important;margin-top:2px!important}
+ .qs ol,.own p{font-size:10.5pt;line-height:1.35}
+ .qs{margin-top:8px}.own,.dbtrial{margin-top:8px;padding:7px 10px}
+ .rchip{font-size:9pt;line-height:14px;padding:0 5px}
+ .linkb{display:none!important}
 }
 `);
 void CHAMBERS;

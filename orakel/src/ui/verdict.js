@@ -3,11 +3,11 @@
 // debrief that turns the session into a group conversation ('Nabespreking').
 import {$, el, esc, addStyles} from '../core/util.js';
 import {UI, SFX, NET, ON} from '../game/bus.js';
-import {G, saveGame} from '../game/state.js';
+import {G, SETTINGS, saveGame} from '../game/state.js';
 import {GAME} from '../game/game.js';
 import {unlockForUi} from '../game/dialogue.js';
 import {assess, judge, epilogue, report, VERDICT, VERDICT_QUESTION, JUDGEMENTS, STATE_LABEL, CHAMBER} from '../content/framework.js';
-import {facts, fmtMin} from '../content/nabespreking.js';
+import {facts, playstyle, fmtMin} from '../content/nabespreking.js';
 import {storeCouncil, roleChips} from './decision.js';
 import {renderSummary} from './summary.js';
 import {renderDebrief} from './debrief.js';
@@ -123,6 +123,7 @@ export function showEnding({title, eyebrow = 'Een jaar later', text, judgement, 
   if (touch) touch.hidden = true;
   const root = $('ending'), body = $('endBody');
   prepareRoot(root);
+  root.classList.toggle('calm', SETTINGS.motion === 'reduced');
   body.innerHTML = '';
   body.classList.add('end2');
   const tabs = [
@@ -201,7 +202,8 @@ function prepareRoot(root) {
 }
 
 function buildEpilogue(p, {title, eyebrow, text, judgement, extra, select}) {
-  const v = G.verdict;
+  const v = G.verdict, d = assess(), style = playstyle(facts(G, d, ON));
+  const todo = [d.open.length && `${d.open.length} open ${d.open.length === 1 ? 'punt' : 'punten'}`, d.blind.length && `${d.blind.length} ${d.blind.length === 1 ? 'blinde vlek' : 'blinde vlekken'}`].filter(Boolean);
   const next = (id, name, line) => el('button', {class: 'endnext-b', type: 'button', onclick: () => select(id)},
     el('span', {class: 'nn', text: name}), el('span', {class: 'nl', text: line}), el('span', {class: 'na', 'aria-hidden': 'true', text: '→'}));
   p.append(...[el('div', {class: 'eyebrow', text: eyebrow}), el('h1', {text: title}),
@@ -211,8 +213,8 @@ function buildEpilogue(p, {title, eyebrow, text, judgement, extra, select}) {
     extra,
     el('div', {class: 'stats'}, stats().map(([b, s]) => el('div', {class: 'stat'}, el('b', {text: String(b)}), el('span', {text: s})))),
     el('div', {class: 'endnext'},
-      next('summary', 'Jouw afdaling', 'Je speelstijl, je keuzes, wat je vond en wie je sprak.'),
-      next('debrief', 'Nabespreking', 'Gespreksvragen per kamer en tips voor een gesprek van twintig minuten.'))].filter(Boolean));
+      next('summary', 'Jouw afdaling', `Je speelstijl: ${style.name}. En je keuzes, wat je vond en wie je sprak.`),
+      next('debrief', 'Nabespreking', `${todo.length ? `${todo.join(' en ')} om samen te bespreken` : 'Gespreksvragen per kamer'}, met tips voor een gesprek van twintig minuten.`))].filter(Boolean));
 }
 
 export function verdictEnding(onAgain) {
@@ -258,6 +260,7 @@ addStyles('ending', `
 .endfoot .credit{margin-top:16px;line-height:1.6;letter-spacing:.08em}
 .printonly{display:none}
 @media (prefers-reduced-motion:reduce){.endpanel{animation:none}}
+#ending.calm .endpanel{animation:none}
 @media (max-width:700px){.endpanel-epilogue .stats{grid-template-columns:repeat(2,minmax(0,1fr))}.endbrand{display:none}.endtabs{margin-left:0;gap:0}.endtab{padding:16px 11px 14px;font-size:14px}.endtab .tk{display:none}.endhead{margin-bottom:20px}}
 @media (hover:none) and (pointer:coarse){.endtab .tk{display:none}}
 @media print{
