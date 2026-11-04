@@ -1186,7 +1186,7 @@ const GEST = {
   write: {dur: 3.4, fn: (p, k, u, t, S) => { S.reach(0, S.T.read, k); S.reach(1, S.T.read, k, -0.05 + Math.sin(t * 7) * 0.02, 0.02, 0.03); p.hx += 0.32 * k; S.mood = 'thinking'; }},
   // the rest of Dalwijk
   watch: {dur: 3.2, fn: (p, k, u, t, S) => { S.reach(1, S.T.read, k, -0.04, -0.04, -0.04); p.hx += 0.28 * k; S.mood = u > 0.6 ? 'surprised' : 'thinking'; }},
-  stretch: {dur: 2.8, fn: (p, k, u, t, S) => { const q = pulse(u, 0.05, 0.95) * k; S.reach(0, S.T.up, q, 0.1, 0, 0); S.reach(1, S.T.up, q, -0.1, 0, 0); p.tx -= 0.08 * q; p.hx -= 0.1 * q; S.mouth = 'o'; S.lidAdd = 0.7 * q; }},
+  stretch: {dur: 2.8, fn: (p, k, u, t, S) => { const q = pulse(u, 0.05, 0.95) * k; if (!S.busy[0]) S.reach(0, S.T.up, q, 0.1, 0, 0); if (!S.busy[1]) S.reach(1, S.T.up, q, -0.1, 0, 0); p.tx -= 0.08 * q; p.hx -= 0.1 * q; S.mouth = 'o'; S.lidAdd = 0.7 * q; }},
   beard: {dur: 2.8, fn: (p, k, u, t, S) => { S.reach(1, S.T.chin, k, 0, -0.03 - Math.abs(Math.sin(t * 4)) * 0.05, 0.02); p.hx -= 0.06 * k; S.mood = 'thinking'; }},
   pen: {dur: 2.6, fn: (p, k, u, t, S) => { S.reach(1, S.T.chin, k, -0.03, -0.04 + (pulse(u, 0.3, 0.4) + pulse(u, 0.5, 0.6)) * 0.015, 0.03); p.hx -= 0.1 * k; S.mood = 'thinking'; }},
   form: {dur: 3.2, fn: (p, k, u, t, S) => { S.reach(1, S.T.read, k, -0.05, 0, 0); p.hx += 0.26 * k; S.mood = u > 0.7 ? 'worried' : 'neutral'; }},
@@ -1287,6 +1287,7 @@ export function makeHuman(spec = {}) {
     browY: 0, tilt: 0, lid: 0, open: 0, look: 0, mouthMesh: null, mouthName: '',
     // per-frame overrides set by gestures
     mood: null, mouth: null, wink: 0, note: -1, pucker: 0, jingle: 0, talk: 0, shake: [0, 0], point: [0, 0], mugSide, T,
+    busy: [HANGING.has(L.holdL), HANGING.has(L.holdR)],   // a hand that carries a suitcase or an umbrella stays down for a stretch
     ik: [{x: 0, y: 0, z: 0, k: 0}, {x: 0, y: 0, z: 0, k: 0}],
     reach(i, pt, kk, dx = 0, dy = 0, dz = 0) { const r = this.ik[i]; if (kk <= r.k) return; r.k = kk; r.x = pt[0] + dx; r.y = pt[1] + dy; r.z = pt[2] + dz; },
   };
@@ -1382,7 +1383,7 @@ export function makeHuman(spec = {}) {
     if (stache) { stache.position.y = stacheY + S.open * (walrus ? 0.01 : 0.004); stache.scale.set(1 - S.pucker * 0.12, 1 + S.open * (walrus ? 0.14 : 0.06), 1); }
     if (fingers[0]) { fingers[0].visible = S.point[0] > 0.5; fingers[1].visible = S.point[1] > 0.5; }
     note.visible = S.note >= 0;
-    if (note.visible) { const u = (S.note * 2.2) % 1; note.position.set(0.05 + Math.sin(u * 6) * 0.025, f.mouthY + 0.02 + u * 0.3, D.zf + 0.06 + u * 0.05); note.scale.setScalar(Math.max(0.05, Math.sin(u * Math.PI)) * 1.2); }
+    if (note.visible) { const u = (S.note * 2.2) % 1; note.position.set(0.05 + Math.sin(u * 6) * 0.025, f.mouthY + 0.02 + u * 0.3, D.zf + 0.06 + u * 0.05); note.scale.setScalar(Math.max(0.05, Math.sin(u * Math.PI)) * 1.8); }
     // apply
     body.position.y = p.by + (float ? 0.1 + Math.sin(t * 1.2 + S.seed) * 0.035 : 0);
     body.rotation.x = -(st.hurt || 0) * 0.3;

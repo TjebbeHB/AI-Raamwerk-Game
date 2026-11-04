@@ -75,23 +75,22 @@ function buildViewArms() {
 }
 // Call after G.hero.look changes (the character creator does): rebuilds your body and your hands.
 export function rebuildHeroModel() {
-  const old = PL.model;
+  const old = PL.model, oldLantern = PL.lantern3?.g;
   buildHeroBody();
   if (old) {
     PL.model.root.position.copy(old.root.position); PL.model.root.rotation.copy(old.root.rotation); PL.model.root.visible = old.root.visible;
-    for (const g of [PL.lantern3Old, ...Object.values(PL.tool3Old || {})]) g?.traverse(o => { if (o.isMesh) o.geometry.dispose(); });
-    old.root.traverse(o => { if (o.isSprite) o.material.dispose(); });
+    // the old lantern was made for the old body; the body's own geometry stays cached per look, the tools use shared boxes
+    oldLantern?.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } else if (o.isSprite) o.material.dispose(); });
     disposeModel(old);
   }
-  PL.lantern3Old = PL.lantern3.g; PL.tool3Old = PL.tool3;
   carryShown = undefined;
   if (PL.armL) buildViewArms();
 }
 
 export function initPlayer() {
   PL.probe = {value: new THREE.Color(0.3, 0.26, 0.22)};
+  PL.rebuildHero = rebuildHeroModel;   // also reachable through PL (and so through the debug API)
   buildHeroBody();
-  PL.lantern3Old = PL.lantern3.g; PL.tool3Old = PL.tool3;
   // first-person view model, attached to the camera
   const view = new THREE.Group(); R.viewCamera.add(view); PL.view = view;
   const vk = new Kit({value: new THREE.Color(0, 0, 0)});
