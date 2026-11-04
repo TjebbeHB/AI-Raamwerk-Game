@@ -1,0 +1,5 @@
+{
+  "type": "module",
+  "private": true,
+  "description": "Het Orakel van Dalwijk: static single-file build of the dungeon game (see scripts/build-orakel.mjs)"
+}

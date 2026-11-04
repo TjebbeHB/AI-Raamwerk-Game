@@ -7,8 +7,11 @@
     "start": "node scripts/build.cjs --client && node server.js",
     "build": "node scripts/build.cjs",
     "check": "node --check server.js && node --check public/app.js && node --check client/entry.js && node --check client/descent.js && node --check client/dungeon.js && node --check client/trials.cjs && for f in client/world/*.js; do node --check $f || exit 1; done && node --check game/engine.cjs && node --check game/descent.cjs && node --check game/stories.cjs && node --check game/local-api.cjs && node --check game/worker.js",
-    "test": "node --test test/*.test.cjs",
-    "package:partners": "npm run build && python3 scripts/package-partners.py"
+    "test": "node --test test/*.test.cjs orakel/test/*.test.mjs",
+    "package:partners": "npm run build && python3 scripts/package-partners.py",
+    "orakel": "node scripts/build-orakel.mjs --serve",
+    "orakel:build": "node scripts/build-orakel.mjs",
+    "orakel:test": "node --test orakel/test/*.test.mjs"
   },
   "keywords": [
     "ai-kader",
