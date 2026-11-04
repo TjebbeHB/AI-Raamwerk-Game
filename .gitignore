@@ -12,3 +12,4 @@ public/game.bundle.js.map
 share/
 orakel/dist/
 orakel/test/e2e/shots/
+.claude/worktrees/
