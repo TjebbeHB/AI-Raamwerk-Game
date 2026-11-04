@@ -7,7 +7,7 @@ import {ROLES, ROLE, ROLE_NOTES, roleById, roleNote, DEAL_TIERS, dealOrder, next
 import {CHAMBERS, CHAMBER, VERDICT} from '../src/content/framework.js';
 
 const KEYS = [...CHAMBERS.map(c => c.id), 'verdict'];
-const DASHES = /[–—]/;
+const DASHES = /[\u2013\u2014]/;   // en and em dash: the house style uses neither
 const sentences = s => (s.match(/[.?!…](?=\s|$)/g) || []).length;
 // a seeded random for repeatable deals
 const seeded = seed => () => ((seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648);
