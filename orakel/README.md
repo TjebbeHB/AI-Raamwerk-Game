@@ -35,7 +35,7 @@ Elke kamer van het raamwerk (probleem en noodzaak plus de veertien raamwerk­kam
 | Toets | Actie |
 |---|---|
 | <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> · <kbd>Shift</kbd> | lopen · rennen |
-| muis (klik eerst in de wereld) | rondkijken; <kbd>Esc</kbd> geeft de muis vrij en opent het menu |
+| muis (klik eerst in de wereld) | rondkijken; <kbd>Esc</kbd> geeft de muis vrij om op knoppen te klikken, nog een keer <kbd>Esc</kbd> opent het menu |
 | <kbd>E</kbd> | praten, lezen, oppakken, gebruiken |
 | klik (of ingedrukt houden) | het gekozen gereedschap gebruiken |
 | <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> · <kbd>Q</kbd> | Toetslamp · Weegschaal · Zegel · volgende (of neerzetten wat je draagt) |
@@ -52,13 +52,13 @@ Op een tablet of telefoon verschijnen aanraakknoppen: links een stick om te lope
 
 **Het besluit.** Elke afweging komt in het dossier als *stevig*, *open punten* of *blinde vlek*. In de Zegelkamer kies je: **niet met AI**, **eerst verder onderzoeken**, **een begrensde pilot** of **invoeren met waarborgen**. Pas daarna zie je welk besluit het dossier kon dragen, waarom, en hoe het een jaar later afloopt. Het besluitdossier is te downloaden als Markdown. Wie in het stadhuis de lift van Glans neemt, slaat alles over; ook dat heeft een afloop.
 
-**Instellingen** (menu, <kbd>Esc</kbd>): camera, moeilijkheid (*Rustig*: monsters vallen niet aan, fijn voor een workshop; *Verhaal*; *Normaal*; *Pittig*), muis, blikveld, helderheid, muziek en geluid, tekstsnelheid, graphics, beeldschudden en richthulp. Op een trage laptop: kies *Snel* bij graphics, of open het spel met `?q=low`.
+**Instellingen** (menu: twee keer <kbd>Esc</kbd>, of de knop ☰): camera, moeilijkheid (*Rustig*: monsters vallen niet aan, fijn voor een workshop; *Verhaal*; *Normaal*; *Pittig*), muis, blikveld, helderheid, muziek en geluid, tekstsnelheid, graphics, beeldschudden en richthulp. Op een trage laptop: kies *Snel* bij graphics, of open het spel met `?q=low`.
 
 ## De adviesraad
 
 Eén persoon speelt (bijvoorbeeld op het grote scherm in een workshop), de anderen doen mee op hun telefoon:
 
-1. Open in het spel het menu (<kbd>Esc</kbd>) en kies **Adviesraad** en dan **Start de adviesraad**.
+1. Open in het spel het menu (twee keer <kbd>Esc</kbd>, of de knop ☰) en kies **Adviesraad** en dan **Start de adviesraad**.
 2. Anderen scannen de QR-code of openen de link. Ze vullen een voornaam of bijnaam in.
 3. Bij elke afweging verschijnen de maatregelen op de telefoons. Iedereen stemt; de speler ziet per optie hoeveel stemmen er zijn en beslist zelf.
 4. In gevechten kunnen adviseurs **steun sturen**: dat geeft de speler vertrouwen (levens) terug.

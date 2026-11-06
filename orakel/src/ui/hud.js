@@ -45,7 +45,7 @@ export function initHud() {
   tt.addEventListener('touchend', () => tt.classList.remove('down'));
   tt.addEventListener('click', nextTool);
   addEventListener('resize', () => applySettings());
-  Object.assign(UI, {toast, banner, pip, number, hurt, flash, boss, target: setTarget, dlgOpen, dlgClose, dlgLine, dlgChoices, dlgSelect, dlgFinish, prompt: setPrompt, applySettings, refreshKeys});
+  Object.assign(UI, {mouseHint, toast, banner, pip, number, hurt, flash, boss, target: setTarget, dlgOpen, dlgClose, dlgLine, dlgChoices, dlgSelect, dlgFinish, prompt: setPrompt, applySettings, refreshKeys});
   applySettings();
   refreshKeys();
 }
@@ -188,6 +188,19 @@ body.touch #dlgLeave,#dlgLeave.touch{padding:6px 12px;font-size:18px}
   if (!show) return;
   b.classList.toggle('touch', IS_TOUCH);
   b.replaceChildren(...(IS_TOUCH ? [el('span', {text: '✕'})] : [el('kbd', {text: 'Esc'}), el('span', {text: 'stoppen'})]));
+}
+// Shown while the mouse is free on a desktop: how to get back to looking around, and to the menu
+function mouseHint(on) {
+  let h = $('mouseHint');
+  if (!h) {
+    h = el('div', {id: 'mouseHint', class: 'card', role: 'status'});
+    $('hud').append(h);
+    addStyles('mouse-hint', `#mouseHint{position:absolute;left:max(16px,env(safe-area-inset-left));bottom:max(16px,env(safe-area-inset-bottom));max-width:290px;padding:9px 13px;font:14px/1.4 var(--f-ui);color:var(--parch);display:grid;gap:4px;pointer-events:none;z-index:3}
+#mouseHint[hidden]{display:none}
+@media (max-width:980px){#mouseHint{bottom:calc(max(16px,env(safe-area-inset-bottom)) + 104px)}}`);
+  }
+  h.hidden = !on;
+  if (on) h.innerHTML = `<span>🖱️ <b>Muis vrij.</b> Klik op knoppen, of klik in de wereld om weer rond te kijken.</span><span class="label"><kbd>Esc</kbd> opent het menu</span>`;
 }
 function dlgOpen() { $('dialog').hidden = false; $('hud').classList.add('talking'); }
 function dlgClose() {

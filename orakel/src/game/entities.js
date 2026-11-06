@@ -419,12 +419,42 @@ class Crate extends Ent {
     setBlock(this.tx, this.tz, true);
     this.push = 0; this.moving = null;
   }
-  get interactable() { return false; }
-  tryPush(dx, dz) {
+  // E pushes it away from you along the grid, just like walking into it
+  get interactable() { return !this.moving && !this.def.fixed && this.dist() < 2.4; }
+  label() { return this.def.label || 'Duw het krat'; }
+  interact() {
+    const dx = this.x - P.x, dz = this.z - P.z;
+    const ax = Math.abs(dx) > Math.abs(dz) ? Math.sign(dx) : 0, az = ax ? 0 : Math.sign(dz);
+    if (!this.tryPush(ax, az)) this.blocked();
+  }
+  canMove(dx, dz) {
     if (this.moving || this.def.fixed) return false;
     const nx = this.tx + dx, nz = this.tz + dz;
     if (!walkTile(nx, nz) || tileType(nx, nz) === T.WATER || tileType(nx, nz) === T.DOOR) return false;
     for (const e of W.ents) if ((e instanceof Crate && e.tx === nx && e.tz === nz) || ((e instanceof Npc || e instanceof Chest) && e.visible && e.tx === nx && e.tz === nz)) return false;
+    return true;
+  }
+  // a push that cannot happen says so; a crate stuck on every side (and not on a plate) goes back home
+  blocked() {
+    const now = performance.now();
+    if (now - (this.blockT || 0) < 900) return;
+    this.blockT = now;
+    const stuck = ![[1, 0], [-1, 0], [0, 1], [0, -1]].some(([x, z]) => this.canMove(x, z));
+    const onPlate = W.ents.some(e => e instanceof Plate && e.tx === this.tx && e.tz === this.tz);
+    const away = this.tx !== this.home.x || this.tz !== this.home.z;
+    if (stuck && !onPlate && away) {
+      this.resetHome();
+      FX.burst(this.x, 0.6, this.z, 18, {color: [0xd8c8a8, 0xffffff], speed: 2.5, life: 0.7, s0: 0.2});
+      SFX.play('push');
+      UI.toast('Het krat zat klem', 'Joop heeft hem teruggezet op zijn plek.');
+      return;
+    }
+    UI.number(this.x, 1.9, this.z, 'Die kant kan hij niet op', '#e8c27a', false);
+    SFX.play('locked');
+  }
+  tryPush(dx, dz) {
+    if (!this.canMove(dx, dz)) return false;
+    const nx = this.tx + dx, nz = this.tz + dz;
     setBlock(this.tx, this.tz, false);
     this.moving = {fx: this.x, fz: this.z, t: 0};
     this.tx = nx; this.tz = nz;

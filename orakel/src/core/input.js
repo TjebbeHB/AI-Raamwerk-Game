@@ -59,9 +59,11 @@ export function bindInput(canvas) {
   addEventListener('blur', () => { Input.keys.clear(); Input.mouseDown = [false, false, false]; });
   canvas.addEventListener('mousedown', e => {
     if (!Input.enabled) return;
+    // with a free mouse, a click in the world only takes the mouse back: it does not fire your tool
+    // (unless this browser refuses to capture the mouse: then clicks keep working as before)
+    if (!Input.locked && !Input.touch) { lock(); if (!Input.lockFailed) return; }
     Input.mouseDown[e.button] = true;
     Input.clicks[e.button]++;
-    if (!Input.locked && !Input.touch) lock();
   });
   addEventListener('mouseup', e => { Input.mouseDown[e.button] = false; });
   canvas.addEventListener('contextmenu', e => e.preventDefault());
@@ -70,9 +72,11 @@ export function bindInput(canvas) {
     Input.mdx += e.movementX || 0; Input.mdy += e.movementY || 0;
   });
   canvas.addEventListener('wheel', e => { Input.wheel += Math.sign(e.deltaY); e.preventDefault(); }, {passive: false});
+  document.addEventListener('pointerlockerror', () => { Input.lockFailed = true; });
   document.addEventListener('pointerlockchange', () => {
     const was = Input.locked;
     Input.locked = document.pointerLockElement === canvas;
+    if (Input.locked) Input.lockFailed = false;
     // back in the world: the focus leaves the menu button you clicked, so Space dashes instead of pressing it again
     if (Input.locked) { const a = document.activeElement; if (a && a !== canvas) a.blur?.(); canvas.focus?.({preventScroll: true}); }
     if (was && !Input.locked) Input.onLockLost?.();

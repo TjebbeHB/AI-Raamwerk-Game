@@ -34,7 +34,9 @@ export function boot({onReady} = {}) {
     if (Input.expectUnlock) { Input.expectUnlock = false; return; }
     if (GAME.mode !== 'play' || GAME.modal) return;
     if (DLG.active) { if (document.hasFocus()) leave(); return; }      // Esc during a talk: walk away (not when you switch windows)
-    UI.modal?.('menu');
+    // Esc frees the mouse so you can click buttons on screen (a second Esc opens the menu);
+    // switching to another window pauses the game as before
+    if (!document.hasFocus()) UI.modal?.('menu');
   };
   Input.onKey = e => onKey(e);
   setTravel(travel);
@@ -291,6 +293,9 @@ export function step(dt) {
     updateCombat(dt, active || (playing && DLG.active && DLG.combatOn));
     if (active) { checkZone(); for (const fn of ON.tick) fn(dt); }
     updateHud(dt, tracked());
+    // the free-mouse hint: on a desktop, while playing with the mouse released
+    const free = GAME.mode === 'play' && !Input.locked && !Input.touch && !GAME.modal && !DLG.active && !P.dead;
+    if (free !== GAME.mouseFree) { GAME.mouseFree = free; UI.mouseHint?.(free); }
   }
   for (const fn of GAME.onFrame) fn(dt);
   FX.update(dt);

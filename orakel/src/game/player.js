@@ -193,15 +193,25 @@ export function updatePlayer(dt, active) {
     const c = collide(nx, nz, P.r);
     P.x = c.x; P.z = c.z;
   }
-  // pushing crates: keep walking into one along an axis
+  // pushing crates: walk roughly toward one while touching it. The side you touch decides the
+  // direction, so walking in at an angle or a little off-centre still works.
   if (active && !P.dashT && Math.hypot(wx, wz) > 0.5) {
-    const ax = Math.abs(wx) > Math.abs(wz) ? Math.sign(wx) : 0, az = ax ? 0 : Math.sign(wz);
-    const tx = tileOf(P.x + ax * (P.r + 0.15)), tz = tileOf(P.z + az * (P.r + 0.15));
-    const crate = W.ents.find(e => e instanceof Crate && e.tx === tx && e.tz === tz && !e.moving);
-    if (crate && (tx !== tileOf(P.x) || tz !== tileOf(P.z))) {
-      PL.pushT = PL.pushDir === `${ax},${az},${crate.tx},${crate.tz}` ? PL.pushT + dt : 0;
-      PL.pushDir = `${ax},${az},${crate.tx},${crate.tz}`;
-      if (PL.pushT > 0.22) { crate.tryPush(ax, az); PL.pushT = 0; }
+    let best = null, bestAlong = 9;
+    const wl = Math.hypot(wx, wz);
+    for (const e of W.ents) {
+      if (!(e instanceof Crate) || e.moving || e.def.fixed) continue;
+      const dx = e.x - P.x, dz = e.z - P.z;
+      const ax = Math.abs(dx) > Math.abs(dz) ? Math.sign(dx) : 0, az = ax ? 0 : Math.sign(dz);
+      const along = Math.abs(ax ? dx : dz), side = Math.abs(ax ? dz : dx);
+      if (along > TILE / 2 + P.r + 0.4 || side > TILE / 2 - 0.05) continue;     // touching that face
+      if ((wx * ax + wz * az) / wl < 0.55) continue;                              // walking into it
+      if (along < bestAlong) { bestAlong = along; best = {e, ax, az}; }
+    }
+    if (best) {
+      const key = `${best.ax},${best.az},${best.e.tx},${best.e.tz}`;
+      PL.pushT = PL.pushDir === key ? PL.pushT + dt : 0;
+      PL.pushDir = key;
+      if (PL.pushT > 0.18) { if (!best.e.tryPush(best.ax, best.az)) { best.e.blocked?.(); PL.pushT = -0.6; } else PL.pushT = 0; }
     } else { PL.pushT = 0; PL.pushDir = null; }
   }
   // ---- ground, chasms and falling ----
